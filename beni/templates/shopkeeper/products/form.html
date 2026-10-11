@@ -1,0 +1,48 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{{ page_title }} | BENI{% endblock %}
+{% block body_class %}shopkeeper-page{% endblock %}
+{% block role_styles %}
+<link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+{% endblock %}
+{% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
+{% block content %}
+<div class="product-management">
+    <header class="management-heading">
+        <div><p class="management-kicker">BENI / SHOPKEEPER</p><h1>{{ page_title }}</h1><p>Products can only be assigned to shops owned by your account.</p></div>
+        <a class="management-text-link" href="{% url 'products:list' %}">&larr; Back to products</a>
+    </header>
+    {% if not has_shops %}
+        <section class="management-empty" aria-labelledby="no-shop-title">
+            <h2 id="no-shop-title">Create a shop before adding products</h2>
+            <p>Product ownership is attached to a shop you manage.</p>
+            <a class="management-button" href="{% url 'shops:create' %}">Create a shop <span aria-hidden="true">&rarr;</span></a>
+        </section>
+    {% else %}
+        <section class="management-form-panel" aria-labelledby="product-form-title">
+            <h2 id="product-form-title">Product details</h2>
+            <form method="post" enctype="multipart/form-data" class="management-form" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="management-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% for field in form %}
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="management-check-field">
+                            {{ field }}{{ field.label_tag }}
+                            {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                        </div>
+                    {% else %}
+                        <div class="management-field {% if field.name == 'description' %}is-wide{% endif %}">
+                            {{ field.label_tag }}
+                            {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                            {{ field }}
+                            {% if field.help_text %}<span class="management-help">{{ field.help_text }}</span>{% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                <div class="management-form-actions"><button class="management-button" type="submit">Save product</button><a class="management-text-link" href="{% url 'products:list' %}">Cancel</a></div>
+            </form>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

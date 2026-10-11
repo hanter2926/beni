@@ -8,8 +8,8 @@
     <p class="role-label">Shopkeeper workspace</p>
     <nav class="role-nav" id="role-navigation" aria-label="Shopkeeper navigation">
         <a href="#overview" aria-current="page">Overview</a>
-        <a href="#storefront">Storefront</a>
-        <a href="#catalog">Catalog</a>
+        <a href="{% url 'shops:list' %}">My shops</a>
+        <a href="{% url 'products:list' %}">Products</a>
         <a href="#orders">Orders</a>
     </nav>
 </aside>
@@ -28,10 +28,10 @@
             <button type="button" role="tab" id="tab-orders" aria-selected="false" aria-controls="panel-orders" tabindex="-1">Orders</button>
         </div>
         <div class="shopkeeper-panel" role="tabpanel" id="panel-storefront" aria-labelledby="tab-storefront" tabindex="0">
-            <span class="shopkeeper-panel-mark" aria-hidden="true">S</span><div><h3>Set up your BENI storefront</h3><p>Store profile and publishing tools will appear here when shop services are connected.</p></div><span class="shopkeeper-panel-state">Not connected</span>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">S</span><div><h3>Manage your BENI storefront</h3><p>Create a shop profile and update the details customers use to find it.</p><a class="shopkeeper-panel-link" href="{% url 'shops:list' %}">Open my shops <span aria-hidden="true">&rarr;</span></a></div>
         </div>
         <div class="shopkeeper-panel" role="tabpanel" id="panel-catalog" aria-labelledby="tab-catalog" tabindex="0" hidden>
-            <span class="shopkeeper-panel-mark" aria-hidden="true">C</span><div><h3>Manage your catalog</h3><p>Product management is not connected yet. No catalog or inventory data is being shown.</p></div><span class="shopkeeper-panel-state">Not connected</span>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">C</span><div><h3>Manage your catalog</h3><p>Add products to one of your shops and keep stock and availability up to date.</p><a class="shopkeeper-panel-link" href="{% url 'products:list' %}">Open products <span aria-hidden="true">&rarr;</span></a></div>
         </div>
         <div class="shopkeeper-panel" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders" tabindex="0" hidden>
             <span class="shopkeeper-panel-mark" aria-hidden="true">O</span><div><h3>Keep orders moving</h3><p>Order and payment workflows will appear when the existing services are wired into this workspace.</p></div><span class="shopkeeper-panel-state">Not connected</span>

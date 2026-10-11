@@ -1,0 +1,40 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}My shops | BENI{% endblock %}
+{% block body_class %}shopkeeper-page{% endblock %}
+{% block role_styles %}
+<link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+{% endblock %}
+{% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
+{% block content %}
+<div class="shop-management">
+    <header class="management-heading">
+        <div><p class="management-kicker">BENI / SHOPKEEPER</p><h1>My shops</h1><p>Manage the shop profiles owned by your account.</p></div>
+        <a class="management-button" href="{% url 'shops:create' %}">Add a shop <span aria-hidden="true">+</span></a>
+    </header>
+    {% if shops %}
+        <div class="management-list">
+            {% for shop in shops %}
+                <article class="management-card">
+                    <div class="management-card-heading"><div><p class="management-eyebrow">{{ shop.category }}</p><h2>{{ shop.name }}</h2></div><span class="management-status {% if not shop.is_active %}is-inactive{% endif %}">{{ shop.is_active|yesno:'Active,Inactive' }}</span></div>
+                    <p class="management-description">{{ shop.description|default:'No shop description added yet.' }}</p>
+                    <p class="management-location">{{ shop.city }}, {{ shop.state }} {{ shop.postal_code }}</p>
+                    <div class="management-card-actions">
+                        <a href="{% url 'shops:edit' shop.id %}">Edit shop <span aria-hidden="true">&rarr;</span></a>
+                        <a href="{% url 'products:create' %}">Add a product <span aria-hidden="true">&rarr;</span></a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="management-empty" aria-labelledby="empty-shops-title">
+            <span class="management-empty-mark" aria-hidden="true">01</span>
+            <p class="management-eyebrow">Your storefront starts here</p>
+            <h2 id="empty-shops-title">No shops yet</h2>
+            <p>Create a shop profile to organize products under your own account.</p>
+            <a class="management-button" href="{% url 'shops:create' %}">Create your first shop <span aria-hidden="true">&rarr;</span></a>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

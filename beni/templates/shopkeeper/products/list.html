@@ -1,0 +1,40 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Products | BENI{% endblock %}
+{% block body_class %}shopkeeper-page{% endblock %}
+{% block role_styles %}
+<link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+{% endblock %}
+{% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
+{% block content %}
+<div class="product-management">
+    <header class="management-heading">
+        <div><p class="management-kicker">BENI / SHOPKEEPER</p><h1>Products</h1><p>Only products belonging to your shops are shown here.</p></div>
+        {% if has_shops %}<a class="management-button" href="{% url 'products:create' %}">Add a product <span aria-hidden="true">+</span></a>{% else %}<a class="management-button" href="{% url 'shops:create' %}">Create a shop first <span aria-hidden="true">&rarr;</span></a>{% endif %}
+    </header>
+    {% if products %}
+        <div class="management-list">
+            {% for product in products %}
+                <article class="management-card product-card">
+                    {% if product.image %}<img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<div class="product-image-placeholder" aria-hidden="true">BENI</div>{% endif %}
+                    <div class="product-card-content">
+                        <div class="management-card-heading"><div><p class="management-eyebrow">{{ product.shop.name }} / {{ product.category }}</p><h2>{{ product.name }}</h2></div><span class="management-status {% if not product.is_active %}is-inactive{% endif %}">{{ product.is_active|yesno:'Active,Inactive' }}</span></div>
+                        <p class="management-description">{{ product.description|default:'No product description added yet.' }}</p>
+                        <div class="product-facts"><span>{{ product.price|floatformat:2 }}</span><span>Stock: {{ product.stock_quantity }}</span><span>SKU: {{ product.sku|default:'Not set' }}</span></div>
+                        <div class="management-card-actions"><a href="{% url 'products:edit' product.id %}">Edit product <span aria-hidden="true">&rarr;</span></a></div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="management-empty" aria-labelledby="empty-products-title">
+            <span class="management-empty-mark" aria-hidden="true">02</span>
+            <p class="management-eyebrow">Your catalog</p>
+            <h2 id="empty-products-title">No products yet</h2>
+            <p>{% if has_shops %}Add a product to one of your shops to begin your catalog.{% else %}Create a shop before adding products.{% endif %}</p>
+            {% if has_shops %}<a class="management-button" href="{% url 'products:create' %}">Add your first product <span aria-hidden="true">&rarr;</span></a>{% else %}<a class="management-button" href="{% url 'shops:create' %}">Create a shop <span aria-hidden="true">&rarr;</span></a>{% endif %}
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

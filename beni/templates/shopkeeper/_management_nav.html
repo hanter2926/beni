@@ -1,0 +1,8 @@
+<aside class="side-rail shopkeeper-rail">
+    <p class="role-label">Shopkeeper workspace</p>
+    <nav class="role-nav" id="role-navigation" aria-label="Shopkeeper navigation">
+        <a href="{% url 'dashboard:shopkeeper' %}">Overview</a>
+        <a href="{% url 'shops:list' %}" {% if active_nav == 'shops' %}aria-current="page"{% endif %}>My shops</a>
+        <a href="{% url 'products:list' %}" {% if active_nav == 'products' %}aria-current="page"{% endif %}>Products</a>
+    </nav>
+</aside>
