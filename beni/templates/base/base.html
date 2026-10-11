@@ -1,0 +1,58 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#193b35">
+    <title>{% block title %}BENI{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base/shell.css' %}">
+    {% block role_styles %}{% endblock %}
+</head>
+<body class="{% block body_class %}site-page{% endblock %}">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="brand" href="{% url 'home' %}" aria-label="BENI home">
+                <span class="brand-mark" aria-hidden="true">B</span>
+                <span class="brand-name">BENI</span>
+            </a>
+            <div class="header-actions">
+                {% if role_label %}
+                    <button class="menu-toggle" type="button" aria-controls="role-navigation" aria-expanded="false">
+                        <span class="menu-toggle-icon" aria-hidden="true"></span>
+                        <span class="menu-toggle-label">Menu</span>
+                    </button>
+                {% endif %}
+                {% if request.user.is_authenticated %}
+                    <span class="account-name">{{ request.user.get_username }}</span>
+                    <form class="signout-form" method="post" action="{% url 'accounts:logout' %}">
+                        {% csrf_token %}
+                        <button class="text-button" type="submit">Sign out</button>
+                    </form>
+                {% else %}
+                    <a class="header-link" href="{% url 'accounts:login' %}">Sign in</a>
+                    <a class="header-cta" href="{% url 'accounts:register' %}">Create account</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="{% block layout_class %}workspace-layout{% endblock %}">
+            {% block sidebar %}{% endblock %}
+            <main class="main-content" id="main-content">
+                {% if messages %}
+                    <div class="message-stack" aria-live="polite">
+                        {% for message in messages %}
+                            <p class="message message-{{ message.tags }}">{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    <script defer src="{% static 'js/base/navigation.js' %}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

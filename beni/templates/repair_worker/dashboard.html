@@ -1,0 +1,35 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Repair worker desk | BENI{% endblock %}
+{% block body_class %}repair-worker-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_worker/dashboard.css' %}">{% endblock %}
+{% block sidebar %}
+<aside class="side-rail repair-rail">
+    <p class="role-label">Repair worker desk</p>
+    <nav class="role-nav" id="role-navigation" aria-label="Repair worker navigation">
+        <a href="#today" aria-current="page">Today</a>
+        <a href="#requests">Requests</a>
+        <a href="#schedule">Schedule</a>
+        <a href="#profile">My profile</a>
+    </nav>
+</aside>
+{% endblock %}
+{% block content %}
+<div class="repair-workspace" id="today">
+    <header class="repair-heading"><div><p class="repair-kicker">BENI / REPAIR WORKER</p><h1>Your workday, at a glance.</h1><p>A focused desk for service requests and your schedule.</p></div><span class="repair-date-mark" aria-hidden="true">RW</span></header>
+    <section class="repair-queue" id="requests" aria-labelledby="queue-title">
+        <div class="repair-queue-header"><div><p class="repair-overline">Work queue</p><h2 id="queue-title">Keep the next job in sight</h2></div><span class="repair-queue-tag">Service desk</span></div>
+        <div class="repair-tabs" role="tablist" aria-label="Repair work queue">
+            <button type="button" role="tab" id="tab-requests" aria-selected="true" aria-controls="panel-requests">Requests</button>
+            <button type="button" role="tab" id="tab-schedule" aria-selected="false" aria-controls="panel-schedule" tabindex="-1">Schedule</button>
+            <button type="button" role="tab" id="tab-profile" aria-selected="false" aria-controls="panel-profile" tabindex="-1">Profile</button>
+        </div>
+        <div class="repair-tab-panel" role="tabpanel" id="panel-requests" aria-labelledby="tab-requests" tabindex="0"><span class="repair-empty-icon" aria-hidden="true">01</span><div><h3>No repair requests are connected yet.</h3><p>New service requests will appear here once the booking workflow is connected.</p></div></div>
+        <div class="repair-tab-panel" role="tabpanel" id="panel-schedule" aria-labelledby="tab-schedule" tabindex="0" hidden><span class="repair-empty-icon" aria-hidden="true">02</span><div><h3>Your schedule has room to grow.</h3><p>Appointments will be listed here when booking data is available.</p></div></div>
+        <div class="repair-tab-panel" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile" tabindex="0" hidden><span class="repair-empty-icon" aria-hidden="true">03</span><div><h3>Service profile</h3><p>Profile and availability controls are not connected yet.</p></div></div>
+    </section>
+    <section class="repair-guidance" id="schedule"><span class="repair-guidance-mark" aria-hidden="true">!</span><div><p class="repair-overline">Before you begin</p><h2>Stay in the loop.</h2><p>BENI will show assigned requests here after your repair-worker account is connected to the booking service.</p></div><a href="#profile" class="repair-guidance-link">View profile panel <span aria-hidden="true">&rarr;</span></a></section>
+    <footer class="repair-profile" id="profile"><span>Signed in</span><strong>{{ request.user.get_username }}</strong><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form></footer>
+</div>
+{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/repair_worker/work-queue.js' %}"></script>{% endblock %}

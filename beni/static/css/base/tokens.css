@@ -1,0 +1,43 @@
+:root {
+    color-scheme: light;
+    --ink: #183530;
+    --ink-soft: #4d625c;
+    --paper: #f3f6f3;
+    --surface: #ffffff;
+    --line: #dce5df;
+    --green: #286c59;
+    --green-deep: #19483d;
+    --coral: #e57f67;
+    --gold: #efbd58;
+    --blue: #4d7790;
+    --danger: #a13c39;
+    --shadow-soft: 0 14px 38px rgb(24 53 48 / 8%);
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --content-width: 1320px;
+    font-family: "Aptos", "Segoe UI", sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+html { min-width: 320px; scroll-behavior: smooth; }
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+button, input { font: inherit; }
+a { color: inherit; }
+
+button:focus-visible, a:focus-visible, input:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 3px;
+}
+
+::selection { background: #cde4d6; color: var(--ink); }

@@ -1,0 +1,46 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Shopkeeper workspace | BENI{% endblock %}
+{% block body_class %}shopkeeper-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">{% endblock %}
+{% block sidebar %}
+<aside class="side-rail shopkeeper-rail">
+    <p class="role-label">Shopkeeper workspace</p>
+    <nav class="role-nav" id="role-navigation" aria-label="Shopkeeper navigation">
+        <a href="#overview" aria-current="page">Overview</a>
+        <a href="#storefront">Storefront</a>
+        <a href="#catalog">Catalog</a>
+        <a href="#orders">Orders</a>
+    </nav>
+</aside>
+{% endblock %}
+{% block content %}
+<div class="shopkeeper-workspace" id="overview">
+    <header class="shopkeeper-heading">
+        <div><p class="shopkeeper-kicker">BENI / SHOPKEEPER</p><h1>Your store, in one place.</h1><p>Keep an eye on the storefront and the work behind it.</p></div>
+        <span class="shopkeeper-status"><i aria-hidden="true"></i> Workspace ready</span>
+    </header>
+    <section class="shopkeeper-board" aria-labelledby="store-status-title">
+        <div class="shopkeeper-board-top"><div><p class="shopkeeper-overline">Store status</p><h2 id="store-status-title">A clear view of your next steps</h2></div><span class="shopkeeper-board-index">01 / 03</span></div>
+        <div class="shopkeeper-tabs" role="tablist" aria-label="Store workspace sections">
+            <button type="button" role="tab" id="tab-storefront" aria-selected="true" aria-controls="panel-storefront">Storefront</button>
+            <button type="button" role="tab" id="tab-catalog" aria-selected="false" aria-controls="panel-catalog" tabindex="-1">Catalog</button>
+            <button type="button" role="tab" id="tab-orders" aria-selected="false" aria-controls="panel-orders" tabindex="-1">Orders</button>
+        </div>
+        <div class="shopkeeper-panel" role="tabpanel" id="panel-storefront" aria-labelledby="tab-storefront" tabindex="0">
+            <span class="shopkeeper-panel-mark" aria-hidden="true">S</span><div><h3>Set up your BENI storefront</h3><p>Store profile and publishing tools will appear here when shop services are connected.</p></div><span class="shopkeeper-panel-state">Not connected</span>
+        </div>
+        <div class="shopkeeper-panel" role="tabpanel" id="panel-catalog" aria-labelledby="tab-catalog" tabindex="0" hidden>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">C</span><div><h3>Manage your catalog</h3><p>Product management is not connected yet. No catalog or inventory data is being shown.</p></div><span class="shopkeeper-panel-state">Not connected</span>
+        </div>
+        <div class="shopkeeper-panel" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders" tabindex="0" hidden>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">O</span><div><h3>Keep orders moving</h3><p>Order and payment workflows will appear when the existing services are wired into this workspace.</p></div><span class="shopkeeper-panel-state">Not connected</span>
+        </div>
+    </section>
+    <div class="shopkeeper-bottom" id="storefront">
+        <section class="shopkeeper-checklist" id="catalog" aria-labelledby="checklist-title"><p class="shopkeeper-overline">Workspace guide</p><h2 id="checklist-title">Store essentials</h2><ol><li><span>01</span><div><strong>Store profile</strong><small>Connect shop information</small></div><b>Pending</b></li><li><span>02</span><div><strong>Product catalog</strong><small>Connect product management</small></div><b>Pending</b></li><li><span>03</span><div><strong>Order handling</strong><small>Connect order workflow</small></div><b>Pending</b></li></ol></section>
+        <aside class="shopkeeper-aside" id="orders"><span class="shopkeeper-aside-icon" aria-hidden="true">+</span><p class="shopkeeper-overline">Your role</p><h2>{{ request.user.get_username }}</h2><p>Shopkeeper access is provided through your account group.</p><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out <span aria-hidden="true">&rarr;</span></button></form></aside>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/shopkeeper/store-tabs.js' %}"></script>{% endblock %}

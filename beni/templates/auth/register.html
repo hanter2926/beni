@@ -1,0 +1,36 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Create account | BENI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block layout_class %}auth-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<section class="auth-wrap auth-wrap-register" aria-labelledby="auth-title">
+    <div class="auth-aside">
+        <p class="eyebrow">Start with BENI</p>
+        <h1>Local finds. A little closer.</h1>
+        <p>Create a customer account to get started. Workspaces for other roles are assigned by an administrator.</p>
+        <span class="aside-stamp" aria-hidden="true">B</span>
+    </div>
+    <div class="auth-panel">
+        <p class="eyebrow">Customer account</p>
+        <h2 id="auth-title">Create your account</h2>
+        <p class="form-intro">A few details, then you are in.</p>
+        <form method="post" class="account-form" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    {{ field.label_tag }}
+                    {% if field.errors %}<div class="field-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                    {{ field }}
+                    {% if field.help_text %}<div class="field-help" id="id_{{ field.name }}_help">{{ field.help_text|safe }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <button class="button button-primary form-submit" type="submit">Create account <span aria-hidden="true">&rarr;</span></button>
+        </form>
+        <p class="auth-switch">Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/auth/auth.js' %}"></script>{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Customer space | BENI{% endblock %}
+{% block body_class %}customer-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}">{% endblock %}
+{% block sidebar %}
+<aside class="side-rail customer-rail">
+    <p class="role-label">Customer space</p>
+    <nav class="role-nav" id="role-navigation" aria-label="Customer navigation">
+        <a href="#discover" aria-current="page">Discover</a>
+        <a href="#browse">Browse and orders</a>
+        <a href="#services">Repair services</a>
+        <a href="#account">Account</a>
+    </nav>
+</aside>
+{% endblock %}
+{% block content %}
+<div class="customer-workspace">
+    <p class="customer-kicker">BENI / CUSTOMER</p>
+    <section class="customer-welcome" id="discover" aria-labelledby="customer-title">
+        <div class="customer-welcome-copy">
+            <p class="customer-overline">A good place to start</p>
+            <h1 id="customer-title">Your neighborhood, closer.</h1>
+            <p>Find local shops and repair help, all from one customer space.</p>
+            <a class="customer-action" href="#browse">Explore BENI <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="customer-welcome-art" aria-hidden="true">
+            <span class="art-sun"></span>
+            <span class="art-roof"></span>
+            <span class="art-storefront"><i></i><i></i><i></i></span>
+            <span class="art-caption">Around the corner</span>
+        </div>
+    </section>
+
+    <section class="customer-browse" id="browse" aria-labelledby="browse-title">
+        <div class="customer-section-heading">
+            <div><p class="customer-overline">Choose your next step</p><h2 id="browse-title">Browse BENI</h2></div>
+            <span class="customer-section-note">Three ways to get moving</span>
+        </div>
+        <div class="customer-tabs" role="tablist" aria-label="Browse BENI">
+            <button type="button" role="tab" id="tab-shops" aria-selected="true" aria-controls="panel-shops">Local shops</button>
+            <button type="button" role="tab" id="tab-repair" aria-selected="false" aria-controls="panel-repair" tabindex="-1">Repair help</button>
+            <button type="button" role="tab" id="tab-orders" aria-selected="false" aria-controls="panel-orders" tabindex="-1">My orders</button>
+        </div>
+        <div class="customer-tab-panel" role="tabpanel" id="panel-shops" aria-labelledby="tab-shops" tabindex="0">
+            <div class="customer-empty-mark" aria-hidden="true">01</div>
+            <div><h3>Local shop listings are getting ready.</h3><p>The shop directory will appear here when the BENI catalog is connected.</p></div>
+        </div>
+        <div class="customer-tab-panel" role="tabpanel" id="panel-repair" aria-labelledby="tab-repair" tabindex="0" hidden>
+            <div class="customer-empty-mark" aria-hidden="true">02</div>
+            <div><h3>Repair services will live here.</h3><p>When repair listings are available, you can start a service request from this space.</p></div>
+        </div>
+        <div class="customer-tab-panel" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders" tabindex="0" hidden>
+            <div class="customer-empty-mark" aria-hidden="true">03</div>
+            <div><h3>Your order history has a place.</h3><p>Order details will appear here after BENI ordering is connected.</p></div>
+        </div>
+    </section>
+
+    <div class="customer-lower-grid">
+        <section class="customer-note" id="services" aria-labelledby="services-title">
+            <p class="customer-overline">Made for everyday errands</p>
+            <h2 id="services-title">Useful things, from nearby people.</h2>
+            <p>Shop, book a repair, or check back on an order from the same account.</p>
+        </section>
+        <section class="customer-account" id="account" aria-labelledby="account-title">
+            <span class="customer-account-symbol" aria-hidden="true">{{ request.user.get_username|first|upper }}</span>
+            <div><p class="customer-overline">Signed in as</p><h2 id="account-title">{{ request.user.get_username }}</h2><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="customer-account-link" type="submit">Sign out</button></form></div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/customer/discovery.js' %}"></script>{% endblock %}

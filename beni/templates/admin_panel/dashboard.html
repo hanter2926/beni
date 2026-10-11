@@ -1,0 +1,34 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Admin operations | BENI{% endblock %}
+{% block body_class %}admin-panel-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/admin_panel/dashboard.css' %}">{% endblock %}
+{% block sidebar %}
+<aside class="side-rail admin-panel-rail">
+    <p class="role-label">Admin operations</p>
+    <nav class="role-nav" id="role-navigation" aria-label="Admin navigation">
+        <a href="#overview" aria-current="page">Overview</a>
+        <a href="#people">People</a>
+        <a href="#services">Services</a>
+        <a href="{% url 'admin:index' %}">Django admin</a>
+    </nav>
+</aside>
+{% endblock %}
+{% block content %}
+<div class="admin-workspace" id="overview">
+    <header class="admin-heading"><div><p class="admin-kicker">BENI / ADMINISTRATION</p><h1>Operations overview</h1><p>Administrative workspace for BENI staff.</p></div><span class="admin-access-badge"><i aria-hidden="true"></i> Staff access</span></header>
+    <section class="admin-status" aria-labelledby="status-title"><div class="admin-status-heading"><div><p class="admin-overline">System workspace</p><h2 id="status-title">An honest view of what is connected</h2></div><span class="admin-status-stamp">BENI / OPS</span></div>
+        <div class="admin-tabs" role="tablist" aria-label="Administration sections">
+            <button type="button" role="tab" id="tab-people" aria-selected="true" aria-controls="panel-people">People</button>
+            <button type="button" role="tab" id="tab-services" aria-selected="false" aria-controls="panel-services" tabindex="-1">Services</button>
+            <button type="button" role="tab" id="tab-system" aria-selected="false" aria-controls="panel-system" tabindex="-1">System</button>
+        </div>
+        <div class="admin-tab-panel" role="tabpanel" id="panel-people" aria-labelledby="tab-people" tabindex="0"><span class="admin-panel-code">01</span><div><h3>User management is not wired into this overview.</h3><p>Use Django admin for existing user and group administration.</p></div><a href="{% url 'admin:auth_user_changelist' %}">Open users <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-tab-panel" role="tabpanel" id="panel-services" aria-labelledby="tab-services" tabindex="0" hidden><span class="admin-panel-code">02</span><div><h3>Service metrics are not connected.</h3><p>Orders, repair bookings, payments, and shop data are not represented here.</p></div><a href="{% url 'admin:index' %}">Open Django admin <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-tab-panel" role="tabpanel" id="panel-system" aria-labelledby="tab-system" tabindex="0" hidden><span class="admin-panel-code">03</span><div><h3>Core administration remains available.</h3><p>The existing Django admin route is preserved separately from this staff dashboard.</p></div><a href="{% url 'admin:index' %}">Open Django admin <span aria-hidden="true">&rarr;</span></a></div>
+    </section>
+    <section class="admin-records" id="people"><div class="admin-records-heading"><div><p class="admin-overline">Operations links</p><h2>Existing controls</h2></div><a href="{% url 'admin:index' %}">Django admin <span aria-hidden="true">&nearr;</span></a></div><div class="admin-record-row"><span class="admin-record-icon">U</span><div><strong>Users and groups</strong><small>Use staff permissions to manage access</small></div><a href="{% url 'admin:auth_user_changelist' %}" aria-label="Manage users">Open <span aria-hidden="true">&rarr;</span></a></div><div class="admin-record-row" id="services"><span class="admin-record-icon">A</span><div><strong>Application records</strong><small>Browse registered Django models</small></div><a href="{% url 'admin:index' %}" aria-label="Browse registered models">Open <span aria-hidden="true">&rarr;</span></a></div></section>
+    <p class="admin-user-note">Signed in as <strong>{{ request.user.get_username }}</strong></p>
+</div>
+{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/admin_panel/overview.js' %}"></script>{% endblock %}
