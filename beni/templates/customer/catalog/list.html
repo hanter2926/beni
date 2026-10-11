@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Shop local | BENI{% endblock %}
+{% block body_class %}customer-page catalog-page{% endblock %}
+{% block layout_class %}catalog-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}">{% endblock %}
+{% block content %}
+<div class="catalog-content">
+    <header class="catalog-heading">
+        <div><p class="catalog-kicker">BENI / LOCAL CATALOG</p><h1>Good finds, closer by.</h1><p>Browse active products from active local shops.</p></div>
+        <a class="catalog-back-link" href="{% url 'dashboard:customer' %}">&larr; Customer space</a>
+    </header>
+
+    <form class="catalog-filters" method="get" role="search" aria-label="Search the product catalog">
+        <div class="catalog-search-field">
+            <label for="catalog-search">Search products and shops</label>
+            <input id="catalog-search" name="q" type="search" value="{{ query }}" placeholder="Name, category, or shop">
+        </div>
+        <div class="catalog-category-field">
+            <label for="catalog-category">Category</label>
+            <select id="catalog-category" name="category">
+                <option value="">All categories</option>
+                {% for category in categories %}
+                    <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>{{ category }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="catalog-submit" type="submit">Search</button>
+        {% if query or selected_category %}<a class="catalog-clear" href="{% url 'catalog:list' %}">Clear</a>{% endif %}
+    </form>
+
+    {% if products %}
+        <p class="catalog-result-count">{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}</p>
+        <div class="catalog-grid">
+            {% for product in products %}
+                <article class="catalog-card">
+                    <a class="catalog-card-link" href="{% url 'catalog:detail' product.id %}">
+                        {% if product.image %}
+                            <img class="catalog-card-image" src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="catalog-card-image catalog-image-fallback" aria-hidden="true"><span>BENI</span></div>
+                        {% endif %}
+                        <div class="catalog-card-copy">
+                            <p class="catalog-card-category">{{ product.category }}</p>
+                            <h2>{{ product.name }}</h2>
+                            <p class="catalog-card-shop">{{ product.shop.name }}</p>
+                            <p class="catalog-card-price">{{ product.price|floatformat:2 }}</p>
+                        </div>
+                    </a>
+                </article>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="catalog-pagination" aria-label="Product pages">
+                {% if page_obj.has_previous %}
+                    <a href="?q={{ query|urlencode }}&amp;category={{ selected_category|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?q={{ query|urlencode }}&amp;category={{ selected_category|urlencode }}&amp;page={{ page_obj.next_page_number }}">Next</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% else %}
+        <section class="catalog-empty" aria-labelledby="catalog-empty-title">
+            <span class="catalog-empty-mark" aria-hidden="true">B</span>
+            <p class="catalog-kicker">Nothing to show yet</p>
+            <h2 id="catalog-empty-title">No matching products</h2>
+            <p>Try another search or category. Products appear here when both the product and its shop are active.</p>
+            {% if query or selected_category %}<a class="catalog-submit catalog-empty-link" href="{% url 'catalog:list' %}">Clear filters</a>{% endif %}
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

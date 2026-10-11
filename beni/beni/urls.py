@@ -24,6 +24,7 @@ urlpatterns = [
     path('', RedirectView.as_view(pattern_name='accounts:login', permanent=False), name='home'),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
+    path('catalog/', include('products.public_urls')),
     path('workspace/', include('dashboard.urls')),
     path('workspace/shopkeeper/shops/', include('shops.urls')),
     path('workspace/shopkeeper/products/', include('products.urls')),

@@ -163,8 +163,123 @@ class ProductOwnershipTests(TestCase):
 			password=self.password,
 		)
 		self.client.force_login(customer)
+		self.assertEqual(self.client.get(reverse('products:list')).status_code, 403)
 		self.assertEqual(self.client.get(reverse('products:create')).status_code, 403)
 		self.assertEqual(
 			self.client.get(reverse('products:edit', args=[self.other_product.pk])).status_code,
 			403,
 		)
+
+
+class PublicProductCatalogTests(TestCase):
+	@classmethod
+	def setUpTestData(cls):
+		owner = get_user_model().objects.create_user(username='catalog-owner')
+		cls.active_shop = Shop.objects.create(
+			owner=owner,
+			name='Active Corner Shop',
+			category='Grocery',
+			phone='555-0100',
+			address='10 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+			is_active=True,
+		)
+		cls.inactive_shop = Shop.objects.create(
+			owner=owner,
+			name='Closed Corner Shop',
+			category='Grocery',
+			phone='555-0101',
+			address='20 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+			is_active=False,
+		)
+		cls.visible_product = cls.make_product(
+			cls.active_shop,
+			'Green Tea',
+			category='Tea',
+			description='Loose leaf tea',
+		)
+		cls.inactive_product = cls.make_product(
+			cls.active_shop,
+			'Hidden Tea',
+			category='Tea',
+			is_active=False,
+		)
+		cls.product_from_inactive_shop = cls.make_product(
+			cls.inactive_shop,
+			'Closed Shop Tea',
+			category='Tea',
+		)
+		cls.other_category_product = cls.make_product(
+			cls.active_shop,
+			'Olive Oil',
+			category='Pantry',
+		)
+
+	@staticmethod
+	def make_product(shop, name, category, description='', is_active=True):
+		return Product.objects.create(
+			shop=shop,
+			name=name,
+			category=category,
+			description=description,
+			price=Decimal('4.50'),
+			stock_quantity=3,
+			is_active=is_active,
+		)
+
+	def test_catalog_only_shows_active_products_from_active_shops(self):
+		response = self.client.get(reverse('catalog:list'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Green Tea')
+		self.assertContains(response, '4.50')
+		self.assertContains(response, 'Tea')
+		self.assertContains(response, 'Active Corner Shop')
+		self.assertNotContains(response, 'Hidden Tea')
+		self.assertNotContains(response, 'Closed Shop Tea')
+
+	def test_search_filters_public_products_and_shop_names(self):
+		response = self.client.get(reverse('catalog:list'), {'q': 'Green'})
+		self.assertContains(response, 'Green Tea')
+		self.assertNotContains(response, 'Olive Oil')
+
+		response = self.client.get(reverse('catalog:list'), {'q': 'Active Corner'})
+		self.assertContains(response, 'Green Tea')
+		self.assertContains(response, 'Olive Oil')
+		self.assertNotContains(response, 'Closed Shop Tea')
+
+	def test_category_filter_uses_existing_product_category(self):
+		response = self.client.get(reverse('catalog:list'), {'category': 'Pantry'})
+		self.assertContains(response, 'Olive Oil')
+		self.assertNotContains(response, 'Green Tea')
+		self.assertNotContains(response, 'Hidden Tea')
+
+	def test_detail_hides_inactive_products_and_products_from_inactive_shops(self):
+		response = self.client.get(
+			reverse('catalog:detail', args=[self.visible_product.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Active Corner Shop')
+
+		for product in (self.inactive_product, self.product_from_inactive_shop):
+			with self.subTest(product=product.name):
+				self.assertEqual(
+					self.client.get(
+						reverse('catalog:detail', args=[product.pk]),
+					).status_code,
+					404,
+				)
+
+	def test_catalog_paginates_results(self):
+		for index in range(13):
+			self.make_product(self.active_shop, f'Paged product {index}', category='Pantry')
+
+		first_page = self.client.get(reverse('catalog:list'))
+		second_page = self.client.get(reverse('catalog:list'), {'page': 2})
+		self.assertEqual(len(first_page.context['products']), 12)
+		self.assertEqual(len(second_page.context['products']), 3)

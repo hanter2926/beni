@@ -1,0 +1,29 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{{ product.name }} | BENI{% endblock %}
+{% block body_class %}customer-page catalog-page{% endblock %}
+{% block layout_class %}catalog-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}">{% endblock %}
+{% block content %}
+<div class="catalog-content">
+    <p class="catalog-kicker">BENI / PRODUCT DETAILS</p>
+    <a class="catalog-back-link detail-back-link" href="{% url 'catalog:list' %}">&larr; Back to catalog</a>
+    <article class="catalog-detail">
+        <div class="catalog-detail-media">
+            {% if product.image %}<img class="catalog-detail-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<div class="catalog-detail-image catalog-image-fallback" aria-hidden="true"><span>BENI</span></div>{% endif %}
+        </div>
+        <div class="catalog-detail-copy">
+            <p class="catalog-card-category">{{ product.category }}</p>
+            <h1>{{ product.name }}</h1>
+            <p class="catalog-detail-price">{{ product.price|floatformat:2 }}</p>
+            <p class="catalog-detail-description">{{ product.description|default:'No description has been provided for this product.' }}</p>
+            <div class="catalog-shop-info">
+                <p class="catalog-kicker">Available from</p>
+                <h2>{{ product.shop.name }}</h2>
+                <p>{{ product.shop.city }}, {{ product.shop.state }}</p>
+            </div>
+            <p class="catalog-stock {% if product.stock_quantity < 1 %}is-out-of-stock{% endif %}">{% if product.stock_quantity > 0 %}In stock: {{ product.stock_quantity }}{% else %}Currently out of stock{% endif %}</p>
+        </div>
+    </article>
+</div>
+{% endblock %}
