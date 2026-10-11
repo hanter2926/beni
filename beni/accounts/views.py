@@ -3,14 +3,15 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .forms import RegistrationForm
+from .roles import REPAIR_WORKER_GROUP, SHOPKEEPER_GROUP, user_has_role_group
 
 
 def role_dashboard_url(user):
 	if user.is_staff:
 		return reverse('dashboard:admin')
-	if user.groups.filter(name='Shopkeeper').exists():
+	if user_has_role_group(user, SHOPKEEPER_GROUP):
 		return reverse('dashboard:shopkeeper')
-	if user.groups.filter(name='Repair Worker').exists():
+	if user_has_role_group(user, REPAIR_WORKER_GROUP):
 		return reverse('dashboard:repair_worker')
 	return reverse('dashboard:customer')
 
