@@ -20,7 +20,17 @@
                     <div class="management-card-heading"><div><p class="management-eyebrow">{{ shop.category }}</p><h2>{{ shop.name }}</h2></div><span class="management-status {% if not shop.is_active %}is-inactive{% endif %}">{{ shop.is_active|yesno:'Active,Inactive' }}</span></div>
                     <p class="management-description">{{ shop.description|default:'No shop description added yet.' }}</p>
                     <p class="management-location">{{ shop.city }}, {{ shop.state }} {{ shop.postal_code }}</p>
+                    <p class="management-description">
+                        Verification:
+                        {% if shop.verification_application %}
+                            {{ shop.verification_application.get_status_display }}
+                            {% if shop.verification_application.decision_reason %} — {{ shop.verification_application.decision_reason }}{% endif %}
+                        {% else %}
+                            Not submitted
+                        {% endif %}
+                    </p>
                     <div class="management-card-actions">
+                        <a href="{% url 'verification:shopkeeper_application' shop.id %}">Verification status <span aria-hidden="true">&rarr;</span></a>
                         <a href="{% url 'shops:edit' shop.id %}">Edit shop <span aria-hidden="true">&rarr;</span></a>
                         <a href="{% url 'products:create' %}">Add a product <span aria-hidden="true">&rarr;</span></a>
                     </div>

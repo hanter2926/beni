@@ -1,0 +1,33 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Shop verification | BENI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block layout_class %}auth-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<section class="auth-wrap" aria-labelledby="verification-title">
+    <div class="auth-aside">
+        <p class="eyebrow">Shopkeeper verification</p>
+        <h1>{{ shop.name }}</h1>
+        <p>Staff review phone and one identity check out of band. Do not submit identity numbers or document images here.</p>
+    </div>
+    <div class="auth-panel">
+        <p class="eyebrow">Application status</p>
+        <h2 id="verification-title">{{ application.get_status_display }}</h2>
+        <p>Phone: {{ application.get_phone_status_display }}</p>
+        <p>Aadhaar: {{ application.get_aadhaar_status_display }} · PAN: {{ application.get_pan_status_display }}</p>
+        <p>Bank account: {{ application.get_bank_status_display }} (tracked separately for future withdrawals)</p>
+        {% if application.decision_reason %}<p class="form-errors">{{ application.decision_reason }}</p>{% endif %}
+        {% if application.status != 'approved' %}
+            <form method="post" class="account-form">
+                {% csrf_token %}
+                <p>Your shop is not publicly listed until staff verify its phone and either Aadhaar or PAN status.</p>
+                <button class="button button-primary form-submit" type="submit">
+                    {% if application.status == 'rejected' %}Resubmit for review{% else %}Submit for review{% endif %}
+                </button>
+            </form>
+        {% endif %}
+        <p class="auth-switch"><a href="{% url 'shops:list' %}">Back to my shops</a></p>
+    </div>
+</section>
+{% endblock %}

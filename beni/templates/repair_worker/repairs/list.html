@@ -1,0 +1,42 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Assigned repair jobs | BENI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block layout_class %}auth-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<section class="auth-wrap" aria-labelledby="worker-bookings-title">
+    <div class="auth-aside">
+        <p class="eyebrow">Repair Worker desk</p>
+        <h1>Your assigned jobs.</h1>
+        <p>Only jobs assigned to your Repair Worker account appear here.</p>
+    </div>
+    <div class="auth-panel">
+        <p class="eyebrow">Work queue</p>
+        <h2 id="worker-bookings-title">Assigned repair jobs</h2>
+        {% if bookings %}
+            <div class="account-form">
+                {% for booking in bookings %}
+                    <article class="form-field">
+                        <h3>{{ booking.service_category }} · {{ booking.get_status_display }}</h3>
+                        <p>{{ booking.preferred_at }} · {{ booking.service_address }}</p>
+                        <p>{{ booking.problem_description|linebreaksbr }}</p>
+                        <p>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }}</p>
+                        {% if booking.status_form.fields.status.choices %}
+                            <form method="post" action="{% url 'bookings:worker_update' booking.pk %}" class="account-form">
+                                {% csrf_token %}
+                                {{ booking.status_form.status.label_tag }}
+                                {{ booking.status_form.status }}
+                                <button class="button button-primary" type="submit">Update job</button>
+                            </form>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No repair jobs are currently assigned to you.</p>
+        {% endif %}
+        <p class="auth-switch"><a href="{% url 'dashboard:repair_worker' %}">Back to worker workspace</a></p>
+    </div>
+</section>
+{% endblock %}

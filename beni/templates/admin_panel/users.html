@@ -1,0 +1,76 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Marketplace users | BENI{% endblock %}
+{% block body_class %}admin-panel-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/admin_panel/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<div class="admin-workspace">
+    <header class="admin-heading">
+        <div>
+            <p class="admin-kicker">BENI / PEOPLE</p>
+            <h1>Marketplace users</h1>
+            <p>Read-only account, role and verification overview.</p>
+        </div>
+        <a href="{% url 'dashboard:admin' %}">Back to operations</a>
+    </header>
+
+    <section class="admin-records" aria-label="User search and filters">
+        <form method="get" class="account-form">
+            <label for="user-search">Username</label>
+            <input class="form-control" id="user-search" type="search" name="q" value="{{ query }}">
+            <label for="user-role">Role</label>
+            <select class="form-control" id="user-role" name="role">
+                <option value="">All marketplace roles</option>
+                <option value="customer" {% if selected_role == 'customer' %}selected{% endif %}>Customer</option>
+                <option value="shopkeeper" {% if selected_role == 'shopkeeper' %}selected{% endif %}>Shopkeeper</option>
+                <option value="repair_worker" {% if selected_role == 'repair_worker' %}selected{% endif %}>Repair Worker</option>
+            </select>
+            <label for="user-status">Account status</label>
+            <select class="form-control" id="user-status" name="status">
+                <option value="">All statuses</option>
+                <option value="active" {% if account_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if account_status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+            <button class="button button-primary" type="submit">Apply filters</button>
+        </form>
+    </section>
+
+    <section class="admin-records" aria-label="Marketplace user results">
+        <p>{{ page_obj.paginator.count }} account(s)</p>
+        {% if page_obj.object_list %}
+            {% for account in page_obj %}
+                <article class="admin-record-row" style="grid-template-columns:minmax(0, 1fr); padding-block:20px;">
+                    <div>
+                        <strong>{{ account.get_username }}</strong>
+                        <small>Role: {{ account.marketplace_roles|join:', ' }} · Account: {% if account.is_active %}Active{% else %}Inactive{% endif %}</small>
+                        {% if account.verification_summary %}
+                            <ul>
+                                {% for application_type, status in account.verification_summary %}
+                                    <li>{{ application_type }} verification: {{ status }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% elif account.marketplace_roles.0 == 'Customer' %}
+                            <small>Verification: Not applicable</small>
+                        {% else %}
+                            <small>Verification: No application recorded</small>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p>No matching marketplace accounts.</p>
+        {% endif %}
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="User result pages">
+                {% if page_obj.has_previous %}
+                    <a href="?q={{ query|urlencode }}&amp;role={{ selected_role|urlencode }}&amp;status={{ account_status|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?q={{ query|urlencode }}&amp;role={{ selected_role|urlencode }}&amp;status={{ account_status|urlencode }}&amp;page={{ page_obj.next_page_number }}">Next</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

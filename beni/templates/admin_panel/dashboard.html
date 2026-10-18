@@ -8,8 +8,11 @@
     <p class="role-label">Admin operations</p>
     <nav class="role-nav" id="role-navigation" aria-label="Admin navigation">
         <a href="#overview" aria-current="page">Overview</a>
-        <a href="#people">People</a>
-        <a href="#services">Services</a>
+        <a href="#order-metrics">Order metrics</a>
+        <a href="#marketplace">Marketplace</a>
+        <a href="{% url 'dashboard:admin_users' %}">Marketplace users</a>
+        <a href="{% url 'bookings:admin_list' %}">Repair bookings</a>
+        <a href="{% url 'verification:admin_list' %}">Verification review</a>
         <a href="{% url 'admin:index' %}">Django admin</a>
     </nav>
 </aside>
@@ -23,11 +26,19 @@
             <button type="button" role="tab" id="tab-services" aria-selected="false" aria-controls="panel-services" tabindex="-1">Services</button>
             <button type="button" role="tab" id="tab-system" aria-selected="false" aria-controls="panel-system" tabindex="-1">System</button>
         </div>
-        <div class="admin-tab-panel" role="tabpanel" id="panel-people" aria-labelledby="tab-people" tabindex="0"><span class="admin-panel-code">01</span><div><h3>User management is not wired into this overview.</h3><p>Use Django admin for existing user and group administration.</p></div><a href="{% url 'admin:auth_user_changelist' %}">Open users <span aria-hidden="true">&rarr;</span></a></div>
-        <div class="admin-tab-panel" role="tabpanel" id="panel-services" aria-labelledby="tab-services" tabindex="0" hidden><span class="admin-panel-code">02</span><div><h3>Service metrics are not connected.</h3><p>Orders, repair bookings, payments, and shop data are not represented here.</p></div><a href="{% url 'admin:index' %}">Open Django admin <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-tab-panel" role="tabpanel" id="panel-people" aria-labelledby="tab-people" tabindex="0"><span class="admin-panel-code">01</span><div><h3>Marketplace accounts</h3><p>{{ customers_total }} Customers · {{ shopkeepers_total }} Shopkeepers · {{ repair_workers_total }} Repair Workers</p></div><a href="{% url 'dashboard:admin_users' %}">Search accounts <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-tab-panel" role="tabpanel" id="panel-services" aria-labelledby="tab-services" tabindex="0" hidden><span class="admin-panel-code">02</span><div><h3>Order fulfilment</h3><p>{{ orders_pending }} pending · {{ orders_in_fulfilment }} in fulfilment · {{ orders_delivered }} delivered · {{ orders_cancelled }} cancelled · {{ orders_refunded }} refunded</p></div><a href="{% url 'admin:orders_order_changelist' %}">View read-only orders <span aria-hidden="true">&rarr;</span></a></div>
         <div class="admin-tab-panel" role="tabpanel" id="panel-system" aria-labelledby="tab-system" tabindex="0" hidden><span class="admin-panel-code">03</span><div><h3>Core administration remains available.</h3><p>The existing Django admin route is preserved separately from this staff dashboard.</p></div><a href="{% url 'admin:index' %}">Open Django admin <span aria-hidden="true">&rarr;</span></a></div>
     </section>
-    <section class="admin-records" id="people"><div class="admin-records-heading"><div><p class="admin-overline">Operations links</p><h2>Existing controls</h2></div><a href="{% url 'admin:index' %}">Django admin <span aria-hidden="true">&nearr;</span></a></div><div class="admin-record-row"><span class="admin-record-icon">U</span><div><strong>Users and groups</strong><small>Use staff permissions to manage access</small></div><a href="{% url 'admin:auth_user_changelist' %}" aria-label="Manage users">Open <span aria-hidden="true">&rarr;</span></a></div><div class="admin-record-row" id="services"><span class="admin-record-icon">A</span><div><strong>Application records</strong><small>Browse registered Django models</small></div><a href="{% url 'admin:index' %}" aria-label="Browse registered models">Open <span aria-hidden="true">&rarr;</span></a></div></section>
+    <section class="admin-records" id="marketplace">
+        <div class="admin-records-heading"><div><p class="admin-overline">Live operational counts</p><h2>Marketplace snapshot</h2></div><a href="{% url 'admin:index' %}">Django admin <span aria-hidden="true">&nearr;</span></a></div>
+        <div class="admin-record-row" id="order-metrics"><span class="admin-record-icon">O</span><div><strong>{{ orders_total }} total orders</strong><small>{{ orders_pending }} pending · {{ orders_in_fulfilment }} in fulfilment · {{ orders_delivered }} delivered · {{ orders_cancelled }} cancelled · {{ orders_refunded }} refunded</small></div><a href="{% url 'admin:orders_order_changelist' %}" aria-label="Browse read-only orders">Open <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-record-row"><span class="admin-record-icon">Pay</span><div><strong>Payment status as recorded</strong><small>{{ payments_not_started }} not started · {{ payments_pending }} pending · {{ payments_failed }} failed · {{ payments_paid }} paid · {{ payments_refunded }} refunded</small></div><a href="{% url 'admin:orders_order_changelist' %}" aria-label="Browse orders with recorded payment statuses">Review <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-record-row"><span class="admin-record-icon">S</span><div><strong>{{ active_shops }} active · {{ inactive_shops }} inactive shops</strong><small>{{ shops_pending_verification }} shop verification application(s) pending</small></div><a href="{% url 'admin:shops_shop_changelist' %}">Review shops <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-record-row"><span class="admin-record-icon">P</span><div><strong>{{ active_products }} active products</strong><small>Active products belonging to active shops</small></div><a href="{% url 'admin:products_product_changelist' %}">Review products <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-record-row"><span class="admin-record-icon">R</span><div><strong>{{ bookings_total }} repair bookings</strong><small>{{ bookings_requested }} requested · {{ bookings_unassigned }} currently unassigned</small></div><a href="{% url 'bookings:admin_list' %}">Review bookings <span aria-hidden="true">&rarr;</span></a></div>
+        <div class="admin-record-row"><span class="admin-record-icon">V</span><div><strong>Verification review</strong><small>Shopkeeper and Repair Worker application decisions</small></div><a href="{% url 'verification:admin_list' %}">Review applications <span aria-hidden="true">&rarr;</span></a></div>
+    </section>
     <p class="admin-user-note">Signed in as <strong>{{ request.user.get_username }}</strong></p>
 </div>
 {% endblock %}

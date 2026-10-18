@@ -18,7 +18,6 @@ class ShopForm(forms.ModelForm):
             'latitude',
             'longitude',
             'opening_hours',
-            'is_active',
         )
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),

@@ -1,0 +1,38 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Your profile | BENI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block layout_class %}auth-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<section class="auth-wrap" aria-labelledby="profile-title">
+    <div class="auth-aside">
+        <p class="eyebrow">Your BENI account</p>
+        <h1>Make this space yours.</h1>
+        <p>Keep your name up to date across your BENI workspace.</p>
+        <span class="aside-stamp" aria-hidden="true">B</span>
+    </div>
+    <div class="auth-panel">
+        <p class="eyebrow">Account details</p>
+        <h2 id="profile-title">Your profile</h2>
+        <p class="form-intro">Update your name. Your email address is not editable here.</p>
+        <p class="form-field">
+            <strong>Email address</strong>
+            <span>{{ request.user.email|default:"Not provided" }}</span>
+        </p>
+        <form method="post" class="account-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    {{ field.label_tag }}
+                    {% if field.errors %}<div class="field-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button class="button button-primary form-submit" type="submit">Save profile <span aria-hidden="true">&rarr;</span></button>
+        </form>
+        <p class="auth-switch"><a href="{{ dashboard_url }}">Back to your workspace</a></p>
+    </div>
+</section>
+{% endblock %}

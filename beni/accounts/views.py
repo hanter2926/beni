@@ -1,8 +1,10 @@
+from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from .forms import RegistrationForm
+from .forms import ProfileForm, RegistrationForm
 from .roles import REPAIR_WORKER_GROUP, SHOPKEEPER_GROUP, user_has_role_group
 
 
@@ -27,3 +29,23 @@ def register(request):
 		return redirect(role_dashboard_url(user))
 
 	return render(request, 'auth/register.html', {'form': form})
+
+
+@login_required(login_url='accounts:login')
+def profile(request):
+	form_data = request.POST if request.method == 'POST' else None
+	form = ProfileForm(form_data, instance=request.user)
+	if request.method == 'POST' and form.is_valid():
+		form.save()
+		messages.success(request, 'Your profile was updated.')
+		return redirect('accounts:profile')
+
+	return render(
+		request,
+		'auth/profile.html',
+		{
+			'form': form,
+			'role_label': 'Account',
+			'dashboard_url': role_dashboard_url(request.user),
+		},
+	)

@@ -5,5 +5,6 @@
         <a href="{% url 'shops:list' %}" {% if active_nav == 'shops' %}aria-current="page"{% endif %}>My shops</a>
         <a href="{% url 'products:list' %}" {% if active_nav == 'products' %}aria-current="page"{% endif %}>Products</a>
         <a href="{% url 'shopkeeper_orders' %}" {% if active_nav == 'orders' %}aria-current="page"{% endif %}>Orders</a>
+        <a href="{% url 'shops:list' %}">Verification</a>
     </nav>
 </aside>

@@ -8,7 +8,8 @@
     <p class="role-label">Repair worker desk</p>
     <nav class="role-nav" id="role-navigation" aria-label="Repair worker navigation">
         <a href="#today" aria-current="page">Today</a>
-        <a href="#requests">Requests</a>
+        <a href="{% url 'bookings:worker_list' %}">Assigned jobs</a>
+        <a href="{% url 'verification:worker_application' %}">Verification</a>
         <a href="#schedule">Schedule</a>
         <a href="#profile">My profile</a>
     </nav>
@@ -24,11 +25,11 @@
             <button type="button" role="tab" id="tab-schedule" aria-selected="false" aria-controls="panel-schedule" tabindex="-1">Schedule</button>
             <button type="button" role="tab" id="tab-profile" aria-selected="false" aria-controls="panel-profile" tabindex="-1">Profile</button>
         </div>
-        <div class="repair-tab-panel" role="tabpanel" id="panel-requests" aria-labelledby="tab-requests" tabindex="0"><span class="repair-empty-icon" aria-hidden="true">01</span><div><h3>No repair requests are connected yet.</h3><p>New service requests will appear here once the booking workflow is connected.</p></div></div>
+        <div class="repair-tab-panel" role="tabpanel" id="panel-requests" aria-labelledby="tab-requests" tabindex="0"><span class="repair-empty-icon" aria-hidden="true">01</span><div><h3>Review your assigned jobs.</h3><p>Accept or reject assignments, then update the status of accepted repair work.</p><a class="repair-guidance-link" href="{% url 'bookings:worker_list' %}">Open assigned jobs <span aria-hidden="true">&rarr;</span></a></div></div>
         <div class="repair-tab-panel" role="tabpanel" id="panel-schedule" aria-labelledby="tab-schedule" tabindex="0" hidden><span class="repair-empty-icon" aria-hidden="true">02</span><div><h3>Your schedule has room to grow.</h3><p>Appointments will be listed here when booking data is available.</p></div></div>
         <div class="repair-tab-panel" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile" tabindex="0" hidden><span class="repair-empty-icon" aria-hidden="true">03</span><div><h3>Service profile</h3><p>Profile and availability controls are not connected yet.</p></div></div>
     </section>
-    <section class="repair-guidance" id="schedule"><span class="repair-guidance-mark" aria-hidden="true">!</span><div><p class="repair-overline">Before you begin</p><h2>Stay in the loop.</h2><p>BENI will show assigned requests here after your repair-worker account is connected to the booking service.</p></div><a href="#profile" class="repair-guidance-link">View profile panel <span aria-hidden="true">&rarr;</span></a></section>
+    <section class="repair-guidance" id="schedule"><span class="repair-guidance-mark" aria-hidden="true">!</span><div><p class="repair-overline">Before you begin</p><h2>Stay in the loop.</h2><p>Your schedule panel is not connected to an availability calendar; assigned jobs are available in the Requests page.</p></div><a href="{% url 'bookings:worker_list' %}" class="repair-guidance-link">View assigned jobs <span aria-hidden="true">&rarr;</span></a></section>
     <footer class="repair-profile" id="profile"><span>Signed in</span><strong>{{ request.user.get_username }}</strong><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form></footer>
 </div>
 {% endblock %}

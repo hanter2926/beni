@@ -1,0 +1,27 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Repair request details | BENI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block layout_class %}auth-layout{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<section class="auth-wrap" aria-labelledby="booking-detail-title">
+    <div class="auth-aside">
+        <p class="eyebrow">Repair request status</p>
+        <h1>{{ booking.get_status_display }}.</h1>
+        <p>Track updates to your repair request here.</p>
+    </div>
+    <div class="auth-panel">
+        <p class="eyebrow">{{ booking.service_category }}</p>
+        <h2 id="booking-detail-title">Request details</h2>
+        <dl class="account-form">
+            <div class="form-field"><dt>Status</dt><dd>{{ booking.get_status_display }}</dd></div>
+            <div class="form-field"><dt>Preferred appointment</dt><dd>{{ booking.preferred_at }}</dd></div>
+            <div class="form-field"><dt>Problem</dt><dd>{{ booking.problem_description|linebreaksbr }}</dd></div>
+            <div class="form-field"><dt>Service address</dt><dd>{{ booking.service_address|linebreaksbr }}</dd></div>
+            {% if booking.assigned_worker %}<div class="form-field"><dt>Assigned Repair Worker</dt><dd>{{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</dd></div>{% endif %}
+        </dl>
+        <p class="auth-switch"><a href="{% url 'bookings:customer_list' %}">Back to my repair requests</a></p>
+    </div>
+</section>
+{% endblock %}

@@ -5,15 +5,29 @@ from accounts.roles import SHOPKEEPER_GROUP, role_group_required
 
 from .forms import ShopForm
 from .models import Shop
+from verification.models import VerificationApplication
 
 
 @role_group_required(SHOPKEEPER_GROUP)
 def shop_list(request):
-    shops = Shop.objects.filter(owner=request.user)
+    shops = list(
+        Shop.objects.filter(owner=request.user).select_related(
+            'verification_applications'
+        )
+    )
+    for shop in shops:
+        try:
+            shop.verification_application = shop.verification_applications
+        except VerificationApplication.DoesNotExist:
+            shop.verification_application = None
     return render(
         request,
         'shopkeeper/shops/list.html',
-        {'shops': shops, 'role_label': 'Shopkeeper', 'active_nav': 'shops'},
+        {
+            'shops': shops,
+            'role_label': 'Shopkeeper',
+            'active_nav': 'shops',
+        },
     )
 
 
@@ -23,9 +37,18 @@ def shop_create(request):
     if request.method == 'POST' and form.is_valid():
         shop = form.save(commit=False)
         shop.owner = request.user
+        shop.is_active = False
         shop.save()
-        messages.success(request, 'Shop created.')
-        return redirect('shops:list')
+        VerificationApplication.objects.get_or_create(
+            applicant=request.user,
+            shop=shop,
+            application_type=VerificationApplication.TYPE_SHOPKEEPER,
+        )
+        messages.success(
+            request,
+            'Shop created. Submit its verification application before it can be listed.',
+        )
+        return redirect('verification:shopkeeper_application', shop_id=shop.pk)
 
     return render(
         request,
@@ -45,7 +68,7 @@ def shop_update(request, shop_id):
     form = ShopForm(request.POST or None, instance=shop)
     if request.method == 'POST' and form.is_valid():
         form.save()
-        messages.success(request, 'Shop updated.')
+        messages.success(request, 'Shop details updated.')
         return redirect('shops:list')
 
     return render(

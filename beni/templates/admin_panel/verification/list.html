@@ -1,0 +1,48 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Verification review | BENI{% endblock %}
+{% block body_class %}admin-panel-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/admin_panel/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<div class="admin-workspace">
+    <header class="admin-heading">
+        <div><p class="admin-kicker">BENI / VERIFICATION</p><h1>Verification applications</h1><p>Status-only review. Identity documents, numbers and bank credentials are not stored here.</p></div>
+        <a href="{% url 'dashboard:admin' %}">Back to operations</a>
+    </header>
+    {% if applications %}
+        <div class="account-form">
+            {% for application in applications %}
+                <article class="admin-records" style="padding:1.25rem; margin-bottom:1rem;">
+                    <h2>{{ application.get_application_type_display }} · {{ application.get_status_display }}</h2>
+                    <p>Applicant: {{ application.applicant.get_full_name|default:application.applicant.get_username }}</p>
+                    {% if application.shop %}<p>Shop: {{ application.shop.name }}</p>{% endif %}
+                    <p>Submitted {{ application.created_at }} · Updated {{ application.updated_at }}</p>
+                    <form method="post" action="{% url 'verification:admin_review' application.pk %}" class="account-form">
+                        {% csrf_token %}
+                        {% for field in application.review_form %}
+                            <div class="form-field">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                            </div>
+                        {% endfor %}
+                        <button class="button button-primary" type="submit">Record review</button>
+                    </form>
+                    {% if application.decisions.all %}
+                        <details>
+                            <summary>Decision history</summary>
+                            <ul>
+                                {% for decision in application.decisions.all %}
+                                    <li>{{ decision.created_at }} · {{ decision.reviewer.get_username }} · {{ decision.get_status_display }} · {{ decision.reason|default:'No reason recorded' }}</li>
+                                {% endfor %}
+                            </ul>
+                        </details>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No verification applications are awaiting review.</p>
+    {% endif %}
+</div>
+{% endblock %}

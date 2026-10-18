@@ -1,0 +1,42 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Repair booking review | BENI{% endblock %}
+{% block body_class %}admin-panel-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/admin_panel/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<div class="admin-workspace">
+    <header class="admin-heading">
+        <div><p class="admin-kicker">BENI / REPAIR BOOKINGS</p><h1>Booking review</h1><p>Review customer requests and assign an active Repair Worker.</p></div>
+        <a href="{% url 'dashboard:admin' %}">Back to operations</a>
+    </header>
+    <section class="admin-records" aria-label="Repair bookings">
+        <nav aria-label="Repair booking filters">
+            <a href="{% url 'bookings:admin_list' %}" {% if not unassigned_only %}aria-current="page"{% endif %}>All bookings</a>
+            <a href="{% url 'bookings:admin_list' %}?assignment=unassigned" {% if unassigned_only %}aria-current="page"{% endif %}>Unassigned only</a>
+        </nav>
+        {% if bookings %}
+            {% for booking in bookings %}
+                <article class="admin-record-row" style="grid-template-columns:minmax(0, 1fr); padding-block:20px;">
+                    <div>
+                        <strong>{{ booking.service_category }} · {{ booking.get_status_display }}</strong>
+                        <small>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }} · Preferred: {{ booking.preferred_at }}</small>
+                        <p>{{ booking.problem_description|linebreaksbr }}</p>
+                        <p>Address: {{ booking.service_address|linebreaksbr }}</p>
+                        {% if booking.assigned_worker %}<p>Worker: {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</p>{% endif %}
+                    </div>
+                    {% if booking.can_assign %}
+                        <form method="post" action="{% url 'bookings:admin_assign' booking.pk %}" class="account-form">
+                            {% csrf_token %}
+                            {{ booking.assignment_form.worker.label_tag }}
+                            {{ booking.assignment_form.worker }}
+                            <button class="button button-primary" type="submit">Assign / reassign worker</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        {% else %}
+            <p>No repair bookings have been submitted.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

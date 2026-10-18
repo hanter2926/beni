@@ -9,4 +9,5 @@ urlpatterns = [
     path('shopkeeper/', views.shopkeeper_dashboard, name='shopkeeper'),
     path('repair-worker/', views.repair_worker_dashboard, name='repair_worker'),
     path('admin/', views.admin_dashboard, name='admin'),
+    path('admin/users/', views.admin_user_list, name='admin_users'),
 ]
