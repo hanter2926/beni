@@ -45,6 +45,11 @@
 .catalog-shop-info > p:last-child { margin: 0; color: var(--ink-soft); font-size: 13px; }
 .catalog-stock { margin: 16px 0 0; color: #35674b; font-size: 13px; font-weight: 750; }
 .catalog-stock.is-out-of-stock { color: #855c3b; }
+.catalog-purchase-form { display: flex; align-items: end; gap: 12px; margin-top: 16px; }
+.catalog-purchase-quantity { display: grid; gap: 6px; }
+.catalog-purchase-quantity label { color: var(--ink); font-size: 12px; font-weight: 750; }
+.catalog-purchase-quantity input { width: 96px; min-height: 44px; padding: 9px 11px; border: 1px solid #ccd8d0; border-radius: var(--radius-sm); background: #fff; color: var(--ink); font: inherit; }
+.catalog-sign-in-to-cart { margin-top: 16px; }
 @media (max-width: 900px) {
     .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -54,6 +59,7 @@
     .catalog-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .catalog-search-field { grid-column: 1 / -1; }
     .catalog-submit { width: 100%; }
+    .catalog-purchase-form .catalog-submit { width: auto; flex: 1; }
     .catalog-clear { justify-self: center; }
     .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
     .catalog-card-copy { padding: 12px; }

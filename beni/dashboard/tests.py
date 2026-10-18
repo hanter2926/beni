@@ -46,6 +46,30 @@ class DashboardRouteTests(SimpleTestCase):
 				)
 				self.assertIn('BENI', content)
 
+	def test_customer_dashboard_links_to_order_history(self):
+		content = render_to_string(
+			'customer/dashboard.html',
+			{'role_label': 'Customer'},
+		)
+
+		self.assertIn(reverse('customers:orders'), content)
+		self.assertIn('View order history', content)
+
+	def test_shopkeeper_order_pages_are_linked_from_navigation_and_dashboard(self):
+		management_nav = render_to_string(
+			'shopkeeper/_management_nav.html',
+			{'active_nav': 'orders'},
+		)
+		dashboard = render_to_string(
+			'shopkeeper/dashboard.html',
+			{'role_label': 'Shopkeeper'},
+		)
+		order_url = reverse('shopkeeper_orders')
+
+		self.assertIn(order_url, management_nav)
+		self.assertIn(order_url, dashboard)
+		self.assertIn('Open orders', dashboard)
+
 
 class RoleAccessTests(TestCase):
 	password = 'BENI-test-password-2026!'

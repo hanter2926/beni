@@ -57,6 +57,26 @@ class CustomerCartTests(TestCase):
         self.assertRedirects(response, reverse('customers:cart'), fetch_redirect_response=False)
         self.assertNotIn(str(self.product.pk), self.client.session.get('beni_cart', {}))
 
+    def test_cart_update_rejects_get_without_mutating_session(self):
+        self.client.force_login(self.customer)
+        cart = {
+            str(self.product.pk): {
+                'product_id': self.product.pk,
+                'quantity': 1,
+                'unit_price': str(self.product.price),
+            }
+        }
+        self.client.session['beni_cart'] = cart
+        self.client.session.save()
+
+        response = self.client.get(
+            reverse('customers:cart_update', args=[self.product.pk]),
+            {'quantity': 2},
+        )
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(self.client.session['beni_cart'], cart)
+
     def test_cart_rejects_invalid_stock_and_price_tampering(self):
         self.client.force_login(self.customer)
         response = self.client.post(

@@ -275,6 +275,45 @@ class PublicProductCatalogTests(TestCase):
 					404,
 				)
 
+	def test_signed_in_customer_can_add_available_product_from_detail(self):
+		customer = get_user_model().objects.create_user(username='catalog-customer')
+		self.client.force_login(customer)
+
+		response = self.client.get(
+			reverse('catalog:detail', args=[self.visible_product.pk]),
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(
+			response,
+			f'action="{reverse("customers:cart_add", args=[self.visible_product.pk])}"',
+		)
+		self.assertContains(response, 'name="quantity"')
+		self.assertContains(response, 'max="3"')
+		self.assertContains(response, 'Add to cart')
+
+	def test_anonymous_customer_is_prompted_to_sign_in_before_adding(self):
+		response = self.client.get(
+			reverse('catalog:detail', args=[self.visible_product.pk]),
+		)
+
+		self.assertContains(response, 'Sign in to add to cart')
+		self.assertContains(
+			response,
+			f'href="{reverse("accounts:login")}?next=/catalog/{self.visible_product.pk}/"',
+		)
+
+	def test_out_of_stock_product_has_no_add_to_cart_action(self):
+		self.visible_product.stock_quantity = 0
+		self.visible_product.save(update_fields=('stock_quantity',))
+
+		response = self.client.get(
+			reverse('catalog:detail', args=[self.visible_product.pk]),
+		)
+
+		self.assertContains(response, 'Currently out of stock')
+		self.assertNotContains(response, 'Add to cart')
+
 	def test_catalog_paginates_results(self):
 		for index in range(13):
 			self.make_product(self.active_shop, f'Paged product {index}', category='Pantry')
