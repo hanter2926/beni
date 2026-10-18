@@ -19,7 +19,7 @@
                             <h2 style="margin:0.2rem 0;">{{ order.order_number }}</h2>
                         <p style="margin:0;">{{ order.shop.name }}</p>
                         </div>
-                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
+                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.get_status_display }}</span>
                     </div>
                     <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
                         <div>

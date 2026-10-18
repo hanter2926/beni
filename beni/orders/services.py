@@ -8,6 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from products.models import Product
+from products.services import eligible_shop_verifications, is_product_marketable
 from shops.models import Shop
 
 from .models import CheckoutAttempt, Order, OrderItem
@@ -75,13 +76,25 @@ def _load_products(lines, lock=False):
     if lock:
         shops = shops.select_for_update()
     shop_by_id = {shop.pk: shop for shop in shops}
+    eligible_shop_ids = set(
+        eligible_shop_verifications(
+            shop_ids=shop_ids,
+            lock=lock,
+        ).values_list('shop_id', flat=True)
+    )
 
     resolved = []
     for product_id, quantity, stored_price in lines:
         product = products[product_id]
         shop = shop_by_id.get(product.shop_id)
-        if shop is None or not shop.is_active or not product.is_active:
-            raise CheckoutError(f'{product.name} is no longer available from its shop.')
+        if shop is None or not is_product_marketable(
+            product,
+            shop=shop,
+            eligible_shop_ids=eligible_shop_ids,
+        ):
+            raise CheckoutError(
+                f'{product.name} is no longer available from its shop.'
+            )
         if product.price != stored_price:
             raise CheckoutError(f'{product.name} price changed. Review your cart before ordering.')
         if quantity > product.stock_quantity:

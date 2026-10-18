@@ -17,13 +17,13 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
                         <div>
                             <p style="margin:0; color:#4b5e59;">{{ order.created_at }}</p>
-                            <h2 style="margin:0.2rem 0;">{{ order.order_number }}</h2>
+                            <h2 style="margin:0.2rem 0;"><a href="{% url 'shopkeeper_order_detail' order.order_number %}">{{ order.order_number }}</a></h2>
                             <p style="margin:0;">Shop: {{ order.shop.name }}</p>
                             <p style="margin:0;">Customer: {{ order.contact_name }} · {{ order.contact_phone }}</p>
                             <p style="margin:0;">Deliver to: {{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
                             {% if order.delivery_notes %}<p style="margin:0;">Notes: {{ order.delivery_notes }}</p>{% endif %}
                         </div>
-                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
+                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.get_status_display }}</span>
                     </div>
                     <div style="margin-top:0.75rem;">
                         {% for item in order.items.all %}
@@ -36,7 +36,7 @@
                             {% csrf_token %}
                             <label for="status-{{ order.pk }}">Update status</label>
                             <select class="form-control" id="status-{{ order.pk }}" name="status" required>
-                                <option value="">Choose status</option>
+                                <option value="">Choose an action</option>
                                 {% for value, label in order.status_form.fields.status.choices %}
                                     <option value="{{ value }}">{{ label }}</option>
                                 {% endfor %}

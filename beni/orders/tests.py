@@ -11,6 +11,8 @@ from django.urls import reverse
 
 from products.models import Product
 from shops.models import Shop
+from customers.views import CART_OWNER_SESSION_KEY
+from verification.models import VerificationApplication
 
 from .models import CheckoutAttempt, Order, OrderItem
 from .services import (
@@ -32,8 +34,22 @@ class OrdersWorkflowTests(TestCase):
         self.owner_two.groups.add(self.shopkeeper_group)
         self.shop_one = self.make_shop(self.owner_one, 'One')
         self.shop_two = self.make_shop(self.owner_two, 'Two')
+        self.make_shopkeeper_verification(self.owner_one, self.shop_one)
+        self.make_shopkeeper_verification(self.owner_two, self.shop_two)
         self.product_one = self.make_product(self.shop_one, 'Green Tea', '4.50', 5)
         self.product_two = self.make_product(self.shop_two, 'Soap', '3.25', 4)
+
+    def make_shopkeeper_verification(self, owner, shop, **overrides):
+        values = {
+            'applicant': owner,
+            'shop': shop,
+            'application_type': VerificationApplication.TYPE_SHOPKEEPER,
+            'status': VerificationApplication.STATUS_APPROVED,
+            'phone_status': VerificationApplication.CHECK_VERIFIED,
+            'aadhaar_status': VerificationApplication.CHECK_VERIFIED,
+        }
+        values.update(overrides)
+        return VerificationApplication.objects.create(**values)
 
     def make_shop(self, owner, suffix):
         return Shop.objects.create(
@@ -88,6 +104,7 @@ class OrdersWorkflowTests(TestCase):
             (self.product_one, 2),
             (self.product_two, 1),
         )
+        session[CART_OWNER_SESSION_KEY] = str(self.customer.pk)
         session.save()
         response = self.client.get(reverse('customers:checkout'))
         self.assertEqual(response.status_code, 200)
@@ -189,6 +206,49 @@ class OrdersWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '7 to 15 digits')
         self.assertEqual(Order.objects.count(), 0)
+
+    def test_checkout_clears_cart_and_rejects_token_from_another_owner(self):
+        token = self.begin_checkout(self.cart_for((self.product_one, 1)))
+        other_customer = get_user_model().objects.create_user(
+            username='checkout-cart-owner',
+        )
+        session = self.client.session
+        session[CART_OWNER_SESSION_KEY] = str(other_customer.pk)
+        session['beni_checkout_receipts'] = {
+            str(token): 'old-cart-digest',
+        }
+        session.save()
+
+        response = self.submit_checkout(token)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'cart changed')
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(
+            Product.objects.get(pk=self.product_one.pk).stock_quantity,
+            5,
+        )
+        session = self.client.session
+        self.assertEqual(session['beni_cart'], {})
+        self.assertEqual(session[CART_OWNER_SESSION_KEY], str(self.customer.pk))
+        self.assertNotIn('beni_checkout_receipts', session)
+
+    def test_checkout_rejects_shop_that_becomes_ineligible_after_carting(self):
+        token = self.begin_checkout(self.cart_for((self.product_one, 1)))
+        verification = VerificationApplication.objects.get(shop=self.shop_one)
+        verification.status = VerificationApplication.STATUS_REJECTED
+        verification.save(update_fields=('status',))
+
+        response = self.submit_checkout(token)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'no longer available from its shop')
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(OrderItem.objects.count(), 0)
+        self.assertEqual(
+            Product.objects.get(pk=self.product_one.pk).stock_quantity,
+            5,
+        )
 
     def test_failure_during_second_shop_rolls_back_all_orders_and_stock(self):
         cart = self.cart_for((self.product_one, 1), (self.product_two, 1))
@@ -294,11 +354,107 @@ class OrdersWorkflowTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, Order.STATUS_CONFIRMED)
 
+    def test_shopkeeper_order_detail_is_scoped_to_owned_shops(self):
+        token = self.begin_checkout(self.cart_for(
+            (self.product_one, 1),
+            (self.product_two, 1),
+        ))
+        self.submit_checkout(token)
+        order_one = Order.objects.get(shop=self.shop_one)
+        order_two = Order.objects.get(shop=self.shop_two)
+
+        self.client.force_login(self.owner_one)
+        own_detail = self.client.get(
+            reverse('shopkeeper_order_detail', args=[order_one.order_number])
+        )
+        self.assertEqual(own_detail.status_code, 200)
+        self.assertContains(own_detail, self.product_one.name)
+        self.assertNotContains(own_detail, self.product_two.name)
+        self.assertContains(own_detail, 'Accept order')
+        self.assertContains(own_detail, 'Reject order')
+        self.assertEqual(
+            self.client.get(
+                reverse('shopkeeper_order_detail', args=[order_two.order_number])
+            ).status_code,
+            404,
+        )
+
+        self.client.force_login(self.owner_two)
+        other_detail = self.client.get(
+            reverse('shopkeeper_order_detail', args=[order_two.order_number])
+        )
+        self.assertEqual(other_detail.status_code, 200)
+        self.assertContains(other_detail, self.product_two.name)
+        self.assertNotContains(other_detail, self.product_one.name)
+        self.assertEqual(
+            self.client.get(
+                reverse('shopkeeper_order_detail', args=[order_one.order_number])
+            ).status_code,
+            404,
+        )
+
+    def test_shopkeeper_rejection_restores_only_its_order_stock_once(self):
+        token = self.begin_checkout(self.cart_for(
+            (self.product_one, 2),
+            (self.product_two, 1),
+        ))
+        self.submit_checkout(token)
+        order_one = Order.objects.get(shop=self.shop_one)
+
+        self.client.force_login(self.owner_one)
+        response = self.client.post(
+            reverse('shopkeeper_order_update', args=[order_one.order_number]),
+            {'status': Order.STATUS_CANCELLED},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('shopkeeper_orders'),
+            fetch_redirect_response=False,
+        )
+        order_one.refresh_from_db()
+        self.assertEqual(order_one.status, Order.STATUS_CANCELLED)
+        self.assertEqual(Product.objects.get(pk=self.product_one.pk).stock_quantity, 5)
+        self.assertEqual(Product.objects.get(pk=self.product_two.pk).stock_quantity, 3)
+
+        self.client.post(
+            reverse('shopkeeper_order_update', args=[order_one.order_number]),
+            {'status': Order.STATUS_CANCELLED},
+        )
+        self.assertEqual(Product.objects.get(pk=self.product_one.pk).stock_quantity, 5)
+        self.assertEqual(Product.objects.get(pk=self.product_two.pk).stock_quantity, 3)
+
+    def test_shopkeeper_confirmed_order_actions_are_contextual(self):
+        token = self.begin_checkout(self.cart_for((self.product_one, 1)))
+        self.submit_checkout(token)
+        order = Order.objects.get()
+
+        self.client.force_login(self.owner_one)
+        response = self.client.post(
+            reverse('shopkeeper_order_update', args=[order.order_number]),
+            {'status': Order.STATUS_CONFIRMED},
+        )
+        self.assertRedirects(
+            response,
+            reverse('shopkeeper_orders'),
+            fetch_redirect_response=False,
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_CONFIRMED)
+
+        detail = self.client.get(
+            reverse('shopkeeper_order_detail', args=[order.order_number])
+        )
+        self.assertContains(detail, 'Cancel order')
+        self.assertContains(detail, 'Processing')
+        self.assertNotContains(detail, 'Reject order')
+
     def test_csrf_is_required_for_checkout_and_cancellation(self):
         client = Client(enforce_csrf_checks=True)
         client.force_login(self.customer)
         session = client.session
         session['beni_cart'] = self.cart_for((self.product_one, 1))
+        session[CART_OWNER_SESSION_KEY] = str(self.customer.pk)
         session.save()
         page = client.get(reverse('customers:checkout'))
         token = page.context['checkout_token']

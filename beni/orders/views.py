@@ -13,6 +13,8 @@ from accounts.roles import (
     role_group_required,
     user_has_role_group,
 )
+from customers.views import cart_for_customer
+
 from .forms import CheckoutForm, OrderStatusForm
 from .models import Order
 from .services import (
@@ -62,7 +64,7 @@ def _render_checkout(request, form, items, total, token, errors=()):
 @login_required(login_url='accounts:login')
 def checkout_view(request):
     _customer_only(request)
-    cart = request.session.get(CART_SESSION_KEY, {})
+    cart = cart_for_customer(request)
     digest = cart_digest(cart)
     state = request.session.get(CHECKOUT_STATE_SESSION_KEY)
     if not isinstance(state, dict) or state.get('cart_digest') != digest:
@@ -202,12 +204,36 @@ def shopkeeper_order_list(request):
     for order in orders:
         order.status_form = OrderStatusForm(
             allowed_statuses=valid_status_targets(order.status),
+            current_status=order.status,
         )
     return render(
         request,
         'shopkeeper/orders/list.html',
         {
             'orders': orders,
+            'role_label': 'Shopkeeper',
+            'active_nav': 'orders',
+        },
+    )
+
+
+@role_group_required(SHOPKEEPER_GROUP)
+def shopkeeper_order_detail(request, order_number):
+    order = get_object_or_404(
+        Order.objects.filter(shop__owner=request.user)
+        .select_related('shop', 'customer')
+        .prefetch_related('items'),
+        order_number=order_number,
+    )
+    return render(
+        request,
+        'shopkeeper/orders/detail.html',
+        {
+            'order': order,
+            'status_form': OrderStatusForm(
+                allowed_statuses=valid_status_targets(order.status),
+                current_status=order.status,
+            ),
             'role_label': 'Shopkeeper',
             'active_nav': 'orders',
         },
@@ -224,6 +250,7 @@ def shopkeeper_order_update(request, order_number):
     form = OrderStatusForm(
         request.POST,
         allowed_statuses=valid_status_targets(order.status),
+        current_status=order.status,
     )
     if not form.is_valid():
         messages.error(request, 'Choose a valid next status for this order.')

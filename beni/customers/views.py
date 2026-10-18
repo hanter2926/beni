@@ -12,10 +12,16 @@ from accounts.roles import (
     SHOPKEEPER_GROUP,
     user_has_role_group,
 )
-from orders.services import invalidate_checkout_state
+from orders.services import (
+    CHECKOUT_RECEIPTS_SESSION_KEY,
+    CHECKOUT_STATE_SESSION_KEY,
+    invalidate_checkout_state,
+)
 from products.models import Product
+from products.services import is_product_marketable, marketable_products
 
 CART_SESSION_KEY = 'beni_cart'
+CART_OWNER_SESSION_KEY = 'beni_cart_owner_id'
 
 
 def is_customer_user(user):
@@ -28,11 +34,23 @@ def is_customer_user(user):
     )
 
 
-def _cart_from_session(request):
+def cart_for_customer(request):
+    customer_id = str(request.user.pk)
+    if request.session.get(CART_OWNER_SESSION_KEY) != customer_id:
+        request.session[CART_SESSION_KEY] = {}
+        request.session[CART_OWNER_SESSION_KEY] = customer_id
+        request.session.pop(CHECKOUT_STATE_SESSION_KEY, None)
+        request.session.pop(CHECKOUT_RECEIPTS_SESSION_KEY, None)
+
     cart = request.session.get(CART_SESSION_KEY, {})
     if not isinstance(cart, dict):
-        return {}
+        cart = {}
+        request.session[CART_SESSION_KEY] = cart
     return cart
+
+
+def _cart_from_session(request):
+    return cart_for_customer(request)
 
 
 def _save_cart(request, cart):
@@ -55,6 +73,19 @@ def _resolve_cart_for_request(request):
     items = []
     subtotal = Decimal('0.00')
     errors = []
+    product_ids = set()
+    for raw_key in cart:
+        try:
+            product_ids.add(int(raw_key))
+        except (TypeError, ValueError):
+            continue
+    products_by_id = {
+        product.pk: product
+        for product in marketable_products(
+            Product.objects.filter(pk__in=product_ids)
+        ).select_related('shop')
+    }
+    removed_keys = []
     for raw_key, raw_item in cart.items():
         if not isinstance(raw_item, dict):
             errors.append('Your cart contains an invalid item. Please remove it and try again.')
@@ -68,12 +99,12 @@ def _resolve_cart_for_request(request):
         except (TypeError, ValueError, InvalidOperation):
             errors.append('Your cart contains invalid product information. Please remove it and try again.')
             continue
-        product = Product.objects.filter(pk=product_id).select_related('shop').first()
+        product = products_by_id.get(product_id)
         if product is None:
-            errors.append('One or more products are no longer available.')
-            continue
-        if not product.is_active or not product.shop.is_active:
-            errors.append(f'{product.name} is no longer available from its shop.')
+            errors.append(
+                'One or more products are no longer available and were removed from your cart.'
+            )
+            removed_keys.append(raw_key)
             continue
         if quantity <= 0:
             errors.append(f'{product.name} quantity must be greater than zero.')
@@ -97,6 +128,12 @@ def _resolve_cart_for_request(request):
         item['line_total'] = str(_line_total_for_item(item))
         items.append(item)
         subtotal += Decimal(str(item['line_total']))
+
+    if removed_keys:
+        for raw_key in removed_keys:
+            cart.pop(raw_key, None)
+        _save_cart(request, cart)
+        invalidate_checkout_state(request.session)
 
     return items, subtotal, errors
 
@@ -134,8 +171,11 @@ def add_to_cart(request, product_id):
         messages.error(request, 'Please choose a valid quantity.')
         return redirect(reverse('catalog:detail', args=[product_id]))
 
-    product = get_object_or_404(Product.objects.select_related('shop'), pk=product_id)
-    if not product.is_active or not product.shop.is_active:
+    product = get_object_or_404(
+        Product.objects.select_related('shop'),
+        pk=product_id,
+    )
+    if not is_product_marketable(product):
         messages.error(request, 'This product is no longer available.')
         return redirect(reverse('catalog:list'))
     if quantity > product.stock_quantity:
@@ -186,7 +226,7 @@ def update_cart_item(request, product_id):
 
     cart = _cart_from_session(request)
     product = get_object_or_404(Product.objects.select_related('shop'), pk=product_id)
-    if not product.is_active or not product.shop.is_active:
+    if not is_product_marketable(product):
         messages.error(request, 'This product is no longer available.')
         return redirect(reverse('customers:cart'))
     if product.stock_quantity <= 0:

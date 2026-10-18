@@ -41,10 +41,18 @@ class CheckoutForm(forms.Form):
 class OrderStatusForm(forms.Form):
     status = forms.ChoiceField(label='Update order status')
 
-    def __init__(self, *args, allowed_statuses, **kwargs):
+    def __init__(self, *args, allowed_statuses, current_status, **kwargs):
         super().__init__(*args, **kwargs)
+        labels = {
+            'confirmed': 'Accept order',
+            'cancelled': (
+                'Reject order'
+                if current_status == 'pending'
+                else 'Cancel order'
+            ),
+        }
         self.fields['status'].choices = [
-            (status, status.replace('_', ' ').title())
+            (status, labels.get(status, status.replace('_', ' ').title()))
             for status in allowed_statuses
         ]
         self.fields['status'].widget.attrs['class'] = 'form-control'

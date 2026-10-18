@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from shops.models import Shop
+from verification.models import VerificationApplication
 
 from .models import Product
 
@@ -197,6 +198,15 @@ class PublicProductCatalogTests(TestCase):
 			postal_code='12345',
 			is_active=False,
 		)
+		for shop in (cls.active_shop, cls.inactive_shop):
+			VerificationApplication.objects.create(
+				applicant=owner,
+				shop=shop,
+				application_type=VerificationApplication.TYPE_SHOPKEEPER,
+				status=VerificationApplication.STATUS_APPROVED,
+				phone_status=VerificationApplication.CHECK_VERIFIED,
+				aadhaar_status=VerificationApplication.CHECK_VERIFIED,
+			)
 		cls.visible_product = cls.make_product(
 			cls.active_shop,
 			'Green Tea',

@@ -4,37 +4,14 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.roles import SHOPKEEPER_GROUP, role_group_required
-from verification.models import VerificationApplication
 
 from .forms import ProductForm
 from .models import Product
+from .services import marketable_products
 
 
 def public_products():
-	return Product.objects.filter(
-		is_active=True,
-		shop__is_active=True,
-		shop__verification_applications__application_type=(
-			VerificationApplication.TYPE_SHOPKEEPER
-		),
-		shop__verification_applications__status=(
-			VerificationApplication.STATUS_APPROVED
-		),
-		shop__verification_applications__phone_status=(
-			VerificationApplication.CHECK_VERIFIED
-		),
-	).filter(
-		Q(
-			shop__verification_applications__aadhaar_status=(
-				VerificationApplication.CHECK_VERIFIED
-			)
-		)
-		| Q(
-			shop__verification_applications__pan_status=(
-				VerificationApplication.CHECK_VERIFIED
-			)
-		)
-	).select_related('shop').distinct()
+	return marketable_products().select_related('shop')
 
 
 def public_catalog(request):

@@ -6,7 +6,7 @@
     <p class="catalog-kicker">BENI / ORDER DETAILS</p>
     <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
         <h1 style="margin:0;">{{ order.order_number }}</h1>
-        <span style="padding:0.4rem 0.75rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
+        <span style="padding:0.4rem 0.75rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.get_status_display }}</span>
     </div>
 
     <section style="background:#f5faf6; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem; margin-bottom:1rem;">

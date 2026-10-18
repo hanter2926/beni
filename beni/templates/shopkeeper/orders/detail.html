@@ -1,0 +1,63 @@
+{% extends 'base/base.html' %}
+{% block title %}Order {{ order.order_number }} | BENI{% endblock %}
+{% block body_class %}shopkeeper-page{% endblock %}
+{% block content %}
+<div class="shopkeeper-workspace">
+    <header class="shopkeeper-heading">
+        <div>
+            <p class="shopkeeper-kicker">BENI / SHOP ORDER</p>
+            <h1>{{ order.order_number }}</h1>
+            <p>{{ order.shop.name }} · {{ order.created_at }}</p>
+        </div>
+        <span class="shopkeeper-status">{{ order.get_status_display }}</span>
+    </header>
+
+    <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-top:1.5rem;">
+        <article style="background:#f8faf8; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+            <h2>Customer and delivery</h2>
+            <p>{{ order.contact_name }} · {{ order.contact_phone }}</p>
+            <p>{{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
+            {% if order.delivery_notes %}<p>Delivery notes: {{ order.delivery_notes }}</p>{% endif %}
+        </article>
+        <article style="background:#f8faf8; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+            <h2>Order summary</h2>
+            <p>Payment status: {{ order.get_payment_status_display }}</p>
+            <p>Subtotal: {{ order.subtotal }}</p>
+            <p>Delivery: {{ order.delivery_fee }}</p>
+            <p>Service fee: {{ order.service_fee }}</p>
+            <strong>Total: {{ order.total }}</strong>
+        </article>
+    </section>
+
+    <section style="background:#fff; border:1px solid #dfe7e2; border-radius:12px; padding:1rem; margin-top:1rem;">
+        <h2>Items in this shop order</h2>
+        {% for item in order.items.all %}
+            <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.75rem 0; border-bottom:1px solid #edf1ee;">
+                <div>
+                    <strong>{{ item.product_name }}</strong>
+                    <div>Quantity {{ item.quantity }} · {{ item.unit_price }} each</div>
+                </div>
+                <span>{{ item.line_total }}</span>
+            </div>
+        {% empty %}
+            <p>This order has no items.</p>
+        {% endfor %}
+    </section>
+
+    {% if status_form.fields.status.choices %}
+        <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form" style="margin-top:1rem;">
+            {% csrf_token %}
+            <label for="order-status">Next order action</label>
+            <select class="form-control" id="order-status" name="status" required>
+                <option value="">Choose an action</option>
+                {% for value, label in status_form.fields.status.choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="button button-primary" type="submit">Update order</button>
+        </form>
+    {% endif %}
+
+    <p style="margin-top:1rem;"><a href="{% url 'shopkeeper_orders' %}">Back to shop orders</a></p>
+</div>
+{% endblock %}
