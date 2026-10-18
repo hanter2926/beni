@@ -7,5 +7,7 @@
         <a href="{% url 'shopkeeper_orders' %}" {% if active_nav == 'orders' %}aria-current="page"{% endif %}>Orders</a>
         <a href="{% url 'wallets:shopkeeper' %}" {% if active_nav == 'wallet' %}aria-current="page"{% endif %}>Wallet</a>
         <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
+        <a class="workspace-mobile-link" href="{% url 'accounts:profile' %}">Profile</a>
+        <a class="workspace-mobile-link" href="{% url 'accounts:password_change' %}">Change password</a>
     </nav>
 </aside>

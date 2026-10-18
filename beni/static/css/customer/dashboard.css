@@ -42,6 +42,11 @@
     .customer-welcome { grid-template-columns: minmax(0, 1fr) 180px; }
     .customer-welcome-art { transform: scale(.8); transform-origin: center right; }
 }
+@media (min-width: 761px) and (max-width: 1023px) {
+    .customer-workspace { max-width: 100%; }
+    .customer-welcome { grid-template-columns: minmax(0, 1fr) minmax(150px, .55fr); }
+    .customer-lower-grid { grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr); }
+}
 @media (max-width: 560px) {
     .customer-welcome { min-height: 300px; grid-template-columns: minmax(0, 1fr); padding-bottom: 140px; }
     .customer-welcome h1 { font-size: 38px; }
@@ -53,4 +58,9 @@
     .customer-tab-panel { align-items: flex-start; gap: 12px; }
     .customer-empty-mark { width: 42px; flex-basis: 42px; font-size: 16px; }
     .customer-lower-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 360px) {
+    .customer-welcome { padding-inline: 20px; }
+    .customer-welcome h1 { font-size: 34px; }
+    .customer-tab-panel { flex-direction: column; }
 }

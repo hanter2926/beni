@@ -32,12 +32,19 @@ body {
     line-height: 1.5;
 }
 
-button, input { font: inherit; }
+img, svg, video, canvas { max-width: 100%; }
+img, video { height: auto; }
+button, input, select, textarea { font: inherit; }
 a { color: inherit; }
 
-button:focus-visible, a:focus-visible, input:focus-visible {
+button:focus-visible, a:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, summary:focus-visible {
     outline: 3px solid var(--gold);
     outline-offset: 3px;
 }
 
 ::selection { background: #cde4d6; color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}

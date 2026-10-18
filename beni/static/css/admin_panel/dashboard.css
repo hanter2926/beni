@@ -34,6 +34,11 @@
 @media (max-width: 700px) {
     .admin-heading { align-items: flex-start; flex-direction: column; }
 }
+@media (min-width: 701px) and (max-width: 1023px) {
+    .admin-workspace { max-width: 100%; }
+    .admin-status-heading { flex-wrap: wrap; }
+    .admin-records-heading { align-items: flex-start; flex-wrap: wrap; }
+}
 @media (max-width: 480px) {
     .admin-status-heading h2 { font-size: 24px; }
     .admin-tabs { gap: 0; overflow-x: auto; }
@@ -41,4 +46,11 @@
     .admin-tab-panel { grid-template-columns: 38px minmax(0, 1fr); gap: 12px; }
     .admin-tab-panel > a { grid-column: 2; }
     .admin-records-heading, .admin-record-row { padding-inline: 14px; }
+}
+@media (max-width: 360px) {
+    .admin-status { padding-inline: 15px; }
+    .admin-status-heading { flex-direction: column; }
+    .admin-status-stamp { transform: none; }
+    .admin-record-row { grid-template-columns: minmax(0, 1fr); }
+    .admin-record-row > a { grid-column: 1; }
 }

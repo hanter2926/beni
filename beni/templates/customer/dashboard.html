@@ -14,6 +14,8 @@
         <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
         <a href="{% url 'bookings:customer_list' %}">Repair services</a>
         <a href="#account">Account</a>
+        <a class="workspace-mobile-link" href="{% url 'accounts:profile' %}">Profile</a>
+        <a class="workspace-mobile-link" href="{% url 'accounts:password_change' %}">Change password</a>
     </nav>
 </aside>
 {% endblock %}

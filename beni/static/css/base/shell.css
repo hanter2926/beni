@@ -11,6 +11,7 @@
 }
 .skip-link:focus { transform: translateY(0); }
 .site-shell { min-height: 100vh; }
+.site-shell, .workspace-layout, .main-content { min-width: 0; }
 .site-header {
     position: relative;
     z-index: 5;
@@ -40,6 +41,7 @@
 .header-actions { display: flex; align-items: center; gap: 18px; }
 .account-name { max-width: 180px; overflow: hidden; color: var(--ink-soft); text-overflow: ellipsis; white-space: nowrap; }
 .header-link, .text-button { border: 0; background: none; color: var(--ink); font-weight: 700; text-decoration: none; cursor: pointer; }
+.workspace-mobile-link { display: none !important; }
 .header-cta { padding: 10px 15px; border-radius: var(--radius-sm); background: var(--green-deep); color: #fff; font-weight: 700; text-decoration: none; }
 .signout-form { margin: 0; }
 .menu-toggle {
@@ -67,6 +69,12 @@
 .role-nav a { display: flex; min-height: 46px; align-items: center; padding: 10px 12px; border-radius: var(--radius-sm); color: var(--ink-soft); font-weight: 650; text-decoration: none; }
 .role-nav a:hover, .role-nav a[aria-current="page"] { background: var(--surface); color: var(--ink); }
 .main-content { min-width: 0; padding: clamp(22px, 4vw, 54px); }
+.main-content > * { min-width: 0; }
+.main-content h1, .main-content h2, .main-content h3,
+.main-content p, .main-content a, .main-content li, .main-content dd,
+.main-content strong, .main-content small, .main-content time {
+    overflow-wrap: anywhere;
+}
 .message-stack { display: grid; gap: 8px; margin-bottom: 20px; }
 .message { margin: 0; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
 .message-error { border-color: #e7b7b2; color: var(--danger); }
@@ -79,27 +87,33 @@
     white-space: nowrap;
     clip-path: inset(50%);
 }
-@media (max-width: 760px) {
+@media (min-width: 1024px) {
+    .menu-toggle { display: none; }
+}
+@media (max-width: 1023px) {
     .site-header { min-height: 68px; padding-inline: 16px; }
+    .site-header:not(.has-role-navigation) { flex-wrap: wrap; }
+    .site-header:not(.has-role-navigation) .header-actions { flex-wrap: wrap; gap: 10px; }
     .site-header.has-role-navigation .account-name,
-    .site-header.has-role-navigation .header-link:nth-of-type(1),
-    .site-header.has-role-navigation .header-link:nth-of-type(2) { display: none; }
+    .site-header.has-role-navigation .header-link { display: none; }
     .site-header.has-role-navigation .header-actions { gap: 10px; }
-    .workspace-layout { display: block; min-height: calc(100vh - 68px); }
+    .workspace-layout { display: block; width: 100%; min-height: calc(100vh - 68px); }
     .side-rail { position: absolute; z-index: 4; top: 68px; right: 0; left: 0; display: none; padding: 14px 16px 18px; border: 0; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-soft); }
     .side-rail.is-open { display: block; }
-    .role-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .role-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .workspace-mobile-link { display: flex !important; }
     .main-content { padding: 24px 16px 40px; }
 }
 @media (max-width: 414px) {
-    .site-header { align-items: flex-start; flex-wrap: wrap; }
-    .site-header.has-role-navigation { align-items: center; flex-wrap: nowrap; }
+    .site-header { align-items: center; flex-wrap: nowrap; }
+    .site-header:not(.has-role-navigation) { align-items: flex-start; flex-wrap: wrap; }
     .brand-name { font-size: 16px; }
-    .header-actions { flex: 1 1 100%; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
-    .site-header.has-role-navigation .header-actions { flex: 0 1 auto; flex-wrap: nowrap; }
+    .header-actions { flex: 0 1 auto; justify-content: flex-end; flex-wrap: nowrap; gap: 10px; }
+    .site-header:not(.has-role-navigation) .header-actions { flex: 1 1 100%; }
     .account-name { max-width: 92px; }
     .menu-toggle { min-height: 40px; padding-inline: 9px; }
     .menu-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+    .role-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

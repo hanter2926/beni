@@ -33,6 +33,11 @@
     .repair-guidance { grid-template-columns: 38px minmax(0, 1fr); }
     .repair-guidance-link { grid-column: 2; }
 }
+@media (min-width: 701px) and (max-width: 1023px) {
+    .repair-workspace { max-width: 100%; }
+    .repair-guidance { grid-template-columns: 38px minmax(0, 1fr); }
+    .repair-guidance-link { grid-column: 2; }
+}
 @media (max-width: 460px) {
     .repair-heading h1 { font-size: 34px; }
     .repair-date-mark { width: 54px; flex-basis: 54px; }
@@ -42,4 +47,8 @@
     .repair-tab-panel { align-items: flex-start; gap: 12px; }
     .repair-empty-icon { width: 42px; flex-basis: 42px; }
     .repair-profile { flex-wrap: wrap; }
+}
+@media (max-width: 360px) {
+    .repair-guidance { grid-template-columns: minmax(0, 1fr); }
+    .repair-guidance-link { grid-column: auto; }
 }

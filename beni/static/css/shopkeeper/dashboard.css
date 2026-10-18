@@ -39,6 +39,11 @@
     .shopkeeper-heading { align-items: flex-start; flex-direction: column; }
     .shopkeeper-bottom { grid-template-columns: minmax(0, 1fr); }
 }
+@media (min-width: 761px) and (max-width: 1023px) {
+    .shopkeeper-workspace { max-width: 100%; }
+    .shopkeeper-bottom { grid-template-columns: minmax(0, 1fr) minmax(210px, .65fr); }
+    .shopkeeper-panel { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; }
+}
 @media (max-width: 480px) {
     .shopkeeper-heading h1 { font-size: 36px; }
     .shopkeeper-board { padding: 20px 16px; }
@@ -49,4 +54,9 @@
     .shopkeeper-panel-mark { width: 42px; }
     .shopkeeper-panel-state { grid-column: 2; justify-self: start; }
     .shopkeeper-checklist { padding: 18px 14px; }
+}
+@media (max-width: 360px) {
+    .shopkeeper-board-top { align-items: flex-start; flex-direction: column; }
+    .shopkeeper-checklist li { grid-template-columns: 26px minmax(0, 1fr); }
+    .shopkeeper-checklist li b { grid-column: 2; }
 }

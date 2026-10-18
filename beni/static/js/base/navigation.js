@@ -19,4 +19,12 @@ if (menuToggle && roleNavigation) {
             roleNavigation.closest('.side-rail')?.classList.remove('is-open');
         }
     });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') {
+            menuToggle.setAttribute('aria-expanded', 'false');
+            roleNavigation.closest('.side-rail')?.classList.remove('is-open');
+            menuToggle.focus();
+        }
+    });
 }

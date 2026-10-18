@@ -42,12 +42,17 @@
 .product-image, .product-image-placeholder { display: grid; width: 112px; aspect-ratio: 1; place-items: center; border-radius: 6px; object-fit: cover; }
 .product-image-placeholder { background: #f4e8df; color: var(--management-accent); font-family: Georgia, serif; font-size: 18px; }
 .product-card-content { min-width: 0; }
+.management-status, .product-facts span { overflow-wrap: anywhere; }
 .product-facts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; color: #5f7168; font-size: 13px; }
 .product-facts span:first-child { color: var(--ink); font-size: 16px; font-weight: 800; }
 .shopkeeper-panel-link { display: inline-flex; gap: 9px; margin-top: 10px; color: var(--shop-accent); font-size: 13px; font-weight: 750; text-decoration: none; }
 .shopkeeper-panel-link:hover, .management-card-actions a:hover, .management-text-link:hover { text-decoration: underline; }
 @media (max-width: 760px) {
     .management-heading { align-items: flex-start; flex-direction: column; }
+}
+@media (min-width: 761px) and (max-width: 1023px) {
+    .shop-management, .product-management { max-width: 100%; }
+    .management-form-panel { max-width: 100%; }
 }
 @media (max-width: 560px) {
     .management-form { grid-template-columns: minmax(0, 1fr); }
@@ -56,4 +61,12 @@
     .product-image, .product-image-placeholder { width: 74px; }
     .management-card h2 { font-size: 21px; }
     .product-facts { gap: 6px 12px; }
+}
+@media (max-width: 360px) {
+    .management-card-heading { flex-direction: column; }
+    .management-card-actions { gap: 12px; }
+    .management-form-actions { align-items: stretch; flex-direction: column; }
+    .management-form-actions > * { width: 100%; }
+    .product-card { grid-template-columns: minmax(0, 1fr); }
+    .product-image, .product-image-placeholder { width: 100%; max-height: 220px; aspect-ratio: 4 / 3; }
 }

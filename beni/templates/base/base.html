@@ -56,6 +56,7 @@
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'bookings:customer_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair services</a>
                             <a href="{% url 'accounts:profile' %}">Profile</a>
+                            <a class="workspace-mobile-link" href="{% url 'accounts:password_change' %}">Change password</a>
                         </nav>
                     </aside>
                 {% elif role_label == 'Shopkeeper' %}
@@ -70,6 +71,7 @@
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'verification:worker_application' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification</a>
                             <a href="{% url 'accounts:profile' %}">Profile</a>
+                            <a class="workspace-mobile-link" href="{% url 'accounts:password_change' %}">Change password</a>
                         </nav>
                     </aside>
                 {% elif role_label == 'Admin' %}
@@ -82,6 +84,8 @@
                             <a href="{% url 'verification:admin_list' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification review</a>
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'admin:index' %}">Django admin</a>
+                            <a class="workspace-mobile-link" href="{% url 'accounts:profile' %}">Profile</a>
+                            <a class="workspace-mobile-link" href="{% url 'accounts:password_change' %}">Change password</a>
                         </nav>
                     </aside>
                 {% endif %}
