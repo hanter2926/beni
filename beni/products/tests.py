@@ -22,12 +22,26 @@ from beni.upload_validation import (
 	validate_verification_document,
 )
 
+from .forms import ProductForm
 from .image_validation import (
 	MAX_PRODUCT_IMAGE_PIXELS,
 	MAX_PRODUCT_IMAGE_SIZE,
 	validate_product_image,
 )
 from .models import Product
+
+
+class ProductImageControlTests(SimpleTestCase):
+	def test_product_image_control_uses_supported_file_types(self):
+		form = ProductForm(user=get_user_model()(pk=1))
+		image_input = form['image'].as_widget()
+
+		self.assertIn('type="file"', image_input)
+		self.assertIn(
+			'accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"',
+			image_input,
+		)
+		self.assertIn('product-image-preview-message', image_input)
 
 
 class ProductImageValidationTests(SimpleTestCase):
@@ -64,6 +78,14 @@ class ProductImageValidationTests(SimpleTestCase):
 					'broken.png',
 					b'not an image',
 					content_type='image/png',
+				)
+			)
+		with self.assertRaises(ValidationError):
+			ImageField().clean(
+				SimpleUploadedFile(
+					'README.md',
+					b'# Not an image',
+					content_type='text/markdown',
 				)
 			)
 

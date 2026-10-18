@@ -29,6 +29,7 @@
             <input type="hidden" name="next" value="{{ next }}">
             <button class="button button-primary form-submit" type="submit">Sign in <span aria-hidden="true">&rarr;</span></button>
         </form>
+        <p class="auth-switch"><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p>
         <p class="auth-switch">New to BENI? <a href="{% url 'accounts:register' %}">Create an account</a></p>
     </div>
 </section>

@@ -46,7 +46,11 @@ class ProductForm(forms.ModelForm):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['shop'].queryset = Shop.objects.filter(owner=user).order_by('name')
-        self.fields['image'].widget.attrs['accept'] = 'image/jpeg,image/png,image/webp'
+        self.fields['image'].widget.attrs.update({
+            'accept': '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp',
+            'type': 'file',
+            'data-product-image-input': '',
+        })
         self.fields['image'].help_text = (
             'Optional. JPEG, PNG, or WebP; maximum 2 MB, 6000 × 6000 pixels, '
             'and 24 megapixels.'
@@ -56,7 +60,7 @@ class ProductForm(forms.ModelForm):
                 ProductImage.objects.filter(product=self.instance)
             )
         self.fields['gallery_images'].widget.attrs.update({
-            'accept': 'image/jpeg,image/png,image/webp',
+            'accept': '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp',
         })
         for name, field in self.fields.items():
             attrs = field.widget.attrs
@@ -64,6 +68,8 @@ class ProductForm(forms.ModelForm):
             described_by = []
             if field.help_text:
                 described_by.append(f'id_{name}_help')
+            if name == 'image':
+                described_by.append('product-image-preview-message')
             if self.is_bound and self.errors.get(name):
                 attrs['aria-invalid'] = 'true'
                 described_by.append(f'id_{name}_errors')

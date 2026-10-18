@@ -44,10 +44,14 @@
 .product-image, .product-image-placeholder { display: grid; width: 112px; aspect-ratio: 1; place-items: center; border-radius: 6px; object-fit: cover; }
 .product-image-placeholder { background: #f4e8df; color: var(--management-accent); font-family: Georgia, serif; font-size: 18px; }
 .product-image.product-image-placeholder { padding: 7px; object-fit: contain; }
-.product-image-preview { display: flex; align-items: center; gap: 14px; margin-top: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--radius-sm); background: #f8fafc; }
-.product-image-preview img { width: 96px; height: 72px; flex: 0 0 auto; border-radius: var(--radius-xs); object-fit: contain; background: #fff; }
-.product-image-preview p { margin: 0; color: var(--ink-soft); font-size: 13px; }
-.product-image-preview-message { margin: 6px 0 0; color: var(--ink-soft); font-size: 12px; }
+.product-image-upload input[type="file"] { width: 100%; min-height: 46px; padding: 7px; border: 1px solid #d4dcd6; border-radius: var(--radius-sm); background: #fdfdfb; color: var(--ink); }
+.product-image-upload input[type="file"]::file-selector-button { min-height: 30px; margin-right: 10px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.product-image-upload input[type="file"]::file-selector-button:hover { background: #f4e8df; }
+.product-image-upload input[type="file"]:focus-visible, .product-image-preview-clear:focus-visible { outline: 3px solid var(--management-accent); outline-offset: 3px; }
+.product-image-preview { display: block; width: min(100%, 420px); height: clamp(160px, 32vw, 280px); margin-top: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--radius-sm); background: #f8fafc; object-fit: contain; }
+.product-image-preview-message { max-width: 60ch; margin: 6px 0 0; color: var(--ink-soft); font-size: 13px; overflow-wrap: anywhere; }
+.product-image-preview-message.is-error { color: #a13c39; font-weight: 700; }
+.product-image-preview-clear { min-height: 44px; margin-top: 6px; cursor: pointer; }
 .product-card-content { min-width: 0; }
 .management-status, .product-facts span { overflow-wrap: anywhere; }
 .product-facts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; color: #5f7168; font-size: 13px; }

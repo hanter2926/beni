@@ -1,4 +1,9 @@
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordResetForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import UploadedFile
 from django import forms
@@ -12,6 +17,7 @@ from .models import Profile
 def style_fields(form):
     autocomplete = {
         'username': 'username',
+        'email': 'email',
         'password': 'current-password',
         'password1': 'new-password',
         'password2': 'new-password',
@@ -33,19 +39,75 @@ def style_fields(form):
     return form
 
 
+def _validate_unique_email(email, *, exclude_user_id=None):
+    users = get_user_model().objects.filter(email__iexact=email)
+    if exclude_user_id is not None:
+        users = users.exclude(pk=exclude_user_id)
+    if users.exists():
+        raise forms.ValidationError(
+            'An account with this email address already exists.'
+        )
+    return email
+
+
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         style_fields(self)
 
 
-class RegistrationForm(UserCreationForm):
+class BeniPasswordResetForm(PasswordResetForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         style_fields(self)
 
 
+class BeniSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        style_fields(self)
+
+
+class RegistrationForm(UserCreationForm):
+    ROLE_CUSTOMER = 'customer'
+    ROLE_SHOPKEEPER = 'shopkeeper'
+    ROLE_REPAIR_WORKER = 'repair_worker'
+
+    email = forms.EmailField(
+        required=True,
+        help_text='Used for password recovery.',
+    )
+    role = forms.ChoiceField(
+        choices=(
+            (ROLE_CUSTOMER, 'Customer'),
+            (ROLE_SHOPKEEPER, 'Shopkeeper'),
+            (ROLE_REPAIR_WORKER, 'Repair Worker'),
+        ),
+        help_text=(
+            'Shopkeeper and Repair Worker features remain restricted until '
+            'required verification is approved.'
+        ),
+        label='Account type',
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = get_user_model()
+        fields = ('username', 'email')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(('username', 'email', 'role', 'password1', 'password2'))
+        style_fields(self)
+
+    def clean_email(self):
+        return _validate_unique_email(self.cleaned_data['email'].strip())
+
+
 class ProfileForm(ModelForm):
+    email = forms.EmailField(
+        required=True,
+        help_text='Used for password recovery.',
+    )
     profile_image = forms.ImageField(
         required=False,
         label='Profile photo',
@@ -57,7 +119,7 @@ class ProfileForm(ModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = ('first_name', 'last_name')
+        fields = ('first_name', 'last_name', 'email')
 
     def __init__(self, *args, profile=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -66,6 +128,12 @@ class ProfileForm(ModelForm):
         if profile and profile.image:
             self.fields['profile_image'].initial = profile.image
         style_fields(self)
+
+    def clean_email(self):
+        return _validate_unique_email(
+            self.cleaned_data['email'].strip(),
+            exclude_user_id=self.instance.pk,
+        )
 
     def clean_profile_image(self):
         image = self.cleaned_data.get('profile_image')

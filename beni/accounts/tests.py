@@ -4,12 +4,20 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core import mail
 from django.core.management import CommandError, call_command
 from django.http import Http404, HttpResponse
-from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.test import (
+	Client,
+	RequestFactory,
+	SimpleTestCase,
+	TestCase,
+	override_settings,
+)
 from django.urls import resolve, reverse
 
 from .context_processors import navigation_context
+from .forms import ProfileForm
 from .views import private_profile_image
 
 
@@ -117,11 +125,32 @@ class AuthenticationPageTests(SimpleTestCase):
 		for route_name, template_name in (
 			('accounts:login', 'auth/login.html'),
 			('accounts:register', 'auth/register.html'),
+			('accounts:password_reset', 'auth/password_reset_form.html'),
+			('accounts:password_reset_done', 'auth/password_reset_done.html'),
 		):
 			with self.subTest(route=route_name):
 				response = self.client.get(reverse(route_name))
 				self.assertEqual(response.status_code, 200)
 				self.assertTemplateUsed(response, template_name)
+
+	def test_registration_displays_recovery_email_and_role_fields(self):
+		response = self.client.get(reverse('accounts:register'))
+
+		self.assertContains(response, 'name="email"')
+		self.assertContains(response, 'name="role"')
+		self.assertContains(response, 'Repair Worker')
+
+	def test_profile_form_allows_users_to_set_a_recovery_email(self):
+		user = get_user_model()(pk=1)
+		form = ProfileForm(instance=user)
+
+		self.assertTrue(form.fields['email'].required)
+		self.assertEqual(form.fields['email'].help_text, 'Used for password recovery.')
+
+	def test_login_links_to_password_recovery(self):
+		response = self.client.get(reverse('accounts:login'))
+
+		self.assertContains(response, reverse('accounts:password_reset'))
 
 
 class AuthenticationFlowTests(TestCase):
@@ -139,6 +168,8 @@ class AuthenticationFlowTests(TestCase):
 			reverse('accounts:register'),
 			{
 				'username': 'new-customer',
+				'email': 'new-customer@example.test',
+				'role': 'customer',
 				'password1': self.password,
 				'password2': self.password,
 			},
@@ -154,10 +185,74 @@ class AuthenticationFlowTests(TestCase):
 		self.assertFalse(user.is_staff)
 		self.assertFalse(user.is_superuser)
 		self.assertFalse(user.groups.exists())
+		self.assertEqual(user.email, 'new-customer@example.test')
 		self.assertEqual(
 			self.client.get(reverse('dashboard:customer')).status_code,
 			200,
 		)
+
+	def test_registration_assigns_the_selected_marketplace_role(self):
+		for role, group_name, dashboard_name, username in (
+			(
+				'shopkeeper',
+				'Shopkeeper',
+				'dashboard:shopkeeper',
+				'new-shopkeeper',
+			),
+			(
+				'repair_worker',
+				'Repair Worker',
+				'dashboard:repair_worker',
+				'new-repair-worker',
+			),
+		):
+			with self.subTest(role=role):
+				self.client.logout()
+				response = self.client.post(
+					reverse('accounts:register'),
+					{
+						'username': username,
+						'email': f'{username}@example.test',
+						'role': role,
+						'password1': self.password,
+						'password2': self.password,
+					},
+				)
+
+				self.assertRedirects(
+					response,
+					reverse(dashboard_name),
+					fetch_redirect_response=False,
+				)
+				user = get_user_model().objects.get(username=username)
+				self.assertEqual(
+					list(user.groups.values_list('name', flat=True)),
+					[group_name],
+				)
+
+	def test_password_reset_sends_email_without_disclosing_unknown_accounts(self):
+		user = self.create_user(
+			'password-reset-user',
+			email='reset@example.test',
+		)
+
+		with override_settings(
+			EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+		):
+			known_response = self.client.post(
+				reverse('accounts:password_reset'),
+				{'email': user.email},
+			)
+			unknown_response = self.client.post(
+				reverse('accounts:password_reset'),
+				{'email': 'unknown@example.test'},
+			)
+
+		self.assertEqual(known_response.status_code, 302)
+		self.assertEqual(unknown_response.status_code, 302)
+		self.assertEqual(known_response['Location'], unknown_response['Location'])
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertIn('password-reset/', mail.outbox[0].body)
 
 	def test_successful_customer_login_uses_safe_role_redirect(self):
 		self.create_user('customer-login')
@@ -206,6 +301,8 @@ class AuthenticationFlowTests(TestCase):
 			reverse('accounts:register'),
 			{
 				'username': 'csrf-registration',
+				'email': 'csrf-registration@example.test',
+				'role': 'customer',
 				'password1': self.password,
 				'password2': self.password,
 			},
