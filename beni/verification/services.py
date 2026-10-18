@@ -29,8 +29,6 @@ def submit_application(*, applicant, application_type, shop=None):
         defaults = {}
         title = 'Shop verification needs review'
         message = 'A Shopkeeper submitted an application for review.'
-        destination_name = 'verification:shopkeeper_application'
-        destination_args = (shop.pk,)
     elif application_type == VerificationApplication.TYPE_REPAIR_WORKER:
         if shop is not None or not user_has_role_group(
             applicant,
@@ -48,8 +46,6 @@ def submit_application(*, applicant, application_type, shop=None):
         }
         title = 'Repair Worker verification needs review'
         message = 'A Repair Worker submitted an application for review.'
-        destination_name = 'verification:worker_application'
-        destination_args = ()
     else:
         raise ValidationError('The verification application type is invalid.')
 
@@ -117,8 +113,7 @@ def submit_application(*, applicant, application_type, shop=None):
         event_key=event_key,
         title=title,
         message=notification_message,
-        destination_name=destination_name,
-        destination_args=destination_args,
+        destination_name='verification:admin_list',
     )
     return application, created or resubmitted
 

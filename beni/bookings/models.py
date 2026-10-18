@@ -51,7 +51,7 @@ class RepairBooking(models.Model):
         indexes = [
             models.Index(
                 fields=('customer', 'created_at'),
-                name='bookings_re_customer_33fc2f_idx',
+                name='booking_customer_created_idx',
             ),
             models.Index(
                 fields=('assigned_worker', 'status'),

@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name='repairbooking',
-            index=models.Index(fields=['customer', 'created_at'], name='bookings_re_customer_33fc2f_idx'),
+            index=models.Index(fields=['customer', 'created_at'], name='booking_customer_created_idx'),
         ),
         migrations.AddIndex(
             model_name='repairbooking',

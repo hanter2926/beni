@@ -115,8 +115,9 @@ class CustomerCartTests(TestCase):
                 'unit_price': str(self.product.price),
             }
         }
-        self.client.session['beni_cart'] = cart
-        self.client.session.save()
+        session = self.client.session
+        session['beni_cart'] = cart
+        session.save()
 
         response = self.client.get(
             reverse('customers:cart_update', args=[self.product.pk]),
@@ -203,6 +204,7 @@ class CustomerCartTests(TestCase):
             reverse('customers:cart'),
             fetch_redirect_response=False,
         )
+        self.client.get(reverse('customers:cart'))
 
         self.verification.status = VerificationApplication.STATUS_REJECTED
         self.verification.save(update_fields=('status',))
