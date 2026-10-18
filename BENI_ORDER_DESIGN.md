@@ -150,11 +150,19 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    checkout_token = models.CharField(max_length=64, null=True, blank=True, unique=True, db_index=True)
+    checkout_attempt = models.ForeignKey(
+        'orders.CheckoutAttempt',
+        on_delete=models.PROTECT,
+        related_name='orders',
+    )
 
     class Meta:
         ordering = ('-created_at', '-id')
         constraints = [
+            models.UniqueConstraint(
+                fields=['checkout_attempt', 'shop'],
+                name='order_attempt_shop_unique',
+            ),
             models.CheckConstraint(
                 condition=models.Q(total__gte=Decimal('0.00')),
                 name='order_total_nonnegative',
@@ -197,12 +205,6 @@ class OrderItem(models.Model):
         related_name='items',
         db_index=True,
     )
-    shop = models.ForeignKey(
-        'shops.Shop',
-        on_delete=models.PROTECT,
-        related_name='order_items',
-        db_index=True,
-    )
     product = models.ForeignKey(
         'products.Product',
         on_delete=models.PROTECT,
@@ -234,18 +236,54 @@ class OrderItem(models.Model):
             ),
         ]
         indexes = [
-            models.Index(fields=['order', 'shop']),
-            models.Index(fields=['shop', 'product']),
+            models.Index(fields=['order', 'product']),
         ]
 ```
 
-### 4.3 Product deletion and historical retention policy
+### 4.3 CheckoutAttempt model and idempotency
+
+Use a persistent `CheckoutAttempt` as the parent record for one customer submission. Proposed fields:
+
+```python
+class CheckoutAttempt(models.Model):
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='checkout_attempts',
+    )
+    token = models.UUIDField(unique=True, editable=False)
+    cart_digest = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+`Order.checkout_attempt` points to this record, and `UniqueConstraint(checkout_attempt, shop)` allows one order per shop for the attempt while preventing a retry from creating a second order for that same shop. The token identifies the whole multi-shop submission, not an individual `Order`; it must not be a unique field on `Order`, since one attempt may create several shop orders.
+
+Token lifecycle for the existing session cart:
+1. On the first checkout page load for a non-empty cart, create an opaque random token in the session and bind it to a server-computed canonical cart digest. Reuse it for subsequent checkout page loads while the cart digest is unchanged; do not rotate it on ordinary refresh.
+2. Every add, update, or remove cart action invalidates the active, uncommitted token. The next checkout load issues a new token bound to the changed cart. A POST with an old token or a digest mismatch is rejected as stale and must not create or alter orders.
+3. At POST, the server rebuilds and validates the cart from database product/shop data, recomputes the canonical digest, and checks that the submitted token belongs to the authenticated customer and this exact cart state. Client-supplied totals or product data are not trusted.
+4. Inside one `transaction.atomic()` block, create the `CheckoutAttempt`, then every per-shop `Order`, `OrderItem`, and stock deduction. The unique token and `(checkout_attempt, shop)` constraint are the durable concurrency/idempotency guard. If any validation or write fails, rollback removes all attempt/order/item rows and stock changes; keep the same session token and cart so a retry may safely reuse them.
+5. On a replay after a successful commit, find the existing attempt for that token and customer, verify the cart digest, and return its existing orders rather than inserting more. A repeated POST and a browser refresh must never create another order set. If the session still contains the exact submitted cart because the response was lost, clear it only after the existing committed attempt is confirmed. If the cart has since changed, do not clear the changed cart.
+6. After a new checkout commits successfully, clear the session cart and active token. Keep a completed receipt reference/token long enough for a stale POST or refresh to redirect to the already-created order set; never delete the persistent attempt as a way to make the token reusable.
+
+The current implementation uses a session cart signature and stores orders/signatures in the session. That only limits repeat submissions within that browser session, keeps no durable idempotency record, and cannot coordinate concurrent requests or devices. It should not be treated as an adequate substitute for the persistent attempt key and database uniqueness above.
+
+Trade-off: `CheckoutAttempt` is an additional table beyond the initially proposed `Order` and `OrderItem`, but it gives the multi-shop checkout one durable idempotency identity and a single result set. A per-shop derived token stored on each `Order` would avoid that table but complicates lookup, customer binding, and recovery of the complete multi-shop result. The parent attempt is the recommended design.
+
+### 4.4 OrderItem shop consistency
+
+Do not add `OrderItem.shop` in the proposed schema. The current `Product` model has a required foreign key to `Shop`; each `Order` already has a required foreign key to its one shop. Keeping another shop foreign key on every line duplicates data and creates a consistency condition that a normal foreign key cannot enforce: MySQL cannot ensure that `OrderItem.shop_id = Order.shop_id` using independent foreign keys alone.
+
+At checkout, the service must lock and load the products, group them by their current `product.shop_id`, create one `Order` per group, and reject the entire checkout unless every product assigned to an order has `product.shop_id == order.shop_id`. Create line items only from this validated grouping. Shopkeeper authorization and listing then use `Order.shop`, not an item-level shop field.
+
+Trade-off: removing the redundant field avoids contradictory shop IDs and saves a foreign key/index. Historical shop ownership is taken from the protected `Order.shop` plus the immutable order snapshots. The `OrderItem.product` foreign key remains `PROTECT`; if products can be reassigned to another shop later, the current Product relation will no longer describe their historical shop, so the order's shop and snapshots remain authoritative. A future product reassignment policy should disallow reassignment after order history or explicitly preserve additional historical provenance; do not change the existing Product model as part of this design-only decision.
+
+### 4.5 Product deletion and historical retention policy
 The design requires historical order items to remain intact even if a product or shop is later removed or deactivated.
 
 Consistent policy choice:
 - `Order.customer` uses `PROTECT`.
 - `Order.shop` uses `PROTECT`.
-- `OrderItem.shop` uses `PROTECT`.
 - `OrderItem.product` uses `PROTECT`, not `SET_NULL`, because a null product reference would weaken the historical record and make it harder to audit the exact purchased item.
 
 Trade-offs:
@@ -253,7 +291,7 @@ Trade-offs:
 - `SET_NULL` would allow historical order lines to lose the product relationship, which undermines the audit trail and makes the order less useful for later customer support and dispute workflows.
 - Soft deletion (`is_active = False` or a `deleted_at` flag) is a useful operational control for a live storefront, but it is not a replacement for historical integrity. The existing `Product` model does not implement soft deletion, and order history should remain intact even if a product is deactivated later.
 
-The snapshot fields (`product_name`, `product_category`, `product_sku`, `unit_price`, and `line_total`) remain the authoritative source-of-truth for the order history. This makes future product edits, price changes, or shop deletions non-destructive to historical records.
+The snapshot fields (`product_name`, `product_category`, `product_sku`, `unit_price`, and `line_total`) and `Order.shop` remain authoritative for order history. This makes future product edits or price changes non-destructive to historical records. `PROTECT` means shops with historical orders cannot be deleted; deactivation is the supported operational path.
 
 ## 5. Order status and payment status transitions
 
@@ -263,19 +301,17 @@ The snapshot fields (`product_name`, `product_category`, `product_sku`, `unit_pr
 pending -> confirmed -> processing -> ready_for_pickup -> out_for_delivery -> delivered
       \-> cancelled
 confirmed -> cancelled
-processing -> cancelled
-ready_for_pickup -> cancelled
-out_for_delivery -> delivered
-out_for_delivery -> cancelled
 ```
+
+For this phase, cancellation is allowed only before fulfillment starts (`pending` or `confirmed`). Cancellation after entering `processing`, `ready_for_pickup`, or `out_for_delivery` is rejected. Partial cancellation and partial stock restoration are deferred until a reliable fulfillment ledger exists.
 
 Rules:
 - `pending` is the initial state after cart validation but before confirmation.
 - `confirmed` means the shop-specific order amount is accepted and inventory has been reserved.
-- `cancelled` requires stock restoration and optional refund bookkeeping.
-- `refunded` is a terminal state after refund processing.
+- `cancelled` requires full stock restoration, performed once and atomically, and is not a payment refund.
+- `refunded` is a payment outcome and must not itself restore inventory.
 - Model-level `choices` and constraints only describe allowed values; they do not enforce valid transition sequences. Transition validation must be enforced in the checkout/order service layer and in any mutation view or form that changes an order status.
-- For the initial design, cancellation should be allowed only while the order is still unfulfilled (for example `pending` or `confirmed`). Once the order has entered `processing` or a later fulfillment state, cancellation must require an explicit fulfillment/refund workflow that restores only the unfulfilled quantity or is otherwise explicitly blocked.
+- Partial cancellation remains out of scope until fulfillment quantities/events can be recorded and audited. Status transitions and cancellation authorization must be enforced by the order service and object-scoped views, not by `choices` alone.
 
 ### Valid payment status transitions
 
@@ -337,23 +373,18 @@ For a transaction-safe design:
 Because MySQL is used, row-level locking via `select_for_update()` prevents two concurrent checkouts from reading the same row and both seeing the same stock. The second transaction waits until the first commits and then reads the updated quantity. This prevents overselling in a safe, minimal design.
 
 ### Cancellation and restoration
-If an order is cancelled or refunded, stock restoration must be part of the same atomic database transaction as the status change:
+For a full cancellation before fulfillment starts, stock restoration must be part of the same atomic database transaction as the status change:
 - `transaction.atomic()` begins.
 - The order row is locked or selected with a status transition check.
-- The system verifies that the order is in a cancellable state (`pending`/`confirmed` for the initial design) and that stock has not already been restored for this cancellation event.
+- The system verifies that the order is in a cancellable state (`pending`/`confirmed` for this phase).
 - For each `OrderItem`, the corresponding `Product` row is locked with `select_for_update()` and `stock_quantity += item.quantity` is applied in the same transaction.
-- The order status changes to `cancelled` or `refunded` only after the stock restoration succeeds.
-- If the order is partially fulfilled, the design should not silently restore full stock. For the initial implementation, the order should be blocked from cancellation once fulfillment has started. A future fulfillment ledger or `fulfilled_quantity` field is required before a partial cancellation model can be safely introduced.
+- Set the order status to `cancelled` in the same transaction only after all restoration operations succeed. A payment refund is a separate payment concern and must not itself restore stock.
+- If fulfillment has started or the order is partially fulfilled, cancellation and partial restoration are rejected in this phase. Partial cancellation remains deferred until a reliable fulfillment ledger or equivalent per-line fulfilled quantity/event design exists.
 
-This pattern prevents double-restoration because the atomic transaction re-reads the order state and only permits restoration once; if a second cancellation request arrives concurrently, it will either serialize behind the lock or fail the transition check.
+The order-row lock serializes concurrent cancellation attempts. The service must re-check the status after obtaining the lock and restore stock only during the valid transition to `cancelled`; a replay sees the terminal status and performs no second restoration. If any operation fails, the whole transaction rolls back.
 
 ### Duplicate submission prevention
-Multiple protections should be combined:
-- A session checkout token or cart hash to prevent repeated POSTs for the same cart payload.
-- A unique `checkout_token` or `client_order_key` on the order model, stored and checked before insertion.
-- An idempotency guard in the view/service before order creation.
-- Server-side validation for cart contents and totals at every checkout.
-- The session cart is cleared only after the transaction commits successfully; if any validation or database error occurs, the cart remains intact and the user can retry with the same order payload.
+Use the persistent `CheckoutAttempt` lifecycle defined in section 4.3. Session signatures alone are not durable and do not protect concurrent or cross-device submissions. Bind a token to the authenticated customer and canonical cart digest; persist the attempt and all per-shop orders in one transaction; replay an already committed token by returning its existing orders; retain the session cart/token on transaction failure; and clear the cart only after commit succeeds.
 
 ## 8. Security rules for views and authorization
 
@@ -376,7 +407,7 @@ Every order-related route must enforce the following:
 
 ### Order detail access control
 - Customer route must resolve the order by `customer=request.user` and `order_number`.
-- Shopkeeper route must resolve the order by a join on `OrderItem.shop__owner=request.user` or `Order.shop__owner=request.user`.
+- Shopkeeper route must resolve the order by `shop__owner=request.user`; `OrderItem` has no separate shop FK.
 - No order should ever be retrieved by a raw request parameter without ownership enforcement.
 
 ### Payment safety
@@ -402,16 +433,23 @@ auth
      └─ products.0001_initial
 ```
 
-There is no repo-backed `orders.0001_initial` dependency chain yet, and no `orders.0002_*` migration should be assumed until an actual `orders` migration is approved and generated.
+The live database observed in the latest read-only audit is `beni_db` on MySQL 8.0.46. It contains standard Django auth/contenttypes/admin/session tables, but does not contain `shops_shop` or `products_product`. Its migration recorder includes the built-in auth/contenttypes/admin/session migrations but not `shops.0001_initial` or `products.0001_initial`. Thus the repo graph and live database state are different: the shop/product migrations exist in source but are pending in this database.
+
+The future `orders.0001_initial` should directly depend on both:
+- `('products', '0001_initial')`, for Product and Shop references through the existing product dependency chain
+- `migrations.swappable_dependency(settings.AUTH_USER_MODEL)`, because `Order` and `CheckoutAttempt` directly reference the configured user model
+
+The direct auth dependency is required even though the products migration transitively depends on shops and auth. No Orders migration currently exists in the repo.
 
 ### Safe future order migration plan
-If the design is approved, the first and only order migration in the current phase should be:
+If the design is approved, the first migration should create `CheckoutAttempt`, `Order`, and `OrderItem` together:
 1. `orders.0001_initial`
 
-It should depend on `products` and, indirectly, on `shops` and `auth` through the existing migration graph. No second migration should be planned as part of this design review unless a later, explicit design change requires it.
+It should use the direct dependencies stated above. Because the observed database has pending shop/product migrations, any later application of `orders.0001_initial` may also apply those prerequisites. Review the actual migration plan and obtain separate explicit database approval before applying anything.
 
 ### Migration sequence from a safe implementation perspective
-1. Create `Order` and `OrderItem` models in `orders/models.py`.
+1. Finalize and approve the `CheckoutAttempt`, `Order`, and `OrderItem` schema.
+2. Create those models in `orders/models.py`.
 2. Add model-level indexing, checks, and unique constraints.
 3. Generate `orders.0001_initial` only after explicit approval.
 4. Run only a focused migration and validate the resulting schema before checkout implementation continues.
@@ -419,12 +457,15 @@ It should depend on `products` and, indirectly, on `shops` and `auth` through th
 ## 10. Proposed `orders` app model file structure
 
 The current `orders` app is empty and should remain empty until the migration is explicitly approved. Proposed files after approval:
-- `orders/models.py` — `Order`, `OrderItem`
+- `orders/models.py` — `CheckoutAttempt`, `Order`, `OrderItem`
+- `orders/services.py` — checkout idempotency, transaction, stock, and cancellation operations
 - `orders/forms.py` — checkout and order status forms
 - `orders/views.py` — customer checkout, order detail, shopkeeper order management
 - `orders/urls.py` — customer and shopkeeper routes
 - `orders/tests.py` — order creation, stock deduction, authorization, and status tests
 - `orders/migrations/0001_initial.py` — to be generated only after approval
+
+Integrate the order views through the existing customer/shopkeeper route modules where practical, preserving current route names (`customers:checkout`, `customers:orders`, `customers:order_detail`, and `shopkeeper_orders`) to avoid breaking templates and links.
 
 ## 11. Rollback and recovery considerations
 
@@ -441,11 +482,11 @@ This matches the selected `PROTECT` deletion policy: historical order rows are n
 ### Recovery from interrupted transactions
 - The app should not assume a browser redirect confirms a completed payment.
 - For the order phase without payment integration, order creation must be idempotent and safe to retry.
-- A checkout token can be saved in the session and database to prevent duplicate processing.
+- A checkout token is kept in the session for the active cart and persisted through `CheckoutAttempt` only as part of the all-or-nothing checkout transaction.
 - The cart is cleared only after the transaction commits successfully; if any exception occurs, the cart remains available for retry.
 
 ### Data integrity safeguards
-- `on_delete=PROTECT` prevents losing historical records when a customer, shop, or product with legacy order history is deleted.
+- `on_delete=PROTECT` prevents losing historical records when a customer, shop, product, or checkout attempt with related order history is deleted.
 - The snapshot fields preserve the exact historical purchase data even if product pricing or naming changes later.
 - Unique order numbers avoid accidental duplicates.
 - Decimal totals prevent floating-point precision errors.
@@ -467,8 +508,8 @@ Cart entries remain keyed by `product_id` and `shop_id` and are persisted in the
 4. Start `transaction.atomic()`.
 5. Lock each affected `Product` row with `select_for_update()`.
 6. Re-check the latest database values within the transaction and reject the entire checkout if any line is invalid.
-7. Generate a unique order number and a unique `checkout_token` if not already provided.
-8. Create `Order` rows for each shop in the same transaction.
+7. Validate the session token and canonical cart digest; resolve or create the persistent `CheckoutAttempt`.
+8. Create `Order` rows for each shop in the same transaction, each attached to the attempt.
 9. Create `OrderItem` rows with immutable snapshots for each product line.
 10. Decrease each product `stock_quantity` by the ordered amount.
 11. Save the order totals and commit the transaction.
@@ -478,7 +519,7 @@ Cart entries remain keyed by `product_id` and `shop_id` and are persisted in the
 ### Multi-shop and rollback behavior
 - The checkout is all-or-nothing across all shops. If any shop-specific order fails validation or insert, the transaction is rolled back.
 - This prevents partial fulfillment and avoids inconsistent stock deductions across shops.
-- Duplicate submission is blocked by a unique checkout token and an idempotency check before inserting any order rows.
+- Duplicate submission is blocked by the unique attempt token and unique `(checkout_attempt, shop)` constraint; a committed replay returns the existing orders.
 - If the transaction fails, the view returns a user-facing error and leaves the session cart intact for retry.
 
 ### If any step fails
