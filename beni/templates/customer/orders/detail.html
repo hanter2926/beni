@@ -1,6 +1,8 @@
 {% extends 'base/base.html' %}
+{% load static %}
 {% block title %}Order {{ order.order_number }} | BENI{% endblock %}
 {% block body_class %}customer-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
 {% block content %}
 <div class="catalog-content" style="max-width: 960px; margin: 2rem auto;">
     <p class="catalog-kicker">BENI / ORDER DETAILS</p>
@@ -13,7 +15,7 @@
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:1rem;">
             <div><p style="margin:0; color:#4b5e59;">Customer</p><strong>{{ order.contact_name }}</strong></div>
             <div><p style="margin:0; color:#4b5e59;">Placed</p><strong>{{ order.created_at }}</strong></div>
-            <div><p style="margin:0; color:#4b5e59;">Payment status</p><strong>{{ order.payment_status }}</strong></div>
+            <div><p style="margin:0; color:#4b5e59;">Payment status</p><strong>{{ order.get_payment_status_display }}</strong></div>
             <div><p style="margin:0; color:#4b5e59;">Shop</p><strong>{{ order.shop.name }}</strong></div>
             <div>
                 <p style="margin:0; color:#4b5e59;">Delivery address</p>

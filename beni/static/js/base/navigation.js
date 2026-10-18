@@ -1,6 +1,10 @@
 const menuToggle = document.querySelector('.menu-toggle');
 const roleNavigation = document.querySelector('#role-navigation');
 
+if (menuToggle && !roleNavigation) {
+    menuToggle.remove();
+}
+
 if (menuToggle && roleNavigation) {
     menuToggle.addEventListener('click', () => {
         const isExpanded = menuToggle.getAttribute('aria-expanded') === 'true';

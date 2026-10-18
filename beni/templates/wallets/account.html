@@ -1,5 +1,7 @@
 {% extends 'base/base.html' %}
+{% load static %}
 {% block title %}Wallet history | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
 {% block content %}
 <section class="catalog-content" style="max-width: 900px; margin: 2rem auto;">
     <p class="catalog-kicker">BENI / WALLET FOUNDATION</p>

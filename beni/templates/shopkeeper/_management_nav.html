@@ -2,11 +2,10 @@
     <p class="role-label">Shopkeeper workspace</p>
     <nav class="role-nav" id="role-navigation" aria-label="Shopkeeper navigation">
         <a href="{% url 'dashboard:shopkeeper' %}">Overview</a>
-        <a href="{% url 'shops:list' %}" {% if active_nav == 'shops' %}aria-current="page"{% endif %}>My shops</a>
+        <a href="{% url 'shops:list' %}" {% if active_nav == 'shops' or request.resolver_match.url_name == 'shopkeeper_application' %}aria-current="page"{% endif %}>My shops</a>
         <a href="{% url 'products:list' %}" {% if active_nav == 'products' %}aria-current="page"{% endif %}>Products</a>
         <a href="{% url 'shopkeeper_orders' %}" {% if active_nav == 'orders' %}aria-current="page"{% endif %}>Orders</a>
         <a href="{% url 'wallets:shopkeeper' %}" {% if active_nav == 'wallet' %}aria-current="page"{% endif %}>Wallet</a>
-        <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
-        <a href="{% url 'shops:list' %}">Verification</a>
+        <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
     </nav>
 </aside>

@@ -4,7 +4,22 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from accounts.roles import (
+    REPAIR_WORKER_GROUP,
+    SHOPKEEPER_GROUP,
+    user_has_role_group,
+)
 from .models import Notification
+
+
+def _notification_role_label(user):
+    if user.is_staff:
+        return 'Admin'
+    if user_has_role_group(user, SHOPKEEPER_GROUP):
+        return 'Shopkeeper'
+    if user_has_role_group(user, REPAIR_WORKER_GROUP):
+        return 'Repair worker'
+    return 'Customer'
 
 
 @login_required(login_url='accounts:login')
@@ -16,7 +31,11 @@ def inbox(request):
     return render(
         request,
         'notifications/inbox.html',
-        {'page_obj': page_obj, 'role_label': 'Notifications'},
+        {
+            'page_obj': page_obj,
+            'role_label': _notification_role_label(request.user),
+            'active_nav': 'notifications',
+        },
     )
 
 

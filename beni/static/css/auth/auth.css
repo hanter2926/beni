@@ -1,5 +1,6 @@
 .auth-page { background: radial-gradient(ellipse at 14% 15%, rgb(239 189 88 / 24%), transparent 30%), linear-gradient(145deg, #f0f5ef 0%, #e7f0eb 52%, #f8f4ec 100%); }
 .auth-layout { display: block; min-height: calc(100vh - 76px); }
+.auth-layout.has-role-navigation { display: grid; width: min(100%, var(--content-width)); grid-template-columns: 250px minmax(0, 1fr); margin-inline: auto; }
 .auth-layout .main-content { display: grid; min-height: calc(100vh - 76px); place-items: center; padding: clamp(20px, 5vw, 64px); }
 .auth-wrap { display: grid; width: min(100%, 980px); min-height: 560px; grid-template-columns: minmax(0, .88fr) minmax(340px, 1.12fr); overflow: hidden; border: 1px solid rgb(25 72 61 / 10%); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-soft); animation: auth-arrive 450ms ease-out both; }
 .auth-aside { position: relative; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: clamp(28px, 5vw, 56px); background: var(--green-deep); color: #f5f6eb; }
@@ -28,8 +29,9 @@
 .auth-switch { margin: 22px 0 0; color: var(--ink-soft); font-size: 14px; }
 .auth-switch a { color: var(--green-deep); font-weight: 750; }
 @keyframes auth-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 700px) {
+@media (max-width: 760px) {
     .auth-layout, .auth-layout .main-content { min-height: calc(100vh - 68px); }
+    .auth-layout.has-role-navigation { display: block; }
     .auth-layout .main-content { padding: 18px 14px 28px; }
     .auth-wrap { max-width: 520px; min-height: 0; grid-template-columns: minmax(0, 1fr); }
     .auth-aside { min-height: 180px; padding: 25px 24px; }

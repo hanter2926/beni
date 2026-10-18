@@ -13,13 +13,13 @@
 <body class="{% block body_class %}site-page{% endblock %}">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="site-shell">
-        <header class="site-header">
+        <header class="site-header{% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %} has-role-navigation{% endif %}">
             <a class="brand" href="{% url 'home' %}" aria-label="BENI home">
                 <span class="brand-mark" aria-hidden="true">B</span>
                 <span class="brand-name">BENI</span>
             </a>
             <div class="header-actions">
-                {% if role_label %}
+                {% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %}
                     <button class="menu-toggle" type="button" aria-controls="role-navigation" aria-expanded="false">
                         <span class="menu-toggle-icon" aria-hidden="true"></span>
                         <span class="menu-toggle-label">Menu</span>
@@ -43,8 +43,49 @@
             </div>
         </header>
 
-        <div class="{% block layout_class %}workspace-layout{% endblock %}">
-            {% block sidebar %}{% endblock %}
+        <div class="{% block layout_class %}workspace-layout{% endblock %}{% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %} has-role-navigation{% endif %}">
+            {% block sidebar %}
+                {% if role_label == 'Customer' %}
+                    <aside class="side-rail customer-rail">
+                        <p class="role-label">Customer space</p>
+                        <nav class="role-nav" id="role-navigation" aria-label="Customer navigation">
+                            <a href="{% url 'dashboard:customer' %}">Overview</a>
+                            <a href="{% url 'catalog:list' %}">Shop products</a>
+                            <a href="{% url 'customers:cart' %}">Cart</a>
+                            <a href="{% url 'customers:orders' %}" {% if request.resolver_match.namespace == 'customers' and request.resolver_match.url_name == 'orders' or request.resolver_match.url_name == 'order_detail' or request.resolver_match.url_name == 'order_cancel' %}aria-current="page"{% endif %}>Orders</a>
+                            <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
+                            <a href="{% url 'bookings:customer_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair services</a>
+                            <a href="{% url 'accounts:profile' %}">Profile</a>
+                        </nav>
+                    </aside>
+                {% elif role_label == 'Shopkeeper' %}
+                    {% include 'shopkeeper/_management_nav.html' %}
+                {% elif role_label == 'Repair worker' %}
+                    <aside class="side-rail repair-rail">
+                        <p class="role-label">Repair Worker desk</p>
+                        <nav class="role-nav" id="role-navigation" aria-label="Repair Worker navigation">
+                            <a href="{% url 'dashboard:repair_worker' %}">Overview</a>
+                            <a href="{% url 'bookings:worker_list' %}" {% if request.resolver_match.namespace == 'bookings' and request.resolver_match.url_name == 'worker_list' or request.resolver_match.url_name == 'worker_update' %}aria-current="page"{% endif %}>Assigned jobs</a>
+                            <a href="{% url 'wallets:repair_worker' %}" {% if request.resolver_match.namespace == 'wallets' %}aria-current="page"{% endif %}>Wallet</a>
+                            <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
+                            <a href="{% url 'verification:worker_application' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification</a>
+                            <a href="{% url 'accounts:profile' %}">Profile</a>
+                        </nav>
+                    </aside>
+                {% elif role_label == 'Admin' %}
+                    <aside class="side-rail admin-panel-rail">
+                        <p class="role-label">Admin operations</p>
+                        <nav class="role-nav" id="role-navigation" aria-label="Admin navigation">
+                            <a href="{% url 'dashboard:admin' %}">Overview</a>
+                            <a href="{% url 'dashboard:admin_users' %}" {% if request.resolver_match.namespace == 'dashboard' and request.resolver_match.url_name == 'admin_users' %}aria-current="page"{% endif %}>Marketplace users</a>
+                            <a href="{% url 'bookings:admin_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair bookings</a>
+                            <a href="{% url 'verification:admin_list' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification review</a>
+                            <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
+                            <a href="{% url 'admin:index' %}">Django admin</a>
+                        </nav>
+                    </aside>
+                {% endif %}
+            {% endblock %}
             <main class="main-content" id="main-content">
                 {% if messages %}
                     <div class="message-stack" aria-live="polite">

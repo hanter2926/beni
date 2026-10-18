@@ -13,7 +13,6 @@
         <a href="{% url 'shopkeeper_orders' %}">Orders</a>
         <a href="{% url 'wallets:shopkeeper' %}">Wallet</a>
         <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
-        <a href="{% url 'shops:list' %}">Verification</a>
     </nav>
 </aside>
 {% endblock %}
