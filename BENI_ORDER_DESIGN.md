@@ -1,17 +1,18 @@
 # BENI Order Design and Migration Plan
 
-Status: Design refinement only. No migrations, schema changes, or database writes were performed.
+Status: Refined design and Stage A source implementation. `orders.0001_initial` was created after approval to create the migration file only; it has not been applied, and no live database schema or data has been changed. Twenty-six focused Orders/customer/product tests passed using a process-local migration override and synchronized models in the disposable test database. This validates source behavior, not migration execution or concurrent MySQL load. Orders remain unavailable against the configured runtime database until the migration is separately approved and applied.
 
 ## 1. Audit summary and baseline constraints
 
-This design is based on the current repo state as read-only inspected:
+The design originated from a read-only audit; the most recent pre-implementation runtime check supersedes earlier database observations:
 - Project settings in `beni/beni/settings.py` use Django + MySQL and a default database named `beni_db`.
 - Installed apps include `accounts`, `customers`, `shops`, `products`, `orders`, `workers`, `bookings`, `billing`, `wallets`, `payments`, `reviews`, `notifications`, `verification`, and `dashboard`.
 - The migration files in the repo confirm the following dependency chain:
   - `shops/migrations/0001_initial.py` depends on `settings.AUTH_USER_MODEL`
   - `products/migrations/0001_initial.py` depends on `('shops', '0001_initial')`
-  - there is no `orders` migration file at all in the repo yet
-- A read-only database check on `beni_db` confirms that only the Django `auth_user` table currently exists; `shops_shop` and `products_product` are not present yet in the live database.
+  - `orders/migrations/0001_initial.py` has now been generated; it is not recorded in the live database
+- The latest read-only runtime check found `shops.0001_initial` and `products.0001_initial` applied, with both `shops_shop` and `products_product` present in `beni_db`. This supersedes the earlier audit that found them absent.
+- The latest pre-implementation environment was Python 3.14.6, Django 5.2.18, and MySQL 8.0.46 with InnoDB tables. `test_beni_db` was not present. The test runner created and removed that isolated test database during the focused test attempt; no live schema change was made.
 - Existing models currently in use are:
   - `Shop` in `shops/models.py`
   - `Product` in `products/models.py`
@@ -20,9 +21,9 @@ This design is based on the current repo state as read-only inspected:
   - product price >= 0.00
   - product stock_quantity >= 0
   - unique SKU per shop
-- Django 6.0.8 and MySQL 8.0.46 support the planned `CheckConstraint`, `UniqueConstraint`, `Index`, and row-level locking patterns used by `select_for_update()` on InnoDB tables.
+- Django 5.2.18 and MySQL 8.0.46 support the planned `CheckConstraint`, `UniqueConstraint`, `Index`, and row-level locking patterns used by `select_for_update()` on InnoDB tables.
 
-This means the safest next phase is to design the order schema and checkout flow before any migration or schema change is approved, and the actual migration graph must remain limited to the files that already exist in the repo until the user approves a new `orders` migration.
+The persistent model/service/view/test source now follows this design. The schema remains unapplied; production checkout and order pages require an approved `orders.0001_initial` before they can be used against `beni_db`.
 
 ## 2. Design goals
 
@@ -276,7 +277,7 @@ Do not add `OrderItem.shop` in the proposed schema. The current `Product` model 
 
 At checkout, the service must lock and load the products, group them by their current `product.shop_id`, create one `Order` per group, and reject the entire checkout unless every product assigned to an order has `product.shop_id == order.shop_id`. Create line items only from this validated grouping. Shopkeeper authorization and listing then use `Order.shop`, not an item-level shop field.
 
-Trade-off: removing the redundant field avoids contradictory shop IDs and saves a foreign key/index. Historical shop ownership is taken from the protected `Order.shop` plus the immutable order snapshots. The `OrderItem.product` foreign key remains `PROTECT`; if products can be reassigned to another shop later, the current Product relation will no longer describe their historical shop, so the order's shop and snapshots remain authoritative. A future product reassignment policy should disallow reassignment after order history or explicitly preserve additional historical provenance; do not change the existing Product model as part of this design-only decision.
+Trade-off: removing the redundant field avoids contradictory shop IDs and saves a foreign key/index. Historical shop ownership is taken from the protected `Order.shop` plus immutable order snapshots. The existing Product edit UI permits moving products between shops, so the Product model now rejects reassignment after an `OrderItem` exists; cancellation also refuses to restore inventory if the product's shop does not match the order's historical shop. This keeps stock restoration shop-consistent without adding a redundant item-level shop FK.
 
 ### 4.5 Product deletion and historical retention policy
 The design requires historical order items to remain intact even if a product or shop is later removed or deactivated.
@@ -333,7 +334,7 @@ Rules:
 Recommended strategy:
 - Generate a unique human-readable, database-safe order number at checkout time.
 - Example pattern: `BENI-20261018-7F4C1A2B`
-- Use `uuid.uuid4().hex[:8].upper()` or an incremented DB sequence combined with date.
+- The implementation uses `uuid.uuid4().hex[:24].upper()` with the date prefix, producing a 96-bit random suffix; the unique database constraint remains the final collision guard.
 - Store `order_number` as a unique `CharField` with a unique index.
 - Guard generation inside a DB transaction and fallback to retry on collision.
 
@@ -419,11 +420,11 @@ This phase intentionally does not process real payments. The system must not tre
 
 ## 9. Verified migration dependency graph
 
-Current state supported by the actual migration files and a read-only database inspection:
+Current migration graph supported by the repository migration files:
 - `django.contrib.auth` migrations are present in the project and in the live database.
 - `shops/migrations/0001_initial.py` exists and depends on `settings.AUTH_USER_MODEL`.
 - `products/migrations/0001_initial.py` exists and depends on `('shops', '0001_initial')`.
-- `orders` has no migration files yet, and the live `beni_db` does not currently contain `shops_shop` or `products_product` tables.
+- `orders.0001_initial` exists in source but remains unapplied. The current `beni_db` has the shop/product tables, but no Orders tables.
 
 The exact dependency graph supported by the repo is therefore:
 
@@ -433,37 +434,39 @@ auth
      └─ products.0001_initial
 ```
 
-The live database observed in the latest read-only audit is `beni_db` on MySQL 8.0.46. It contains standard Django auth/contenttypes/admin/session tables, but does not contain `shops_shop` or `products_product`. Its migration recorder includes the built-in auth/contenttypes/admin/session migrations but not `shops.0001_initial` or `products.0001_initial`. Thus the repo graph and live database state are different: the shop/product migrations exist in source but are pending in this database.
+The latest runtime check found `beni_db` on MySQL 8.0.46 with `shops_shop` and `products_product` present and the corresponding migrations recorded as applied. `orders.0001_initial` is now pending; its dry-run plan contains only that migration. The Orders tables are absent. The test database name derived by Django is `test_beni_db`; it was absent before tests and was created and removed by the focused test runner.
 
-The future `orders.0001_initial` should directly depend on both:
+The generated `orders.0001_initial` directly depends on:
 - `('products', '0001_initial')`, for Product and Shop references through the existing product dependency chain
+- `('shops', '0001_initial')`, for the direct `Order.shop` foreign key
 - `migrations.swappable_dependency(settings.AUTH_USER_MODEL)`, because `Order` and `CheckoutAttempt` directly reference the configured user model
 
-The direct auth dependency is required even though the products migration transitively depends on shops and auth. No Orders migration currently exists in the repo.
+The direct auth dependency is required even though the products migration transitively depends on shops and auth. The direct shops dependency is emitted because the Order model itself has a Shop foreign key.
 
-### Safe future order migration plan
-If the design is approved, the first migration should create `CheckoutAttempt`, `Order`, and `OrderItem` together:
+### Safe order migration plan
+The first migration creates `CheckoutAttempt`, `Order`, and `OrderItem` together:
 1. `orders.0001_initial`
 
-It should use the direct dependencies stated above. Because the observed database has pending shop/product migrations, any later application of `orders.0001_initial` may also apply those prerequisites. Review the actual migration plan and obtain separate explicit database approval before applying anything.
+It uses the direct dependencies stated above. The latest observed database already has the shop/product migrations applied, but this must be rechecked before migration application. The migration file was approved and generated; separate explicit database approval is still required before applying it.
 
 ### Migration sequence from a safe implementation perspective
-1. Finalize and approve the `CheckoutAttempt`, `Order`, and `OrderItem` schema.
-2. Create those models in `orders/models.py`.
-2. Add model-level indexing, checks, and unique constraints.
-3. Generate `orders.0001_initial` only after explicit approval.
-4. Run only a focused migration and validate the resulting schema before checkout implementation continues.
+1. Review the `CheckoutAttempt`, `Order`, and `OrderItem` schema represented in `orders/models.py` and generated in `orders.0001_initial`.
+2. Review the generated migration dependencies and `migrate --plan`; only `orders.0001_initial` is currently pending.
+3. Obtain separate explicit approval for applying it to a named target database.
+4. After approval to apply, run the migration against that confirmed target and validate the resulting schema before enabling checkout in a deployed environment.
 
 ## 10. Proposed `orders` app model file structure
 
-The current `orders` app is empty and should remain empty until the migration is explicitly approved. Proposed files after approval:
-- `orders/models.py` — `CheckoutAttempt`, `Order`, `OrderItem`
-- `orders/services.py` — checkout idempotency, transaction, stock, and cancellation operations
-- `orders/forms.py` — checkout and order status forms
-- `orders/views.py` — customer checkout, order detail, shopkeeper order management
-- `orders/urls.py` — customer and shopkeeper routes
-- `orders/tests.py` — order creation, stock deduction, authorization, and status tests
-- `orders/migrations/0001_initial.py` — to be generated only after approval
+The `orders` app now contains source implementations for:
+- `orders/models.py` — `CheckoutAttempt`, `Order`, and `OrderItem`
+- `orders/services.py` — idempotent atomic checkout, stock locking/deduction, state transitions, and cancellation/restoration
+- `orders/forms.py` — validated customer checkout details and transition-limited status input
+- `orders/views.py` — customer checkout/history/detail/cancellation and shopkeeper order management
+- `orders/admin.py` — read-only order monitoring
+- `orders/tests.py` — checkout, rollback, inventory, idempotency, authorization, CSRF, and retention tests; twenty-six Orders/customer/product tests passed with the test-only setup described above
+- Existing customer route modules and role-specific templates integrate the workflow while preserving current route names.
+
+`orders/migrations/0001_initial.py` was created after approval for the migration file only; it has not been applied. Source and migration files are not proof that the configured database has the required tables.
 
 Integrate the order views through the existing customer/shopkeeper route modules where practical, preserving current route names (`customers:checkout`, `customers:orders`, `customers:order_detail`, and `shopkeeper_orders`) to avoid breaking templates and links.
 

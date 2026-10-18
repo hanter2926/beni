@@ -11,18 +11,24 @@
 
     <section style="background:#f5faf6; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem; margin-bottom:1rem;">
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:1rem;">
-            <div><p style="margin:0; color:#4b5e59;">Customer</p><strong>{{ order.customer_name }}</strong></div>
+            <div><p style="margin:0; color:#4b5e59;">Customer</p><strong>{{ order.contact_name }}</strong></div>
             <div><p style="margin:0; color:#4b5e59;">Placed</p><strong>{{ order.created_at }}</strong></div>
             <div><p style="margin:0; color:#4b5e59;">Payment status</p><strong>{{ order.payment_status }}</strong></div>
+            <div><p style="margin:0; color:#4b5e59;">Shop</p><strong>{{ order.shop.name }}</strong></div>
+            <div>
+                <p style="margin:0; color:#4b5e59;">Delivery address</p>
+                <strong>{{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</strong>
+            </div>
         </div>
+        {% if order.delivery_notes %}<p><strong>Delivery notes:</strong> {{ order.delivery_notes }}</p>{% endif %}
     </section>
 
     <section style="background:#fff; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem;">
-        {% for item in order.items %}
+        {% for item in order.items.all %}
             <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.7rem 0; border-bottom:1px solid #edf1ee;">
                 <div>
-                    <strong>{{ item.name }}</strong>
-                    <div style="color:#4b5e59;">{{ item.shop_name }} · Qty {{ item.quantity }}</div>
+                    <strong>{{ item.product_name }}</strong>
+                    <div style="color:#4b5e59;">Qty {{ item.quantity }} · {{ item.unit_price }} each</div>
                 </div>
                 <span>{{ item.line_total }}</span>
             </div>
@@ -39,6 +45,12 @@
     </section>
 
     <div style="margin-top:1rem;">
+        {% if can_cancel %}
+            <form method="post" action="{% url 'customers:order_cancel' order.order_number %}" style="display:inline-block; margin-right:1rem;">
+                {% csrf_token %}
+                <button class="button" type="submit">Cancel order</button>
+            </form>
+        {% endif %}
         <a class="catalog-back-link" href="{% url 'customers:orders' %}">Back to orders</a>
     </div>
 </div>

@@ -1,7 +1,8 @@
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import connection, models
 from django.db.models import Q
 
 from shops.models import Shop
@@ -45,11 +46,31 @@ class Product(models.Model):
 		super().clean()
 		if self.sku is not None:
 			self.sku = self.sku.strip() or None
+		self._validate_shop_assignment()
 
 	def save(self, *args, **kwargs):
 		if self.sku is not None:
 			self.sku = self.sku.strip() or None
+		update_fields = kwargs.get('update_fields')
+		if update_fields is None or 'shop' in update_fields or 'shop_id' in update_fields:
+			self._validate_shop_assignment()
 		return super().save(*args, **kwargs)
+
+	def _validate_shop_assignment(self):
+		if not self.pk:
+			return
+		previous_shop_id = type(self).objects.filter(pk=self.pk).values_list('shop_id', flat=True).first()
+		if previous_shop_id is None or previous_shop_id == self.shop_id:
+			return
+
+		from orders.models import OrderItem
+
+		if OrderItem._meta.db_table not in connection.introspection.table_names():
+			return
+		if OrderItem.objects.filter(product_id=self.pk).exists():
+			raise ValidationError({
+				'shop': 'A product with order history cannot be moved to another shop.',
+			})
 
 	def __str__(self):
 		return self.name

@@ -18,16 +18,32 @@
                         <div>
                             <p style="margin:0; color:#4b5e59;">{{ order.created_at }}</p>
                             <h2 style="margin:0.2rem 0;">{{ order.order_number }}</h2>
-                            <p style="margin:0;">Customer: {{ order.customer_name }}</p>
+                            <p style="margin:0;">Shop: {{ order.shop.name }}</p>
+                            <p style="margin:0;">Customer: {{ order.contact_name }} · {{ order.contact_phone }}</p>
+                            <p style="margin:0;">Deliver to: {{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
+                            {% if order.delivery_notes %}<p style="margin:0;">Notes: {{ order.delivery_notes }}</p>{% endif %}
                         </div>
                         <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
                     </div>
                     <div style="margin-top:0.75rem;">
-                        {% for item in order.items %}
-                            <p style="margin:0.25rem 0;">{{ item.name }} × {{ item.quantity }} · {{ item.shop_name }}</p>
+                        {% for item in order.items.all %}
+                            <p style="margin:0.25rem 0;">{{ item.product_name }} × {{ item.quantity }}</p>
                         {% endfor %}
                     </div>
                     <p style="margin-top:0.75rem; font-size:1.1rem; font-weight:700;">Total: {{ order.total }}</p>
+                    {% if order.status_form.fields.status.choices %}
+                        <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form">
+                            {% csrf_token %}
+                            <label for="status-{{ order.pk }}">Update status</label>
+                            <select class="form-control" id="status-{{ order.pk }}" name="status" required>
+                                <option value="">Choose status</option>
+                                {% for value, label in order.status_form.fields.status.choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="button button-primary" type="submit">Save status</button>
+                        </form>
+                    {% endif %}
                 </article>
             {% endfor %}
         </div>
