@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import Shop
+from verification.models import VerificationApplication
 
 
 class ShopModelTests(TestCase):
@@ -95,9 +96,17 @@ class ShopOwnershipTests(TestCase):
 			self.shop_data('New shop'),
 		)
 
-		self.assertRedirects(response, reverse('shops:list'), fetch_redirect_response=False)
 		shop = Shop.objects.get(name='New shop')
+		self.assertRedirects(
+			response,
+			reverse('verification:shopkeeper_application', args=[shop.pk]),
+			fetch_redirect_response=False,
+		)
 		self.assertEqual(shop.owner, self.owner)
+		self.assertFalse(shop.is_active)
+		self.assertFalse(
+			VerificationApplication.objects.filter(shop=shop).exists()
+		)
 
 	def test_list_and_edit_are_scoped_to_owner(self):
 		response = self.client.get(reverse('shops:list'))

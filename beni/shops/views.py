@@ -39,11 +39,6 @@ def shop_create(request):
         shop.owner = request.user
         shop.is_active = False
         shop.save()
-        VerificationApplication.objects.get_or_create(
-            applicant=request.user,
-            shop=shop,
-            application_type=VerificationApplication.TYPE_SHOPKEEPER,
-        )
         messages.success(
             request,
             'Shop created. Submit its verification application before it can be listed.',

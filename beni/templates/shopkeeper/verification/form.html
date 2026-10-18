@@ -13,17 +13,28 @@
     </div>
     <div class="auth-panel">
         <p class="eyebrow">Application status</p>
-        <h2 id="verification-title">{{ application.get_status_display }}</h2>
-        <p>Phone: {{ application.get_phone_status_display }}</p>
-        <p>Aadhaar: {{ application.get_aadhaar_status_display }} · PAN: {{ application.get_pan_status_display }}</p>
-        <p>Bank account: {{ application.get_bank_status_display }} (tracked separately for future withdrawals)</p>
-        {% if application.decision_reason %}<p class="form-errors">{{ application.decision_reason }}</p>{% endif %}
-        {% if application.status != 'approved' %}
+        {% if application %}
+            <h2 id="verification-title">{{ application.get_status_display }}</h2>
+            <p>Phone: {{ application.get_phone_status_display }}</p>
+            <p>Aadhaar: {{ application.get_aadhaar_status_display }} · PAN: {{ application.get_pan_status_display }}</p>
+            <p>Bank account: {{ application.get_bank_status_display }} (tracked separately for future withdrawals)</p>
+            {% if application.decision_reason %}<p class="form-errors">{{ application.decision_reason }}</p>{% endif %}
+        {% else %}
+            <h2 id="verification-title">Not submitted</h2>
+            <p>No verification application has been submitted for this shop.</p>
+        {% endif %}
+        {% if not application or application.status != 'approved' %}
             <form method="post" class="account-form">
                 {% csrf_token %}
                 <p>Your shop is not publicly listed until staff verify its phone and either Aadhaar or PAN status.</p>
+                {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="form-field">
+                    {{ form.confirmation }}
+                    {{ form.confirmation.label_tag }}
+                    {% if form.confirmation.errors %}<div class="field-errors" id="id_confirmation_errors" role="alert">{{ form.confirmation.errors }}</div>{% endif %}
+                </div>
                 <button class="button button-primary form-submit" type="submit">
-                    {% if application.status == 'rejected' %}Resubmit for review{% else %}Submit for review{% endif %}
+                    {% if application and application.status == 'rejected' %}Resubmit for review{% else %}Submit for review{% endif %}
                 </button>
             </form>
         {% endif %}

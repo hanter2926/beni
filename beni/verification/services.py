@@ -1,9 +1,126 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from accounts.roles import REPAIR_WORKER_GROUP, user_has_role_group
-from notifications.services import create_notification
+from accounts.roles import (
+    REPAIR_WORKER_GROUP,
+    SHOPKEEPER_GROUP,
+    user_has_role_group,
+)
+from notifications.services import create_notification, notify_active_staff
 from .models import VerificationApplication, VerificationDecision
+
+
+@transaction.atomic
+def submit_application(*, applicant, application_type, shop=None):
+    if application_type == VerificationApplication.TYPE_SHOPKEEPER:
+        if (
+            shop is None
+            or shop.owner_id != applicant.pk
+            or not user_has_role_group(applicant, SHOPKEEPER_GROUP)
+        ):
+            raise ValidationError(
+                'A Shopkeeper can submit verification only for their own shop.'
+            )
+        lookup = {
+            'applicant': applicant,
+            'shop': shop,
+            'application_type': application_type,
+        }
+        defaults = {}
+        title = 'Shop verification needs review'
+        message = 'A Shopkeeper submitted an application for review.'
+        destination_name = 'verification:shopkeeper_application'
+        destination_args = (shop.pk,)
+    elif application_type == VerificationApplication.TYPE_REPAIR_WORKER:
+        if shop is not None or not user_has_role_group(
+            applicant,
+            REPAIR_WORKER_GROUP,
+        ):
+            raise ValidationError('Only a Repair Worker can submit worker verification.')
+        lookup = {
+            'applicant': applicant,
+            'application_type': application_type,
+            'shop': None,
+        }
+        defaults = {
+            'phone_status': VerificationApplication.CHECK_PENDING,
+            'face_status': VerificationApplication.CHECK_PENDING,
+        }
+        title = 'Repair Worker verification needs review'
+        message = 'A Repair Worker submitted an application for review.'
+        destination_name = 'verification:worker_application'
+        destination_args = ()
+    else:
+        raise ValidationError('The verification application type is invalid.')
+
+    application = VerificationApplication.objects.select_for_update().filter(
+        **lookup,
+    ).first()
+    created = False
+    if application is None:
+        application, created = VerificationApplication.objects.get_or_create(
+            **lookup,
+            defaults=defaults,
+        )
+        if not created:
+            application = VerificationApplication.objects.select_for_update().get(
+                pk=application.pk,
+            )
+    if application.status == VerificationApplication.STATUS_APPROVED:
+        return application, False
+
+    resubmitted = application.status == VerificationApplication.STATUS_REJECTED
+    if resubmitted:
+        application.status = VerificationApplication.STATUS_PENDING
+        application.phone_status = VerificationApplication.CHECK_PENDING
+        application.decision_reason = ''
+        application.reviewed_by = None
+        update_fields = [
+            'status',
+            'phone_status',
+            'decision_reason',
+            'reviewed_by',
+            'updated_at',
+        ]
+        if application_type == VerificationApplication.TYPE_SHOPKEEPER:
+            application.aadhaar_status = (
+                VerificationApplication.CHECK_NOT_SUBMITTED
+            )
+            application.pan_status = VerificationApplication.CHECK_NOT_SUBMITTED
+            application.bank_status = VerificationApplication.CHECK_NOT_SUBMITTED
+            application.face_status = VerificationApplication.CHECK_NOT_SUBMITTED
+            update_fields.extend(
+                ('aadhaar_status', 'pan_status', 'bank_status', 'face_status')
+            )
+        else:
+            application.face_status = VerificationApplication.CHECK_PENDING
+            update_fields.append('face_status')
+        application.save(update_fields=update_fields)
+
+    submission_number = application.decisions.count()
+    if submission_number:
+        event_key = (
+            f'verification-application:{application.pk}:'
+            f'resubmission:{submission_number}:admin'
+        )
+        notification_message = (
+            f'A {application.get_application_type_display()} '
+            'resubmitted an application for review.'
+        )
+    else:
+        event_key = (
+            f'verification-application:{application.pk}:created:admin'
+        )
+        notification_message = message
+
+    notify_active_staff(
+        event_key=event_key,
+        title=title,
+        message=notification_message,
+        destination_name=destination_name,
+        destination_args=destination_args,
+    )
+    return application, created or resubmitted
 
 
 def is_verified_repair_worker(user):

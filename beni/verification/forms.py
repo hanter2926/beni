@@ -3,6 +3,20 @@ from django import forms
 from .models import VerificationApplication
 
 
+class VerificationSubmissionForm(forms.Form):
+    confirmation = forms.BooleanField(
+        required=True,
+        label='I want to submit this application for staff review.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        attrs = self.fields['confirmation'].widget.attrs
+        if self.is_bound and self.errors.get('confirmation'):
+            attrs['aria-invalid'] = 'true'
+            attrs['aria-describedby'] = 'id_confirmation_errors'
+
+
 class VerificationReviewForm(forms.Form):
     status = forms.ChoiceField(choices=VerificationApplication.STATUS_CHOICES)
     phone_status = forms.ChoiceField(choices=VerificationApplication.CHECK_CHOICES)
