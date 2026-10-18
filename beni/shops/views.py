@@ -33,7 +33,7 @@ def shop_list(request):
 
 @role_group_required(SHOPKEEPER_GROUP)
 def shop_create(request):
-    form = ShopForm(request.POST or None)
+    form = ShopForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         shop = form.save(commit=False)
         shop.owner = request.user
@@ -60,7 +60,7 @@ def shop_create(request):
 @role_group_required(SHOPKEEPER_GROUP)
 def shop_update(request, shop_id):
     shop = get_object_or_404(Shop, pk=shop_id, owner=request.user)
-    form = ShopForm(request.POST or None, instance=shop)
+    form = ShopForm(request.POST or None, request.FILES or None, instance=shop)
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Shop details updated.')

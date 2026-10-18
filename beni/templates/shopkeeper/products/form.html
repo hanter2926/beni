@@ -5,6 +5,7 @@
 {% block role_styles %}
 <link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+<link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">
 {% endblock %}
 {% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
 {% block content %}
@@ -32,12 +33,42 @@
                             {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
                         </div>
                     {% else %}
-                        <div class="management-field {% if field.name == 'description' %}is-wide{% endif %}">
-                            {{ field.label_tag }}
-                            {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
-                            {{ field }}
-                            {% if field.help_text %}<span class="management-help">{{ field.help_text }}</span>{% endif %}
-                        </div>
+                        {% if field.name == 'image' %}
+                            <div class="management-field is-wide">
+                                {{ field.label_tag }}
+                                {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                                {{ field }}
+                                {% if field.help_text %}<span class="management-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                                {% if field.name == 'gallery_images' %}<div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>{% endif %}
+                                {% if field.name == 'gallery_images' and product and product.gallery_images.all %}
+                                    <div class="upload-gallery" aria-label="Current product gallery images">
+                                        {% for gallery_image in product.gallery_images.all %}
+                                            <figure>
+                                                <img src="{{ gallery_image.image.url }}" alt="{{ gallery_image.alt_text|default:product.name }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="Gallery image unavailable">
+                                                <figcaption>Current gallery image</figcaption>
+                                            </figure>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="product-image-preview">
+                                    {% if product and product.image %}
+                                        <img data-product-image-preview data-empty-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" src="{{ product.image.url }}" alt="">
+                                    {% else %}
+                                        <img data-product-image-preview data-empty-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="">
+                                    {% endif %}
+                                    <p>Image preview</p>
+                                </div>
+                                <p class="product-image-preview-message" id="product-image-preview-message" aria-live="polite">A preview appears here when you choose an image.</p>
+                                {% if product and product.image %}<button class="button button-secondary button-small product-image-preview-clear" type="button" data-clear-product-image>Clear selected replacement</button>{% else %}<button class="button button-secondary button-small product-image-preview-clear" type="button" data-clear-product-image hidden>Clear selected image</button>{% endif %}
+                            </div>
+                        {% else %}
+                            <div class="management-field {% if field.name == 'description' %}is-wide{% endif %}">
+                                {{ field.label_tag }}
+                                {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                                {{ field }}
+                                {% if field.help_text %}<span class="management-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                            </div>
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
                 <div class="management-form-actions"><button class="management-button" type="submit">Save product</button><a class="management-text-link" href="{% url 'products:list' %}">Cancel</a></div>
@@ -46,3 +77,4 @@
     {% endif %}
 </div>
 {% endblock %}
+{% block scripts %}<script defer src="{% static 'js/shopkeeper/product-image-preview.js' %}"></script><script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

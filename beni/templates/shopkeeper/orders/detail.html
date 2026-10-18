@@ -14,14 +14,14 @@
         <span class="shopkeeper-status">{{ order.get_status_display }}</span>
     </header>
 
-    <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-top:1.5rem;">
-        <article style="background:#f8faf8; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+    <section class="shop-order-facts">
+        <article class="shop-order-fact">
             <h2>Customer and delivery</h2>
             <p>{{ order.contact_name }} · {{ order.contact_phone }}</p>
             <p>{{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
             {% if order.delivery_notes %}<p>Delivery notes: {{ order.delivery_notes }}</p>{% endif %}
         </article>
-        <article style="background:#f8faf8; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+        <article class="shop-order-fact">
             <h2>Order summary</h2>
             <p>Payment status: {{ order.get_payment_status_display }}</p>
             <p>Subtotal: {{ order.subtotal }}</p>
@@ -31,13 +31,13 @@
         </article>
     </section>
 
-    <section style="background:#fff; border:1px solid #dfe7e2; border-radius:12px; padding:1rem; margin-top:1rem;">
+    <section class="shop-order-items-panel">
         <h2>Items in this shop order</h2>
         {% for item in order.items.all %}
-            <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.75rem 0; border-bottom:1px solid #edf1ee;">
+            <div class="shop-order-item-line">
                 <div>
                     <strong>{{ item.product_name }}</strong>
-                    <div>Quantity {{ item.quantity }} · {{ item.unit_price }} each</div>
+                    <div class="shop-order-item-meta">Quantity {{ item.quantity }} · {{ item.unit_price }} each</div>
                 </div>
                 <span>{{ item.line_total }}</span>
             </div>
@@ -47,7 +47,7 @@
     </section>
 
     {% if status_form.fields.status.choices %}
-        <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form" style="margin-top:1rem;">
+        <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form shop-order-status-form">
             {% csrf_token %}
             <label for="order-status">Next order action</label>
             <select class="form-control" id="order-status" name="status" required>
@@ -60,6 +60,6 @@
         </form>
     {% endif %}
 
-    <p style="margin-top:1rem;"><a href="{% url 'shopkeeper_orders' %}">Back to shop orders</a></p>
+    <p class="shop-order-back"><a href="{% url 'shopkeeper_orders' %}">Back to shop orders</a></p>
 </div>
 {% endblock %}

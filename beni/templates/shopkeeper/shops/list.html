@@ -5,6 +5,7 @@
 {% block role_styles %}
 <link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+<link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">
 {% endblock %}
 {% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
 {% block content %}
@@ -18,6 +19,8 @@
         <div class="management-list">
             {% for shop in shops %}
                 <article class="management-card">
+                    {% if shop.cover_image %}<img class="upload-current-image" src="{{ shop.cover_image.url }}" alt="{{ shop.name }} cover image" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No cover image available">{% endif %}
+                    {% if shop.logo_image %}<img class="upload-current-image" src="{{ shop.logo_image.url }}" alt="{{ shop.name }} logo" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No logo available">{% endif %}
                     <div class="management-card-heading"><div><p class="management-eyebrow">{{ shop.category }}</p><h2>{{ shop.name }}</h2></div><span class="management-status {% if not shop.is_active %}is-inactive{% endif %}">{{ shop.is_active|yesno:'Active,Inactive' }}</span></div>
                     <p class="management-description">{{ shop.description|default:'No shop description added yet.' }}</p>
                     <p class="management-location">{{ shop.city }}, {{ shop.state }} {{ shop.postal_code }}</p>

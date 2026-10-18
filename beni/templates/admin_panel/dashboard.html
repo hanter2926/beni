@@ -4,9 +4,9 @@
 {% block body_class %}admin-panel-page{% endblock %}
 {% block role_styles %}<link rel="stylesheet" href="{% static 'css/admin_panel/dashboard.css' %}">{% endblock %}
 {% block sidebar %}
-<aside class="side-rail admin-panel-rail">
+<aside class="side-rail admin-panel-rail" id="role-navigation">
     <p class="role-label">Admin operations</p>
-    <nav class="role-nav" id="role-navigation" aria-label="Admin navigation">
+    <nav class="role-nav" aria-label="Admin navigation">
         <a href="#overview" aria-current="page">Overview</a>
         <a href="#order-metrics">Order metrics</a>
         <a href="#marketplace">Marketplace</a>

@@ -2,13 +2,27 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from accounts.roles import REPAIR_WORKER_GROUP, SHOPKEEPER_GROUP, role_group_required
+from beni.private_files import private_document_response
 from shops.models import Shop
 
 from .forms import VerificationReviewForm, VerificationSubmissionForm
-from .models import VerificationApplication
+from .models import VerificationApplication, VerificationDocument
 from .services import review_application, submit_application
+
+
+def _persist_application_documents(*, form, application, applicant):
+    for document in form.cleaned_data.get('remove_documents', []):
+        document.delete()
+    for uploaded_file in form.cleaned_data.get('documents', []):
+        VerificationDocument.objects.create(
+            application=application,
+            uploaded_by=applicant,
+            document_type=form.cleaned_data['document_type'],
+            file=uploaded_file,
+        )
 
 
 @role_group_required(SHOPKEEPER_GROUP)
@@ -21,6 +35,9 @@ def shopkeeper_application(request, shop_id):
     ).first()
     form = VerificationSubmissionForm(
         request.POST if request.method == 'POST' else None,
+        request.FILES if request.method == 'POST' else None,
+        application=application,
+        application_type=VerificationApplication.TYPE_SHOPKEEPER,
     )
     if request.method == 'POST':
         if form.is_valid():
@@ -33,6 +50,12 @@ def shopkeeper_application(request, shop_id):
             except ValidationError as exc:
                 form.add_error(None, ' '.join(exc.messages))
             else:
+                if application.status != VerificationApplication.STATUS_APPROVED:
+                    _persist_application_documents(
+                        form=form,
+                        application=application,
+                        applicant=request.user,
+                    )
                 if application.status == VerificationApplication.STATUS_APPROVED:
                     messages.info(request, 'This shop is already approved.')
                 elif submitted:
@@ -71,6 +94,9 @@ def worker_application(request):
     ).first()
     form = VerificationSubmissionForm(
         request.POST if request.method == 'POST' else None,
+        request.FILES if request.method == 'POST' else None,
+        application=application,
+        application_type=VerificationApplication.TYPE_REPAIR_WORKER,
     )
     if request.method == 'POST':
         if form.is_valid():
@@ -82,6 +108,12 @@ def worker_application(request):
             except ValidationError as exc:
                 form.add_error(None, ' '.join(exc.messages))
             else:
+                if application.status != VerificationApplication.STATUS_APPROVED:
+                    _persist_application_documents(
+                        form=form,
+                        application=application,
+                        applicant=request.user,
+                    )
                 if application.status == VerificationApplication.STATUS_APPROVED:
                     messages.info(
                         request,
@@ -117,7 +149,7 @@ def admin_application_list(request):
             'applicant',
             'shop',
             'reviewed_by',
-        ).prefetch_related('decisions')
+        ).prefetch_related('decisions', 'documents')
     )
     for application in applications:
         application.review_form = VerificationReviewForm(
@@ -166,3 +198,13 @@ def admin_application_review(request, application_id):
     else:
         messages.success(request, 'Verification decision recorded.')
     return redirect('verification:admin_list')
+
+
+@staff_member_required(login_url='accounts:login')
+@require_GET
+def admin_document(_request, document_id):
+    document = get_object_or_404(
+        VerificationDocument.objects.select_related('application'),
+        pk=document_id,
+    )
+    return private_document_response(document.file)

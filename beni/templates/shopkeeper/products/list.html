@@ -5,6 +5,7 @@
 {% block role_styles %}
 <link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+<link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">
 {% endblock %}
 {% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
 {% block content %}
@@ -17,7 +18,7 @@
         <div class="management-list">
             {% for product in products %}
                 <article class="management-card product-card">
-                    {% if product.image %}<img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<img class="product-image product-image-placeholder" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">{% endif %}
+                    {% if product.image %}<img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No image available for {{ product.name }}" loading="lazy" decoding="async">{% else %}<img class="product-image product-image-placeholder" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}" loading="lazy" decoding="async">{% endif %}
                     <div class="product-card-content">
                         <div class="management-card-heading"><div><p class="management-eyebrow">{{ product.shop.name }} / {{ product.category }}</p><h2>{{ product.name }}</h2></div><span class="management-status {% if not product.is_active %}is-inactive{% endif %}">{{ product.is_active|yesno:'Active,Inactive' }}</span></div>
                         <p class="management-description">{{ product.description|default:'No product description added yet.' }}</p>

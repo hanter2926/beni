@@ -1,11 +1,33 @@
 from django.contrib import admin
+from django import forms
+from django.core.files.uploadedfile import UploadedFile
 
 from .models import Shop
+from beni.upload_validation import validate_decoded_image
 from verification.models import VerificationApplication
+
+
+class ShopAdminForm(forms.ModelForm):
+	class Meta:
+		model = Shop
+		fields = '__all__'
+
+	def clean_logo_image(self):
+		image = self.cleaned_data.get('logo_image')
+		if isinstance(image, UploadedFile):
+			return validate_decoded_image(image, max_size=3 * 1024 * 1024)
+		return image
+
+	def clean_cover_image(self):
+		image = self.cleaned_data.get('cover_image')
+		if isinstance(image, UploadedFile):
+			return validate_decoded_image(image, max_size=5 * 1024 * 1024)
+		return image
 
 
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
+	form = ShopAdminForm
 	list_display = (
 		'name',
 		'owner',

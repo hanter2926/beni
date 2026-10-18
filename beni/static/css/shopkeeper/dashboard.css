@@ -1,4 +1,4 @@
-.shopkeeper-workspace { --shop-accent: #a7513c; --shop-tint: #faeee8; max-width: 1050px; margin: 0 auto; }
+.shopkeeper-workspace { --shop-accent: var(--orange); --shop-tint: var(--orange-soft); max-width: 1050px; margin: 0 auto; }
 .shopkeeper-kicker, .shopkeeper-overline { margin: 0; color: var(--shop-accent); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .shopkeeper-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .shopkeeper-kicker { margin-bottom: 15px; color: #887d72; }
@@ -7,7 +7,7 @@
 .shopkeeper-heading-art { width: 170px; height: 100px; flex: 0 0 auto; object-fit: contain; }
 .shopkeeper-status { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #d7ddd5; border-radius: var(--radius-sm); background: var(--surface); color: #52665c; font-size: 12px; font-weight: 750; }
 .shopkeeper-status i, .admin-access-badge i { width: 8px; aspect-ratio: 1; border-radius: 50%; background: #68a876; }
-.shopkeeper-board { padding: clamp(22px, 4vw, 38px); border: 1px solid #e5d8d0; border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 12px 34px rgb(76 56 42 / 5%); }
+.shopkeeper-board { padding: clamp(22px, 4vw, 38px); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
 .shopkeeper-board-top { display: flex; justify-content: space-between; gap: 14px; }
 .shopkeeper-board-top h2 { margin: 6px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 26px; font-weight: 500; }
 .shopkeeper-board-index { align-self: flex-start; color: #9b8f87; font-size: 12px; font-weight: 800; }
@@ -30,14 +30,14 @@
 .shopkeeper-checklist li strong { font-size: 13px; }
 .shopkeeper-checklist li small { margin-top: 2px; color: var(--ink-soft); font-size: 12px; }
 .shopkeeper-checklist li b { color: #8b766b; font-size: 11px; }
-.shopkeeper-aside { padding: 22px; border-radius: var(--radius-sm); background: #8f4737; color: #fff8f1; }
+.shopkeeper-aside { padding: 22px; border-radius: var(--radius-sm); background: var(--navy); color: #f8fbfd; }
 .shopkeeper-aside-icon { display: grid; width: 36px; aspect-ratio: 1; place-items: center; margin-bottom: 24px; border: 1px solid rgb(255 255 255 / 42%); border-radius: 50%; font-size: 20px; }
-.shopkeeper-aside .shopkeeper-overline { color: #f0c8b8; }
+.shopkeeper-aside .shopkeeper-overline { color: #ffc098; }
 .shopkeeper-aside h2 { margin: 6px 0; overflow-wrap: anywhere; font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 500; }
-.shopkeeper-aside p:not(.shopkeeper-overline) { color: #f2d9d0; font-size: 13px; }
+.shopkeeper-aside p:not(.shopkeeper-overline) { color: #dce7ef; font-size: 13px; }
 .shopkeeper-aside button { display: inline-flex; gap: 10px; margin-top: 12px; padding: 0; border: 0; background: none; color: #fff; font-size: 13px; font-weight: 750; cursor: pointer; }
 @media (max-width: 760px) {
-    .shopkeeper-heading { align-items: flex-start; flex-direction: column; }
+    .shopkeeper-heading { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
     .shopkeeper-bottom { grid-template-columns: minmax(0, 1fr); }
 }
 @media (min-width: 761px) and (max-width: 1023px) {

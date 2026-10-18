@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import path, reverse_lazy
 
 from .forms import LoginForm
-from .views import profile, register, role_dashboard_url
+from .views import private_profile_image, profile, register, role_dashboard_url
 
 
 class BeniLoginView(auth_views.LoginView):
@@ -27,6 +27,7 @@ urlpatterns = [
     ),
     path('register/', register, name='register'),
     path('profile/', profile, name='profile'),
+    path('profiles/<int:user_id>/image/', private_profile_image, name='profile_image'),
     path(
         'logout/',
         auth_views.LogoutView.as_view(next_page='accounts:login'),

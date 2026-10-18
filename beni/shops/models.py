@@ -5,6 +5,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
+from beni.upload_paths import shop_cover_path, shop_logo_path
+
 
 class Shop(models.Model):
 	owner = models.ForeignKey(
@@ -41,6 +43,8 @@ class Shop(models.Model):
 		],
 	)
 	opening_hours = models.TextField(blank=True)
+	logo_image = models.ImageField(upload_to=shop_logo_path, blank=True)
+	cover_image = models.ImageField(upload_to=shop_cover_path, blank=True)
 	is_active = models.BooleanField(default=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)

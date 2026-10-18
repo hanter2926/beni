@@ -3,7 +3,7 @@
 {% block title %}Your profile | BENI{% endblock %}
 {% block body_class %}auth-page{% endblock %}
 {% block layout_class %}auth-layout{% endblock %}
-{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">{% endblock %}
 {% block content %}
 <section class="auth-wrap" aria-labelledby="profile-title">
     <div class="auth-aside">
@@ -20,7 +20,7 @@
             <strong>Email address</strong>
             <span>{{ request.user.email|default:"Not provided" }}</span>
         </p>
-        <form method="post" class="account-form">
+        <form method="post" enctype="multipart/form-data" class="account-form">
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
             {% for field in form %}
@@ -28,6 +28,13 @@
                     {{ field.label_tag }}
                     {% if field.errors %}<div class="field-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
                     {{ field }}
+                    {% if field.help_text %}<span class="field-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                    {% if field.name == 'profile_image' %}
+                        <div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>
+                        {% if profile and profile.image %}
+                            <img class="upload-current-image" src="{% url 'accounts:profile_image' request.user.pk %}" alt="Current profile photo" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No profile photo available">
+                        {% endif %}
+                    {% endif %}
                 </div>
             {% endfor %}
             <button class="button button-primary form-submit" type="submit">Save profile <span aria-hidden="true">&rarr;</span></button>
@@ -36,3 +43,4 @@
     </div>
 </section>
 {% endblock %}
+{% block scripts %}<script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

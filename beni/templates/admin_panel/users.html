@@ -15,31 +15,32 @@
     </header>
 
     <section class="admin-records" aria-label="User search and filters">
-        <form method="get" class="account-form">
-            <label for="user-search">Username</label>
-            <input class="form-control" id="user-search" type="search" name="q" value="{{ query }}">
-            <label for="user-role">Role</label>
-            <select class="form-control" id="user-role" name="role">
-                <option value="">All marketplace roles</option>
-                <option value="customer" {% if selected_role == 'customer' %}selected{% endif %}>Customer</option>
-                <option value="shopkeeper" {% if selected_role == 'shopkeeper' %}selected{% endif %}>Shopkeeper</option>
-                <option value="repair_worker" {% if selected_role == 'repair_worker' %}selected{% endif %}>Repair Worker</option>
-            </select>
-            <label for="user-status">Account status</label>
-            <select class="form-control" id="user-status" name="status">
-                <option value="">All statuses</option>
-                <option value="active" {% if account_status == 'active' %}selected{% endif %}>Active</option>
-                <option value="inactive" {% if account_status == 'inactive' %}selected{% endif %}>Inactive</option>
-            </select>
+        <form method="get" class="admin-filter-form">
+            <div><label for="user-search">Username</label><input class="form-control" id="user-search" type="search" name="q" value="{{ query }}"></div>
+            <div><label for="user-role">Role</label>
+                <select class="form-control" id="user-role" name="role">
+                    <option value="">All marketplace roles</option>
+                    <option value="customer" {% if selected_role == 'customer' %}selected{% endif %}>Customer</option>
+                    <option value="shopkeeper" {% if selected_role == 'shopkeeper' %}selected{% endif %}>Shopkeeper</option>
+                    <option value="repair_worker" {% if selected_role == 'repair_worker' %}selected{% endif %}>Repair Worker</option>
+                </select>
+            </div>
+            <div><label for="user-status">Account status</label>
+                <select class="form-control" id="user-status" name="status">
+                    <option value="">All statuses</option>
+                    <option value="active" {% if account_status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if account_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
             <button class="button button-primary" type="submit">Apply filters</button>
         </form>
     </section>
 
     <section class="admin-records" aria-label="Marketplace user results">
-        <p>{{ page_obj.paginator.count }} account(s)</p>
+        <p class="admin-result-count">{{ page_obj.paginator.count }} account(s)</p>
         {% if page_obj.object_list %}
             {% for account in page_obj %}
-                <article class="admin-record-row" style="grid-template-columns:minmax(0, 1fr); padding-block:20px;">
+                <article class="admin-record-row admin-user-row">
                     <div>
                         <strong>{{ account.get_username }}</strong>
                         <small>Role: {{ account.marketplace_roles|join:', ' }} · Account: {% if account.is_active %}Active{% else %}Inactive{% endif %}</small>

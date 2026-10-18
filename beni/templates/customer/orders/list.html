@@ -4,35 +4,35 @@
 {% block body_class %}customer-page{% endblock %}
 {% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
 {% block content %}
-<div class="catalog-content" style="max-width: 980px; margin: 2rem auto;">
+<div class="catalog-content shopping-page">
     <p class="catalog-kicker">BENI / MY ORDERS</p>
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.25rem;">
-        <h1 style="margin:0;">Order history</h1>
+    <header class="shopping-page-heading">
+        <h1>Order history</h1>
         <a class="catalog-back-link" href="{% url 'customers:cart' %}">Back to cart</a>
-    </div>
+    </header>
 
     {% if orders %}
-        <div style="display:grid; gap:1rem;">
+        <div class="order-list">
             {% for order in orders %}
-                <article style="background:#f5faf6; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                <article class="order-card">
+                    <div class="order-card-header">
                         <div>
-                            <p style="margin:0; color:#4b5e59;">{{ order.created_at }}</p>
-                            <h2 style="margin:0.2rem 0;">{{ order.order_number }}</h2>
-                        <p style="margin:0;">{{ order.shop.name }}</p>
+                            <p class="order-card-date">{{ order.created_at }}</p>
+                            <h2>{{ order.order_number }}</h2>
+                            <p>{{ order.shop.name }}</p>
                         </div>
-                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.get_status_display }}</span>
+                        <span class="status-pill">{{ order.get_status_display }}</span>
                     </div>
-                    <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
-                        <div>
+                    <div class="order-card-summary">
+                        <div class="order-card-items">
                             {% for item in order.items.all %}
-                                <p style="margin:0.2rem 0;">{{ item.product_name }} × {{ item.quantity }}</p>
+                                <p>{{ item.product_name }} × {{ item.quantity }}</p>
                             {% endfor %}
                         </div>
-                        <div style="text-align:right;">
-                            <p style="margin:0; color:#4b5e59;">Total</p>
+                        <div class="order-card-total">
+                            <p>Total</p>
                             <strong>{{ order.total }}</strong>
-                            <div style="margin-top:0.6rem;"><a href="{% url 'customers:order_detail' order.order_number %}">View details</a></div>
+                            <a href="{% url 'customers:order_detail' order.order_number %}">View details <span aria-hidden="true">&rarr;</span></a>
                         </div>
                     </div>
                 </article>

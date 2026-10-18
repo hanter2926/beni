@@ -1,10 +1,115 @@
 from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.core.management import call_command, CommandError
-from django.test import Client, SimpleTestCase, TestCase
-from django.urls import reverse
+from django.core.management import CommandError, call_command
+from django.http import Http404, HttpResponse
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.urls import resolve, reverse
+
+from .context_processors import navigation_context
+from .views import private_profile_image
+
+
+class PrivateProfileImageAccessTests(SimpleTestCase):
+	def make_request(self, user_id, is_staff=False):
+		request = RequestFactory().get(f'/accounts/profiles/{user_id}/image/')
+		request.user = SimpleNamespace(
+			is_authenticated=True,
+			is_active=True,
+			is_staff=is_staff,
+			pk=user_id,
+		)
+		return request
+
+	@patch('accounts.views.private_image_response', return_value=HttpResponse('image'))
+	@patch('accounts.views.get_object_or_404')
+	def test_owner_can_access_private_profile_image(self, get_profile, make_response):
+		profile = SimpleNamespace(image=object())
+		get_profile.return_value = profile
+
+		response = private_profile_image(self.make_request(7), 7)
+
+		self.assertEqual(response.status_code, 200)
+		make_response.assert_called_once_with(profile.image)
+
+	@patch('accounts.views.get_object_or_404')
+	def test_other_non_staff_user_cannot_access_profile_image(self, get_profile):
+		with self.assertRaises(Http404):
+			private_profile_image(self.make_request(8), 7)
+		get_profile.assert_not_called()
+
+	@patch('accounts.views.private_image_response', return_value=HttpResponse('image'))
+	@patch('accounts.views.get_object_or_404')
+	def test_staff_can_access_another_users_profile_image(self, get_profile, make_response):
+		profile = SimpleNamespace(image=object())
+		get_profile.return_value = profile
+
+		response = private_profile_image(self.make_request(8, is_staff=True), 7)
+
+		self.assertEqual(response.status_code, 200)
+		make_response.assert_called_once_with(profile.image)
+
+
+class NavigationContextTests(SimpleTestCase):
+	def make_request(self, user, session=None):
+		return SimpleNamespace(user=user, session=session or {})
+
+	def make_customer(self, user_id=7):
+		groups = SimpleNamespace(values_list=lambda *args, **kwargs: ())
+		return SimpleNamespace(
+			is_authenticated=True,
+			is_staff=False,
+			pk=user_id,
+			groups=groups,
+		)
+
+	def test_customer_cart_count_uses_owned_session_items_only(self):
+		request = self.make_request(
+			self.make_customer(),
+			{
+				'beni_cart_owner_id': '7',
+				'beni_cart': {
+					'1': {'quantity': 2},
+					'2': {'quantity': 3},
+					'3': {'quantity': 'invalid'},
+					'4': {'quantity': True},
+				},
+			},
+		)
+
+		context = navigation_context(request)
+
+		self.assertEqual(context['role_label'], 'Customer')
+		self.assertEqual(context['cart_item_count'], 5)
+
+	def test_cart_count_is_not_exposed_for_another_session_owner(self):
+		request = self.make_request(
+			self.make_customer(),
+			{
+				'beni_cart_owner_id': '8',
+				'beni_cart': {'1': {'quantity': 4}},
+			},
+		)
+
+		self.assertEqual(navigation_context(request)['cart_item_count'], 0)
+
+	def test_navigation_context_provides_admin_breadcrumb(self):
+		request = RequestFactory().get(reverse('dashboard:admin_users'))
+		request.user = SimpleNamespace(
+			is_authenticated=True,
+			is_staff=True,
+			pk=9,
+		)
+		request.resolver_match = resolve(request.path)
+
+		context = navigation_context(request)
+
+		self.assertEqual(context['role_label'], 'Admin')
+		self.assertEqual(context['workspace_url'], reverse('dashboard:admin'))
+		self.assertEqual(context['current_page_label'], 'Marketplace users')
 
 
 class AuthenticationPageTests(SimpleTestCase):

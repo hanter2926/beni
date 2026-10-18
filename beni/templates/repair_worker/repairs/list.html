@@ -3,14 +3,14 @@
 {% block title %}Assigned repair jobs | BENI{% endblock %}
 {% block body_class %}auth-page{% endblock %}
 {% block layout_class %}auth-layout{% endblock %}
-{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">{% endblock %}
 {% block content %}
 <section class="auth-wrap" aria-labelledby="worker-bookings-title">
     <div class="auth-aside">
         <p class="eyebrow">Repair Worker desk</p>
         <h1>Your assigned jobs.</h1>
         <p>Only jobs assigned to your Repair Worker account appear here.</p>
-        <img class="auth-aside-image auth-aside-image-contained" src="{% static 'image/beni_separate_images/workers/worker.jpg' %}" alt="Repair worker servicing equipment">
+        <img class="auth-aside-image auth-aside-image-contained" src="{% static 'image/beni_separate_images/workers/worker.jpg' %}" alt="Repair worker servicing equipment" loading="lazy" decoding="async">
     </div>
     <div class="auth-panel">
         <p class="eyebrow">Work queue</p>
@@ -23,14 +23,35 @@
                         <p>{{ booking.preferred_at }} · {{ booking.service_address }}</p>
                         <p>{{ booking.problem_description|linebreaksbr }}</p>
                         <p>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }}</p>
-                        {% if booking.status_form.fields.status.choices %}
-                            <form method="post" action="{% url 'bookings:worker_update' booking.pk %}" class="account-form">
-                                {% csrf_token %}
+                        {% if booking.images.all %}
+                            <div class="upload-gallery">
+                                {% for image in booking.images.all %}
+                                    <figure>
+                                        <img src="{% url 'bookings:image' image.pk %}" alt="{{ image.get_image_type_display }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="Repair photo is unavailable" loading="lazy">
+                                        <figcaption>{{ image.get_image_type_display }}</figcaption>
+                                    </figure>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <form method="post" enctype="multipart/form-data" action="{% url 'bookings:worker_update' booking.pk %}" class="account-form">
+                            {% csrf_token %}
+                            {% if booking.status_form.fields.status.choices %}
                                 {{ booking.status_form.status.label_tag }}
                                 {{ booking.status_form.status }}
-                                <button class="button button-primary" type="submit">Update job</button>
-                            </form>
-                        {% endif %}
+                            {% endif %}
+                            {% for field in booking.status_form %}
+                                {% if field.name != 'status' %}
+                                    <div class="form-field">
+                                        {{ field.label_tag }}
+                                        {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                                        {{ field }}
+                                        {% if field.help_text %}<span class="field-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                                        {% if field.name == 'images' %}<div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>{% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            <button class="button button-primary" type="submit">Save job update</button>
+                        </form>
                     </article>
                 {% endfor %}
             </div>
@@ -41,3 +62,4 @@
     </div>
 </section>
 {% endblock %}
+{% block scripts %}<script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

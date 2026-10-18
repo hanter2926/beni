@@ -17,21 +17,21 @@
                 {% with category_slug=category|slugify %}
                     <a class="catalog-category-link" href="?category={{ category|urlencode }}" {% if category == selected_category %}aria-current="page"{% endif %}>
                         {% if category_slug == 'appliances' %}
-                            <img src="{% static 'image/beni_separate_images/category/appliances.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/appliances.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% elif category_slug == 'beauty' %}
-                            <img src="{% static 'image/beni_separate_images/category/beauty.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/beauty.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% elif category_slug == 'electronics' %}
-                            <img src="{% static 'image/beni_separate_images/category/electronics.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/electronics.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% elif category_slug == 'fashion' %}
-                            <img src="{% static 'image/beni_separate_images/category/fashion.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/fashion.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% elif category_slug == 'home' or category_slug == 'home-living' %}
-                            <img src="{% static 'image/beni_separate_images/category/home.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/home.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% elif category_slug == 'sports' %}
-                            <img src="{% static 'image/beni_separate_images/category/sports.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/sports.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% elif category_slug == 'tools' %}
-                            <img src="{% static 'image/beni_separate_images/category/tools.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/tools.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% else %}
-                            <img src="{% static 'image/beni_separate_images/category/ecommerce.png' %}" alt="" aria-hidden="true">
+                            <img src="{% static 'image/beni_separate_images/category/ecommerce.png' %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
                         {% endif %}
                         <span>{{ category }}</span>
                     </a>
@@ -65,9 +65,9 @@
                 <article class="catalog-card">
                     <a class="catalog-card-link" href="{% url 'catalog:detail' product.id %}">
                         {% if product.image %}
-                            <img class="catalog-card-image" src="{{ product.image.url }}" alt="{{ product.name }}">
+                            <img class="catalog-card-image" src="{{ product.image.url }}" alt="{{ product.name }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No image available for {{ product.name }}" loading="lazy" decoding="async">
                         {% else %}
-                            <img class="catalog-card-image catalog-image-fallback" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">
+                            <img class="catalog-card-image catalog-image-fallback" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}" loading="lazy" decoding="async">
                         {% endif %}
                         <div class="catalog-card-copy">
                             <p class="catalog-card-category">{{ product.category }}</p>

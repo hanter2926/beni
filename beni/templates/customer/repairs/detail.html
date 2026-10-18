@@ -3,14 +3,14 @@
 {% block title %}Repair request details | BENI{% endblock %}
 {% block body_class %}auth-page{% endblock %}
 {% block layout_class %}auth-layout{% endblock %}
-{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">{% endblock %}
 {% block content %}
 <section class="auth-wrap" aria-labelledby="booking-detail-title">
     <div class="auth-aside">
         <p class="eyebrow">Repair request status</p>
         <h1>{{ booking.get_status_display }}.</h1>
         <p>Track updates to your repair request here.</p>
-        <img class="auth-aside-image auth-aside-image-contained" src="{% static 'image/beni_separate_images/workers/worker.jpg' %}" alt="Repair worker servicing equipment">
+        <img class="auth-aside-image auth-aside-image-contained" src="{% static 'image/beni_separate_images/workers/worker.jpg' %}" alt="Repair worker servicing equipment" loading="lazy" decoding="async">
     </div>
     <div class="auth-panel">
         <p class="eyebrow">{{ booking.service_category }}</p>
@@ -22,7 +22,37 @@
             <div class="form-field"><dt>Service address</dt><dd>{{ booking.service_address|linebreaksbr }}</dd></div>
             {% if booking.assigned_worker %}<div class="form-field"><dt>Assigned Repair Worker</dt><dd>{{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</dd></div>{% endif %}
         </dl>
+        <section class="booking-photo-section" aria-labelledby="booking-photos-title">
+            <h3 id="booking-photos-title">Repair photos</h3>
+            {% if booking.images.all %}
+                <div class="upload-gallery">
+                    {% for image in booking.images.all %}
+                        <figure>
+                            <img src="{% url 'bookings:image' image.pk %}" alt="{{ image.get_image_type_display }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="Repair photo is unavailable" loading="lazy">
+                            <figcaption>{{ image.get_image_type_display }}</figcaption>
+                        </figure>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No repair photos have been uploaded.</p>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data" class="account-form">
+                {% csrf_token %}
+                {% if image_form.non_field_errors %}<div class="form-errors" role="alert">{{ image_form.non_field_errors }}</div>{% endif %}
+                {% for field in image_form %}
+                    <div class="form-field">
+                        {{ field.label_tag }}
+                        {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                        {{ field }}
+                        {% if field.help_text %}<span class="field-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                        {% if field.name == 'images' %}<div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>{% endif %}
+                    </div>
+                {% endfor %}
+                <button class="button button-primary" type="submit">Save repair photos</button>
+            </form>
+        </section>
         <p class="auth-switch"><a href="{% url 'bookings:customer_list' %}">Back to my repair requests</a></p>
     </div>
 </section>
 {% endblock %}
+{% block scripts %}<script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

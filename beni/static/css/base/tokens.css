@@ -1,35 +1,51 @@
 :root {
     color-scheme: light;
-    --ink: #183530;
-    --ink-soft: #4d625c;
-    --paper: #f3f6f3;
+    --ink: #18344b;
+    --ink-soft: #506579;
+    --paper: #f4f7fa;
     --surface: #ffffff;
-    --line: #dce5df;
+    --line: #dce5ed;
+    --navy: #17324d;
+    --navy-deep: #10263b;
+    --blue: #356b91;
+    --blue-soft: #eaf2f8;
+    --orange: #b84f1b;
+    --orange-soft: #fff1e8;
     --green: #286c59;
     --green-deep: #19483d;
     --coral: #e57f67;
     --gold: #efbd58;
-    --blue: #4d7790;
     --danger: #a13c39;
-    --shadow-soft: 0 14px 38px rgb(24 53 48 / 8%);
-    --radius-sm: 8px;
-    --radius-md: 16px;
+    --success: #28624b;
+    --warning: #8a541e;
+    --shadow-soft: 0 12px 32px rgb(23 50 77 / 8%);
+    --shadow-card: 0 2px 8px rgb(23 50 77 / 5%), 0 12px 28px rgb(23 50 77 / 4%);
+    --radius-xs: 6px;
+    --radius-sm: 10px;
+    --radius-md: 18px;
+    --radius-lg: 24px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
     --content-width: 1320px;
-    font-family: "Aptos", "Segoe UI", sans-serif;
+    font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
 }
 
 * { box-sizing: border-box; }
 
-html { min-width: 320px; scroll-behavior: smooth; }
+html { min-width: 0; scroll-behavior: smooth; }
 
 body {
     margin: 0;
     background: var(--paper);
     color: var(--ink);
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 img, svg, video, canvas { max-width: 100%; }
@@ -39,11 +55,11 @@ a { color: inherit; }
 
 button:focus-visible, a:focus-visible, input:focus-visible,
 select:focus-visible, textarea:focus-visible, summary:focus-visible {
-    outline: 3px solid var(--gold);
+    outline: 3px solid var(--orange);
     outline-offset: 3px;
 }
 
-::selection { background: #cde4d6; color: var(--ink); }
+::selection { background: #f6d4be; color: var(--navy-deep); }
 
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }

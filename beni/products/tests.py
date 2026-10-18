@@ -1,16 +1,174 @@
 from decimal import Decimal
+from io import BytesIO
+from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
-from django.test import TestCase
+from django.forms import ImageField
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from PIL import Image
 
 from shops.models import Shop
 from verification.models import VerificationApplication
 
+from beni.upload_forms import MultipleDocumentField, MultipleImageField
+from beni.upload_paths import product_gallery_image_path, verification_document_path
+from beni.upload_validation import (
+	MAX_VERIFICATION_DOCUMENT_SIZE,
+	validate_verification_document,
+)
+
+from .image_validation import (
+	MAX_PRODUCT_IMAGE_PIXELS,
+	MAX_PRODUCT_IMAGE_SIZE,
+	validate_product_image,
+)
 from .models import Product
+
+
+class ProductImageValidationTests(SimpleTestCase):
+	def make_image_upload(self, image_format='PNG', filename='upload.bin'):
+		stream = BytesIO()
+		Image.new('RGB', (20, 20), color='navy').save(stream, format=image_format)
+		if filename == 'upload.bin':
+			filename = {
+				'JPEG': 'upload.jpg',
+				'PNG': 'upload.png',
+				'WEBP': 'upload.webp',
+				'GIF': 'upload.gif',
+			}[image_format]
+		return SimpleUploadedFile(
+			filename,
+			stream.getvalue(),
+			content_type='application/octet-stream',
+		)
+
+	def test_image_content_is_decoded_and_allowed_formats_are_accepted(self):
+		for image_format in ('JPEG', 'PNG', 'WEBP'):
+			with self.subTest(image_format=image_format):
+				upload = ImageField().clean(self.make_image_upload(image_format))
+				self.assertIs(validate_product_image(upload), upload)
+
+	def test_unrecognized_or_malformed_content_is_rejected(self):
+		gif_upload = ImageField().clean(self.make_image_upload('GIF'))
+		with self.assertRaises(ValidationError):
+			validate_product_image(gif_upload)
+
+		with self.assertRaises(ValidationError):
+			ImageField().clean(
+				SimpleUploadedFile(
+					'broken.png',
+					b'not an image',
+					content_type='image/png',
+				)
+			)
+
+	def test_file_size_and_pixel_limits_are_enforced(self):
+		upload = ImageField().clean(self.make_image_upload())
+		oversized = SimpleNamespace(
+			size=MAX_PRODUCT_IMAGE_SIZE + 1,
+			image=upload.image,
+		)
+		with self.assertRaisesMessage(ValidationError, '2 MB'):
+			validate_product_image(oversized)
+
+		too_many_pixels = SimpleNamespace(
+			size=1,
+			image=SimpleNamespace(format='JPEG', size=(5000, 5000)),
+		)
+		with self.assertRaisesMessage(ValidationError, '24 megapixels'):
+			validate_product_image(too_many_pixels)
+
+		too_wide = SimpleNamespace(
+			size=1,
+			image=SimpleNamespace(format='JPEG', size=(6001, 1)),
+		)
+		with self.assertRaisesMessage(ValidationError, '6000 × 6000'):
+			validate_product_image(too_wide)
+
+	def test_multiple_image_field_validates_decoded_image_content_and_count(self):
+		field = MultipleImageField(
+			required=False,
+			max_files=2,
+			max_size=2 * 1024 * 1024,
+		)
+		uploads = field.clean([
+			self.make_image_upload('JPEG'),
+			self.make_image_upload('WEBP'),
+		])
+		self.assertEqual(len(uploads), 2)
+
+		with self.assertRaisesMessage(ValidationError, 'no more than 1 images'):
+			MultipleImageField(
+				required=False,
+				max_files=1,
+				max_size=2 * 1024 * 1024,
+			).clean([
+				self.make_image_upload('PNG'),
+				self.make_image_upload('JPEG'),
+			])
+
+		with self.assertRaises(ValidationError):
+			field.clean([
+				SimpleUploadedFile(
+					'broken.png',
+					b'not an image',
+					content_type='image/png',
+				)
+			])
+
+	def test_verification_documents_accept_valid_pdf_and_reject_bad_content(self):
+		field = MultipleDocumentField(required=False)
+		pdf_upload = SimpleUploadedFile(
+			'proof.pdf',
+			b'%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF',
+			content_type='application/pdf',
+		)
+		documents = field.clean([pdf_upload])
+		self.assertEqual(len(documents), 1)
+		self.assertIs(validate_verification_document(documents[0]), documents[0])
+
+		with self.assertRaises(ValidationError):
+			field.clean([
+				SimpleUploadedFile(
+					'fake.pdf',
+					b'not a document',
+					content_type='application/pdf',
+				)
+			])
+
+	def test_verification_document_size_limit_is_enforced(self):
+		oversized = SimpleNamespace(
+			size=MAX_VERIFICATION_DOCUMENT_SIZE + 1,
+			file=BytesIO(),
+		)
+		with self.assertRaisesMessage(ValidationError, '10 MB or smaller'):
+			validate_verification_document(oversized)
+
+	def test_upload_paths_ignore_user_filename_and_use_unique_names(self):
+		upload = ImageField().clean(self.make_image_upload('PNG'))
+		instance = SimpleNamespace(image=upload)
+		first = product_gallery_image_path(instance, '..\\..\\private.png')
+		second = product_gallery_image_path(instance, '..\\..\\private.png')
+		self.assertTrue(first.startswith('products/gallery/'))
+		self.assertNotIn('private', first)
+		self.assertNotEqual(first, second)
+
+	def test_verification_document_path_uses_content_not_filename_extension(self):
+		pdf_upload = SimpleUploadedFile(
+			'identity.jpg',
+			b'%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF',
+			content_type='image/jpeg',
+		)
+		document = SimpleNamespace(file=pdf_upload)
+		path = verification_document_path(document, '../../identity.jpg')
+		self.assertTrue(path.startswith('verification/'))
+		self.assertTrue(path.endswith('.pdf'))
+		self.assertNotIn('identity', path)
 
 
 class ProductModelTests(TestCase):

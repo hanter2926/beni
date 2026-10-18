@@ -4,9 +4,9 @@
 {% block body_class %}customer-page{% endblock %}
 {% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}">{% endblock %}
 {% block sidebar %}
-<aside class="side-rail customer-rail">
+<aside class="side-rail customer-rail" id="role-navigation">
     <p class="role-label">Customer space</p>
-    <nav class="role-nav" id="role-navigation" aria-label="Customer navigation">
+    <nav class="role-nav" aria-label="Customer navigation">
         <a href="#discover" aria-current="page">Discover</a>
         <a href="{% url 'catalog:list' %}">Shop products</a>
         <a href="{% url 'customers:cart' %}">Cart</a>

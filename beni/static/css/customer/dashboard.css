@@ -1,26 +1,21 @@
-.customer-workspace { --customer-accent: #286c59; --customer-tint: #e6f1e8; max-width: 1050px; margin: 0 auto; }
+.customer-workspace { --customer-accent: var(--green); --customer-tint: #e6f1e8; max-width: 1050px; margin: 0 auto; }
 .customer-kicker, .customer-overline { margin: 0; color: var(--customer-accent); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .customer-kicker { margin-bottom: 20px; color: #71837a; }
-.customer-welcome { position: relative; display: grid; min-height: 320px; grid-template-columns: minmax(0, 1fr) minmax(220px, .7fr); align-items: center; overflow: hidden; padding: clamp(26px, 5vw, 54px); border-radius: var(--radius-md); background: #1d5144; color: #fff; }
-.customer-welcome::after { position: absolute; right: 0; bottom: 0; width: 44%; height: 12px; background: var(--coral); content: ""; }
+.customer-welcome { position: relative; display: grid; min-height: 320px; grid-template-columns: minmax(0, 1fr) minmax(220px, .7fr); align-items: center; overflow: hidden; padding: clamp(26px, 5vw, 54px); border: 1px solid rgb(255 255 255 / 12%); border-radius: var(--radius-lg); background: var(--navy); color: #fff; box-shadow: var(--shadow-card); }
+.customer-welcome::after { position: absolute; right: 0; bottom: 0; width: 44%; height: 8px; background: var(--orange); content: ""; }
 .customer-overline { color: #b7d6c3; }
 .customer-welcome h1 { max-width: 520px; margin: 10px 0 12px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(36px, 5vw, 58px); font-weight: 500; line-height: 1.04; }
 .customer-welcome-copy > p:not(.customer-overline) { max-width: 440px; color: #d7e5db; }
-.customer-action { display: inline-flex; min-height: 46px; align-items: center; gap: 18px; margin-top: 14px; padding: 10px 15px; border-radius: var(--radius-sm); background: var(--gold); color: #203d31; font-weight: 800; text-decoration: none; }
+.customer-action { display: inline-flex; min-height: 46px; align-items: center; gap: 18px; margin-top: 14px; padding: 10px 15px; border: 1px solid transparent; border-radius: var(--radius-sm); background: #f3a36f; color: #392011; font-weight: 800; text-decoration: none; transition: background-color 140ms ease, transform 140ms ease; }
+.customer-action:hover { transform: translateY(-1px); background: #ffc098; }
 .customer-welcome-art { position: relative; display: block; width: 100%; max-width: 360px; aspect-ratio: 462 / 250; object-fit: contain; }
-.art-sun { position: absolute; top: 7px; right: 22px; width: 112px; aspect-ratio: 1; border-radius: 50%; background: var(--gold); }
-.art-roof { position: absolute; right: 6px; bottom: 82px; width: 218px; height: 100px; transform: rotate(-8deg); border: 4px solid #d7c6a1; border-bottom: 0; border-radius: 110px 110px 0 0; }
-.art-storefront { position: absolute; right: 28px; bottom: 30px; display: flex; width: 176px; height: 105px; align-items: flex-end; justify-content: space-around; padding: 0 16px 14px; border: 3px solid #f2e9d6; border-top: 0; background: #d47c62; }
-.art-storefront i { width: 32px; height: 46px; border: 2px solid #f7e8cf; background: #315e50; }
-.art-storefront i:nth-child(2) { height: 59px; background: #efbd58; }
-.art-caption { position: absolute; right: 0; bottom: 5px; color: #c0d5c7; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
 .customer-browse { margin-top: 40px; }
 .customer-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
 .customer-section-heading h2, .customer-note h2 { margin: 5px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 30px; font-weight: 500; }
 .customer-section-note { color: var(--ink-soft); font-size: 13px; }
 .customer-tabs { display: flex; gap: 8px; margin-top: 22px; border-bottom: 1px solid var(--line); }
 .customer-tabs button { min-height: 44px; padding: 9px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--ink-soft); font-weight: 700; cursor: pointer; }
-.customer-tabs button[aria-selected="true"] { border-bottom-color: var(--customer-accent); color: var(--ink); }
+.customer-tabs button[aria-selected="true"] { border-bottom-color: var(--orange); color: var(--navy); }
 .customer-tab-panel { display: flex; min-height: 140px; align-items: center; gap: 20px; padding: 24px 8px; }
 .customer-tab-panel[hidden] { display: none; }
 .customer-empty-mark { display: grid; width: 58px; flex: 0 0 58px; aspect-ratio: 1; place-items: center; border-radius: 50%; background: var(--customer-tint); color: var(--customer-accent); font-family: Georgia, serif; font-size: 20px; }

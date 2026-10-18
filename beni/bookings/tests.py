@@ -1,12 +1,72 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.test import TestCase
+from django.http import Http404
+from django.http import HttpResponse
+from django.test import RequestFactory, SimpleTestCase, TestCase
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from notifications.models import Notification
 from verification.models import VerificationApplication
 
 from .models import BookingAssignmentEvent, RepairBooking
 from .services import assign_worker, transition_worker_booking
+
+
+class PrivateBookingImageAccessTests(SimpleTestCase):
+    def make_request(self, user_id, is_staff=False):
+        request = RequestFactory().get('/repairs/images/14/')
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            is_active=True,
+            is_staff=is_staff,
+            pk=user_id,
+        )
+        return request
+
+    @patch('bookings.views.private_image_response', return_value=HttpResponse('image'))
+    @patch('bookings.views.get_object_or_404')
+    def test_customer_can_access_own_booking_image(self, get_image, make_response):
+        image_record = SimpleNamespace(
+            booking=SimpleNamespace(customer_id=3, assigned_worker_id=5),
+            image=object(),
+        )
+        get_image.return_value = image_record
+
+        from bookings.views import private_booking_image
+
+        response = private_booking_image(self.make_request(3), 14)
+
+        self.assertEqual(response.status_code, 200)
+        make_response.assert_called_once_with(image_record.image)
+
+    @patch('bookings.views.private_image_response', return_value=HttpResponse('image'))
+    @patch('bookings.views.get_object_or_404')
+    def test_assigned_worker_can_access_booking_image(self, get_image, make_response):
+        image_record = SimpleNamespace(
+            booking=SimpleNamespace(customer_id=3, assigned_worker_id=5),
+            image=object(),
+        )
+        get_image.return_value = image_record
+
+        from bookings.views import private_booking_image
+
+        response = private_booking_image(self.make_request(5), 14)
+
+        self.assertEqual(response.status_code, 200)
+        make_response.assert_called_once_with(image_record.image)
+
+    @patch('bookings.views.get_object_or_404')
+    def test_unrelated_user_cannot_access_booking_image(self, get_image):
+        get_image.return_value = SimpleNamespace(
+            booking=SimpleNamespace(customer_id=3, assigned_worker_id=5),
+            image=object(),
+        )
+
+        from bookings.views import private_booking_image
+
+        with self.assertRaises(Http404):
+            private_booking_image(self.make_request(9), 14)
 
 
 class BookingNotificationTests(TestCase):

@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator
 from django.db import connection, models
 from django.db.models import Q
 
+from beni.upload_paths import product_gallery_image_path, product_image_path
 from shops.models import Shop
 
 
@@ -20,7 +21,7 @@ class Product(models.Model):
 		validators=[MinValueValidator(Decimal('0.00'))],
 	)
 	stock_quantity = models.PositiveIntegerField(default=0)
-	image = models.ImageField(upload_to='products/', blank=True)
+	image = models.ImageField(upload_to=product_image_path, blank=True)
 	is_active = models.BooleanField(default=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
@@ -74,3 +75,21 @@ class Product(models.Model):
 
 	def __str__(self):
 		return self.name
+
+
+class ProductImage(models.Model):
+	product = models.ForeignKey(
+		Product,
+		on_delete=models.CASCADE,
+		related_name='gallery_images',
+	)
+	image = models.ImageField(upload_to=product_gallery_image_path)
+	alt_text = models.CharField(max_length=200, blank=True)
+	sort_order = models.PositiveSmallIntegerField(default=0)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ('sort_order', 'created_at', 'pk')
+
+	def __str__(self):
+		return f'Gallery image for {self.product.name}'

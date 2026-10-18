@@ -4,53 +4,54 @@
 {% block body_class %}customer-page{% endblock %}
 {% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
 {% block content %}
-<div class="catalog-content" style="max-width: 960px; margin: 2rem auto;">
+<div class="catalog-content shopping-page">
     <p class="catalog-kicker">BENI / ORDER DETAILS</p>
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
-        <h1 style="margin:0;">{{ order.order_number }}</h1>
-        <span style="padding:0.4rem 0.75rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.get_status_display }}</span>
-    </div>
+    <header class="shopping-page-heading">
+        <h1>{{ order.order_number }}</h1>
+        <span class="status-pill">{{ order.get_status_display }}</span>
+    </header>
 
-    <section style="background:#f5faf6; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem; margin-bottom:1rem;">
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:1rem;">
-            <div><p style="margin:0; color:#4b5e59;">Customer</p><strong>{{ order.contact_name }}</strong></div>
-            <div><p style="margin:0; color:#4b5e59;">Placed</p><strong>{{ order.created_at }}</strong></div>
-            <div><p style="margin:0; color:#4b5e59;">Payment status</p><strong>{{ order.get_payment_status_display }}</strong></div>
-            <div><p style="margin:0; color:#4b5e59;">Shop</p><strong>{{ order.shop.name }}</strong></div>
+    <section class="order-detail-facts">
+        <div class="order-facts-grid">
+            <div><p>Customer</p><strong>{{ order.contact_name }}</strong></div>
+            <div><p>Placed</p><strong>{{ order.created_at }}</strong></div>
+            <div><p>Payment status</p><strong>{{ order.get_payment_status_display }}</strong></div>
+            <div><p>Shop</p><strong>{{ order.shop.name }}</strong></div>
             <div>
-                <p style="margin:0; color:#4b5e59;">Delivery address</p>
+                <p>Delivery address</p>
                 <strong>{{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</strong>
             </div>
         </div>
-        {% if order.delivery_notes %}<p><strong>Delivery notes:</strong> {{ order.delivery_notes }}</p>{% endif %}
+        {% if order.delivery_notes %}<p class="order-delivery-notes"><strong>Delivery notes:</strong> {{ order.delivery_notes }}</p>{% endif %}
     </section>
 
-    <section style="background:#fff; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem;">
+    <section class="order-detail-items">
+        <h2>Items</h2>
         {% for item in order.items.all %}
-            <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.7rem 0; border-bottom:1px solid #edf1ee;">
+            <div class="order-detail-line">
                 <div>
                     <strong>{{ item.product_name }}</strong>
-                    <div style="color:#4b5e59;">Qty {{ item.quantity }} · {{ item.unit_price }} each</div>
+                    <div>Qty {{ item.quantity }} · {{ item.unit_price }} each</div>
                 </div>
                 <span>{{ item.line_total }}</span>
             </div>
         {% endfor %}
-        <div style="display:flex; justify-content:space-between; padding-top:1rem;">
+        <div class="checkout-total-line">
             <span>Subtotal</span><strong>{{ order.subtotal }}</strong>
         </div>
-        <div style="display:flex; justify-content:space-between; padding-top:0.5rem;">
+        <div class="checkout-total-line">
             <span>Delivery</span><strong>{{ order.delivery_fee }}</strong>
         </div>
-        <div style="display:flex; justify-content:space-between; padding-top:0.75rem; font-size:1.2rem;">
+        <div class="checkout-total-line checkout-grand-total">
             <span>Total</span><strong>{{ order.total }}</strong>
         </div>
     </section>
 
-    <div style="margin-top:1rem;">
+    <div class="order-detail-actions">
         {% if can_cancel %}
-            <form method="post" action="{% url 'customers:order_cancel' order.order_number %}" style="display:inline-block; margin-right:1rem;">
+            <form method="post" action="{% url 'customers:order_cancel' order.order_number %}">
                 {% csrf_token %}
-                <button class="button" type="submit">Cancel order</button>
+                <button class="button button-danger" type="submit">Cancel order</button>
             </form>
         {% endif %}
         <a class="catalog-back-link" href="{% url 'customers:orders' %}">Back to orders</a>

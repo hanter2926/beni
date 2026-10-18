@@ -17,6 +17,11 @@ urlpatterns = [
     ),
     path('admin/', views.admin_application_list, name='admin_list'),
     path(
+        'admin/documents/<int:document_id>/',
+        views.admin_document,
+        name='admin_document',
+    ),
+    path(
         'admin/<int:application_id>/review/',
         views.admin_application_review,
         name='admin_review',

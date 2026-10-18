@@ -12,6 +12,7 @@ from accounts.roles import (
     SHOPKEEPER_GROUP,
     user_has_role_group,
 )
+from .cart_constants import CART_OWNER_SESSION_KEY, CART_SESSION_KEY
 from orders.services import (
     CHECKOUT_RECEIPTS_SESSION_KEY,
     CHECKOUT_STATE_SESSION_KEY,
@@ -19,10 +20,6 @@ from orders.services import (
 )
 from products.models import Product
 from products.services import is_product_marketable, marketable_products
-
-CART_SESSION_KEY = 'beni_cart'
-CART_OWNER_SESSION_KEY = 'beni_cart_owner_id'
-
 
 def is_customer_user(user):
     return (

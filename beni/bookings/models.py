@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.db import models
 
+from beni.upload_paths import booking_image_path
+from verification.storage import private_storage
+
 
 class RepairBooking(models.Model):
     STATUS_REQUESTED = 'requested'
@@ -46,9 +49,18 @@ class RepairBooking(models.Model):
     class Meta:
         ordering = ('-created_at', '-id')
         indexes = [
-            models.Index(fields=('customer', 'created_at')),
-            models.Index(fields=('assigned_worker', 'status')),
-            models.Index(fields=('status', 'preferred_at')),
+            models.Index(
+                fields=('customer', 'created_at'),
+                name='bookings_re_customer_33fc2f_idx',
+            ),
+            models.Index(
+                fields=('assigned_worker', 'status'),
+                name='bookings_re_assigne_2d1b47_idx',
+            ),
+            models.Index(
+                fields=('status', 'preferred_at'),
+                name='bookings_re_status_5eb4dc_idx',
+            ),
         ]
 
     def __str__(self):
@@ -95,3 +107,42 @@ class BookingAssignmentEvent(models.Model):
 
     def __str__(self):
         return f'Assignment for repair booking #{self.booking_id}'
+
+
+class RepairBookingImage(models.Model):
+    TYPE_CUSTOMER_CONDITION = 'customer_condition'
+    TYPE_WORKER_VISIT_PROOF = 'worker_visit_proof'
+    TYPE_REPAIR_PROGRESS = 'repair_progress'
+    TYPE_COMPLETED_WORK = 'completed_work'
+    TYPE_CHOICES = [
+        (TYPE_CUSTOMER_CONDITION, 'Condition at request'),
+        (TYPE_WORKER_VISIT_PROOF, 'Visit proof'),
+        (TYPE_REPAIR_PROGRESS, 'Repair progress'),
+        (TYPE_COMPLETED_WORK, 'Completed repair'),
+    ]
+
+    booking = models.ForeignKey(
+        RepairBooking,
+        on_delete=models.CASCADE,
+        related_name='images',
+    )
+    image = models.ImageField(
+        upload_to=booking_image_path,
+        storage=private_storage,
+    )
+    image_type = models.CharField(max_length=32, choices=TYPE_CHOICES)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='repair_booking_images',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('created_at', 'pk')
+        indexes = [
+            models.Index(fields=('booking', 'created_at')),
+        ]
+
+    def __str__(self):
+        return f'{self.get_image_type_display()} for repair booking #{self.booking_id}'

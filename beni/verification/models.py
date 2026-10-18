@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from beni.upload_paths import verification_document_path
+from .storage import private_storage
 
 class VerificationApplication(models.Model):
     TYPE_SHOPKEEPER = 'shopkeeper'
@@ -177,3 +179,45 @@ class VerificationDecision(models.Model):
 
     def __str__(self):
         return f'Decision for verification #{self.application_id}'
+
+
+class VerificationDocument(models.Model):
+    TYPE_IDENTITY = 'identity'
+    TYPE_ADDRESS = 'address'
+    TYPE_TAX = 'tax'
+    TYPE_BANK = 'bank'
+    TYPE_BUSINESS = 'business'
+    TYPE_QUALIFICATION = 'qualification'
+    TYPE_OTHER = 'other'
+    TYPE_CHOICES = [
+        (TYPE_IDENTITY, 'Identity document'),
+        (TYPE_ADDRESS, 'Address document'),
+        (TYPE_TAX, 'Tax document'),
+        (TYPE_BANK, 'Bank document'),
+        (TYPE_BUSINESS, 'Business document'),
+        (TYPE_QUALIFICATION, 'Qualification document'),
+        (TYPE_OTHER, 'Other supporting document'),
+    ]
+
+    application = models.ForeignKey(
+        VerificationApplication,
+        on_delete=models.CASCADE,
+        related_name='documents',
+    )
+    file = models.FileField(
+        upload_to=verification_document_path,
+        storage=private_storage,
+    )
+    document_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='verification_documents',
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('uploaded_at', 'pk')
+
+    def __str__(self):
+        return f'{self.get_document_type_display()} for application #{self.application_id}'

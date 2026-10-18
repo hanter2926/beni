@@ -1,0 +1,57 @@
+.upload-preview-list,
+.upload-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.upload-preview-item,
+.upload-gallery figure {
+    margin: 0;
+    max-width: 10rem;
+}
+
+.upload-preview-item img,
+.upload-gallery img,
+.upload-current-image {
+    display: block;
+    width: min(9rem, 100%);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border: 1px solid var(--border-color, #d9dedb);
+    border-radius: 0.75rem;
+    background: var(--surface-muted, #f5f7f6);
+}
+
+.upload-preview-item span,
+.upload-gallery figcaption {
+    display: block;
+    margin-top: 0.35rem;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+}
+
+.upload-current-image {
+    margin-top: 0.75rem;
+}
+
+.booking-photo-section {
+    margin-top: 1.5rem;
+}
+
+.booking-photo-section .upload-gallery img {
+    width: min(12rem, 100%);
+}
+
+@media (max-width: 600px) {
+    .upload-preview-list,
+    .upload-gallery {
+        gap: 0.5rem;
+    }
+
+    .upload-preview-item,
+    .upload-gallery figure {
+        max-width: 8rem;
+    }
+}

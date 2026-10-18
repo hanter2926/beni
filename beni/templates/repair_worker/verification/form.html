@@ -3,13 +3,13 @@
 {% block title %}Repair Worker verification | BENI{% endblock %}
 {% block body_class %}auth-page{% endblock %}
 {% block layout_class %}auth-layout{% endblock %}
-{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">{% endblock %}
 {% block content %}
 <section class="auth-wrap" aria-labelledby="verification-title">
     <div class="auth-aside">
         <p class="eyebrow">Repair Worker verification</p>
         <h1>Verification status.</h1>
-        <p>Phone and face checks are recorded by staff after out-of-band verification. Do not submit identity documents here.</p>
+        <p>Submit only relevant supporting documents for verification. Files are private and available to authorized staff reviewers only.</p>
     </div>
     <div class="auth-panel">
         <p class="eyebrow">Application status</p>
@@ -18,12 +18,16 @@
             <p>Phone: {{ application.get_phone_status_display }}</p>
             <p>Face: {{ application.get_face_status_display }}</p>
             {% if application.decision_reason %}<p class="form-errors">{{ application.decision_reason }}</p>{% endif %}
+            {% if application.documents.all %}
+                <p>Documents on file:</p>
+                <ul>{% for document in application.documents.all %}<li>{{ document.get_document_type_display }} · submitted {{ document.uploaded_at }}</li>{% endfor %}</ul>
+            {% endif %}
         {% else %}
             <h2 id="verification-title">Not submitted</h2>
             <p>No Repair Worker verification application has been submitted.</p>
         {% endif %}
         {% if not application or application.status != 'approved' %}
-            <form method="post" class="account-form">
+            <form method="post" enctype="multipart/form-data" class="account-form">
                 {% csrf_token %}
                 <p>Repair job assignment and worker job actions require staff approval with both phone and face checks verified.</p>
                 {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
@@ -32,6 +36,17 @@
                     {{ form.confirmation.label_tag }}
                     {% if form.confirmation.errors %}<div class="field-errors" id="id_confirmation_errors" role="alert">{{ form.confirmation.errors }}</div>{% endif %}
                 </div>
+                {% for field in form %}
+                    {% if field.name != 'confirmation' %}
+                        <div class="form-field">
+                            {{ field.label_tag }}
+                            {% if field.errors %}<div class="field-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                            {{ field }}
+                            {% if field.help_text %}<span class="field-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                            {% if field.name == 'documents' %}<div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>{% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
                 <button class="button button-primary form-submit" type="submit">
                     {% if application and application.status == 'rejected' %}Resubmit for review{% else %}Submit for review{% endif %}
                 </button>
@@ -41,3 +56,4 @@
     </div>
 </section>
 {% endblock %}
+{% block scripts %}<script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

@@ -3,14 +3,21 @@
 {% block title %}{{ product.name }} | BENI{% endblock %}
 {% block body_class %}customer-page catalog-page{% endblock %}
 {% block layout_class %}catalog-layout{% endblock %}
-{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}">{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">{% endblock %}
 {% block content %}
 <div class="catalog-content">
     <p class="catalog-kicker">BENI / PRODUCT DETAILS</p>
     <a class="catalog-back-link detail-back-link" href="{% url 'catalog:list' %}">&larr; Back to catalog</a>
     <article class="catalog-detail">
         <div class="catalog-detail-media">
-            {% if product.image %}<img class="catalog-detail-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<img class="catalog-detail-image catalog-image-fallback" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">{% endif %}
+            {% if product.image %}<img class="catalog-detail-image" src="{{ product.image.url }}" alt="{{ product.name }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No image available for {{ product.name }}">{% else %}<img class="catalog-detail-image catalog-image-fallback" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">{% endif %}
+            {% if product.gallery_images.all %}
+                <div class="upload-gallery" aria-label="Additional product photos">
+                    {% for gallery_image in product.gallery_images.all %}
+                        <figure><img src="{{ gallery_image.image.url }}" alt="{{ gallery_image.alt_text|default:product.name }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No additional image available for {{ product.name }}" loading="lazy" decoding="async"></figure>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
         <div class="catalog-detail-copy">
             <p class="catalog-card-category">{{ product.category }}</p>

@@ -5,6 +5,7 @@
 {% block role_styles %}
 <link rel="stylesheet" href="{% static 'css/shopkeeper/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/shopkeeper/management.css' %}">
+<link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">
 {% endblock %}
 {% block sidebar %}{% include 'shopkeeper/_management_nav.html' %}{% endblock %}
 {% block content %}
@@ -15,7 +16,7 @@
     </header>
     <section class="management-form-panel" aria-labelledby="shop-form-title">
         <h2 id="shop-form-title">Shop details</h2>
-        <form method="post" class="management-form" novalidate>
+        <form method="post" enctype="multipart/form-data" class="management-form" novalidate>
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="management-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
             {% for field in form %}
@@ -29,7 +30,17 @@
                         {{ field.label_tag }}
                         {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
                         {{ field }}
-                        {% if field.help_text %}<span class="management-help">{{ field.help_text }}</span>{% endif %}
+                        {% if field.help_text %}<span class="management-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                        {% if field.name == 'logo_image' or field.name == 'cover_image' %}
+                            <div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>
+                            {% if shop %}
+                                {% if field.name == 'logo_image' and shop.logo_image %}
+                                    <img class="upload-current-image" src="{{ shop.logo_image.url }}" alt="Current shop logo" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No shop logo available">
+                                {% elif field.name == 'cover_image' and shop.cover_image %}
+                                    <img class="upload-current-image" src="{{ shop.cover_image.url }}" alt="Current shop cover image" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No shop cover image available">
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
                     </div>
                 {% endif %}
             {% endfor %}
@@ -38,3 +49,4 @@
     </section>
 </div>
 {% endblock %}
+{% block scripts %}<script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

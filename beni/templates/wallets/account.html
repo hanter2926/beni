@@ -3,18 +3,18 @@
 {% block title %}Wallet history | BENI{% endblock %}
 {% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
 {% block content %}
-<section class="catalog-content" style="max-width: 900px; margin: 2rem auto;">
+<section class="catalog-content record-page">
     <p class="catalog-kicker">BENI / WALLET FOUNDATION</p>
     <h1>{{ role_label }} wallet history</h1>
-    <p role="status">
+    <p class="wallet-notice" role="status">
         Earnings and withdrawals are not enabled. This page does not calculate
         earnings or show available funds.
     </p>
 
     {% if wallet and entries %}
-        <div style="display:grid; gap:0.75rem; margin-top:1rem;">
+        <div class="wallet-entry-list">
             {% for entry in entries %}
-                <article style="background:#fff; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+                <article class="wallet-entry-card">
                     <h2>{{ entry.get_entry_type_display }}</h2>
                     <p>Amount: {{ entry.amount_minor }} minor units</p>
                     <p>Reference: {{ entry.reference_key }}</p>

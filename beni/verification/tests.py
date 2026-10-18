@@ -3,14 +3,51 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.http import HttpResponse
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
+from types import SimpleNamespace
 
 from notifications.models import Notification
 from shops.models import Shop
 
 from .models import VerificationApplication
 from .services import review_application, submit_application
+
+
+class PrivateVerificationDocumentAccessTests(SimpleTestCase):
+    def make_request(self, is_staff):
+        request = RequestFactory().get('/verification/admin/documents/2/')
+        request.user = SimpleNamespace(
+            is_authenticated=True,
+            is_active=True,
+            is_staff=is_staff,
+        )
+        return request
+
+    @patch('verification.views.private_document_response', return_value=HttpResponse('file'))
+    @patch('verification.views.get_object_or_404')
+    def test_staff_can_download_private_verification_document(
+        self,
+        get_document,
+        make_response,
+    ):
+        document = SimpleNamespace(file=object())
+        get_document.return_value = document
+
+        from verification.views import admin_document
+
+        response = admin_document(self.make_request(True), 2)
+
+        self.assertEqual(response.status_code, 200)
+        make_response.assert_called_once_with(document.file)
+
+    def test_non_staff_cannot_download_verification_document(self):
+        from verification.views import admin_document
+
+        response = admin_document(self.make_request(False), 2)
+
+        self.assertEqual(response.status_code, 302)
 
 
 class VerificationNotificationTests(TestCase):

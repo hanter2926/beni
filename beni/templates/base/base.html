@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#193b35">
+    <meta name="theme-color" content="#17324d">
     <title>{% block title %}BENI{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/base/tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/base/shell.css' %}">
@@ -18,24 +18,41 @@
                 <span class="brand-mark" aria-hidden="true">B</span>
                 <span class="brand-name">BENI</span>
             </a>
+            <form class="header-search" method="get" action="{% url 'catalog:list' %}" role="search" aria-label="Search products and shops">
+                <label class="sr-only" for="site-search">Search products and shops</label>
+                <input id="site-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search products and shops">
+                <button type="submit" aria-label="Search">Search</button>
+            </form>
             <div class="header-actions">
                 {% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %}
-                    <button class="menu-toggle" type="button" aria-controls="role-navigation" aria-expanded="false">
+                    <button class="menu-toggle" type="button" aria-controls="role-navigation" aria-expanded="false" aria-label="Open workspace navigation">
                         <span class="menu-toggle-icon" aria-hidden="true"></span>
                         <span class="menu-toggle-label">Menu</span>
                     </button>
                 {% endif %}
                 {% if request.user.is_authenticated %}
-                    <span class="account-name">{{ request.user.get_username }}</span>
-                    <a class="header-link" href="{% url 'notifications:inbox' %}">
-                        Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}
+                    {% if role_label == 'Customer' %}
+                        <a class="header-link header-cart-link" href="{% url 'customers:cart' %}" aria-label="Cart{% if cart_item_count %}, {{ cart_item_count }} items{% endif %}">
+                            Cart{% if cart_item_count %}<span class="header-count">{{ cart_item_count }}</span>{% endif %}
+                        </a>
+                    {% endif %}
+                    <a class="header-link header-notification-link" href="{% url 'notifications:inbox' %}" aria-label="Notifications{% if unread_notification_count %}, {{ unread_notification_count }} unread{% endif %}">
+                        Notifications{% if unread_notification_count %}<span class="header-count">{{ unread_notification_count }}</span>{% endif %}
                     </a>
-                    <a class="header-link" href="{% url 'accounts:profile' %}">Profile</a>
-                    <a class="header-link" href="{% url 'accounts:password_change' %}">Change password</a>
-                    <form class="signout-form" method="post" action="{% url 'accounts:logout' %}">
-                        {% csrf_token %}
-                        <button class="text-button" type="submit">Sign out</button>
-                    </form>
+                    <details class="account-menu">
+                        <summary aria-label="Account menu for {{ request.user.get_username }}">
+                            <span class="account-avatar" aria-hidden="true">{{ request.user.get_username|first|upper }}</span>
+                            <span class="account-name">{{ request.user.get_username }}</span>
+                        </summary>
+                        <div class="account-menu-panel">
+                            <a href="{% url 'accounts:profile' %}">Profile</a>
+                            <a href="{% url 'accounts:password_change' %}">Change password</a>
+                            <form class="signout-form" method="post" action="{% url 'accounts:logout' %}">
+                                {% csrf_token %}
+                                <button class="text-button" type="submit">Sign out</button>
+                            </form>
+                        </div>
+                    </details>
                 {% else %}
                     <a class="header-link" href="{% url 'accounts:login' %}">Sign in</a>
                     <a class="header-cta" href="{% url 'accounts:register' %}">Create account</a>
@@ -43,12 +60,15 @@
             </div>
         </header>
 
+        {% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %}
+            <button class="navigation-backdrop" type="button" aria-label="Close workspace navigation" hidden></button>
+        {% endif %}
         <div class="{% block layout_class %}workspace-layout{% endblock %}{% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %} has-role-navigation{% endif %}">
             {% block sidebar %}
                 {% if role_label == 'Customer' %}
-                    <aside class="side-rail customer-rail">
+                    <aside class="side-rail customer-rail" id="role-navigation">
                         <p class="role-label">Customer space</p>
-                        <nav class="role-nav" id="role-navigation" aria-label="Customer navigation">
+                        <nav class="role-nav" aria-label="Customer navigation">
                             <a href="{% url 'dashboard:customer' %}">Overview</a>
                             <a href="{% url 'catalog:list' %}">Shop products</a>
                             <a href="{% url 'customers:cart' %}">Cart</a>
@@ -62,9 +82,9 @@
                 {% elif role_label == 'Shopkeeper' %}
                     {% include 'shopkeeper/_management_nav.html' %}
                 {% elif role_label == 'Repair worker' %}
-                    <aside class="side-rail repair-rail">
+                    <aside class="side-rail repair-rail" id="role-navigation">
                         <p class="role-label">Repair Worker desk</p>
-                        <nav class="role-nav" id="role-navigation" aria-label="Repair Worker navigation">
+                        <nav class="role-nav" aria-label="Repair Worker navigation">
                             <a href="{% url 'dashboard:repair_worker' %}">Overview</a>
                             <a href="{% url 'bookings:worker_list' %}" {% if request.resolver_match.namespace == 'bookings' and request.resolver_match.url_name == 'worker_list' or request.resolver_match.url_name == 'worker_update' %}aria-current="page"{% endif %}>Assigned jobs</a>
                             <a href="{% url 'wallets:repair_worker' %}" {% if request.resolver_match.namespace == 'wallets' %}aria-current="page"{% endif %}>Wallet</a>
@@ -75,9 +95,9 @@
                         </nav>
                     </aside>
                 {% elif role_label == 'Admin' %}
-                    <aside class="side-rail admin-panel-rail">
+                    <aside class="side-rail admin-panel-rail" id="role-navigation">
                         <p class="role-label">Admin operations</p>
-                        <nav class="role-nav" id="role-navigation" aria-label="Admin navigation">
+                        <nav class="role-nav" aria-label="Admin navigation">
                             <a href="{% url 'dashboard:admin' %}">Overview</a>
                             <a href="{% url 'dashboard:admin_users' %}" {% if request.resolver_match.namespace == 'dashboard' and request.resolver_match.url_name == 'admin_users' %}aria-current="page"{% endif %}>Marketplace users</a>
                             <a href="{% url 'bookings:admin_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair bookings</a>
@@ -91,6 +111,16 @@
                 {% endif %}
             {% endblock %}
             <main class="main-content" id="main-content">
+                {% if current_page_label and role_label != 'Account' %}
+                    <nav class="breadcrumbs" aria-label="Breadcrumb">
+                        <ol>
+                            {% if request.resolver_match.namespace != 'dashboard' or request.resolver_match.url_name == 'admin_users' %}
+                                <li><a href="{{ workspace_url }}">{{ role_label }} workspace</a></li>
+                            {% endif %}
+                            <li aria-current="page">{{ current_page_label }}</li>
+                        </ol>
+                    </nav>
+                {% endif %}
                 {% if messages %}
                     <div class="message-stack" aria-live="polite">
                         {% for message in messages %}
@@ -101,8 +131,24 @@
                 {% block content %}{% endblock %}
             </main>
         </div>
+        <footer class="site-footer">
+            <a class="site-footer-brand" href="{% url 'home' %}">BENI <span>Local marketplace</span></a>
+            <nav aria-label="Footer navigation">
+                <a href="{% url 'catalog:list' %}">Product catalog</a>
+                {% if request.user.is_authenticated %}
+                    <a href="{{ workspace_url }}">Your workspace</a>
+                    <a href="{% url 'notifications:inbox' %}">Notifications</a>
+                    <a href="{% url 'accounts:profile' %}">Profile</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}">Sign in</a>
+                    <a href="{% url 'accounts:register' %}">Create account</a>
+                {% endif %}
+            </nav>
+        </footer>
     </div>
     <script defer src="{% static 'js/base/navigation.js' %}"></script>
+    <script defer src="{% static 'js/base/media-fallbacks.js' %}"></script>
     {% block scripts %}{% endblock %}
+    <noscript><style>@media (max-width: 1023px) { .menu-toggle, .navigation-backdrop { display: none !important; } .side-rail { display: block !important; position: static !important; } .role-nav { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; } }</style></noscript>
 </body>
 </html>

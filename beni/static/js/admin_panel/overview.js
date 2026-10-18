@@ -5,7 +5,9 @@ function selectAdminTab(selectedTab, moveFocus = false) {
         const selected = tab === selectedTab;
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
-        document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+        const panelId = tab.getAttribute('aria-controls');
+        const panel = panelId ? document.getElementById(panelId) : null;
+        if (panel) panel.hidden = !selected;
     });
     if (moveFocus) selectedTab.focus();
 }

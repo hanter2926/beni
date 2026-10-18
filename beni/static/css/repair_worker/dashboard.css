@@ -1,4 +1,4 @@
-.repair-workspace { --repair-accent: #9b5543; --repair-tint: #f6e9e4; max-width: 1050px; margin: 0 auto; }
+.repair-workspace { --repair-accent: var(--blue); --repair-tint: var(--blue-soft); max-width: 1050px; margin: 0 auto; }
 .repair-kicker, .repair-overline { margin: 0; color: var(--repair-accent); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .repair-heading { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 28px; }
 .repair-kicker { margin-bottom: 14px; color: #78828a; }
@@ -6,13 +6,13 @@
 .repair-heading p:not(.repair-kicker) { margin: 8px 0 0; color: var(--ink-soft); }
 .repair-heading-art { width: 160px; height: 115px; flex: 0 0 auto; object-fit: contain; }
 .repair-date-mark { display: grid; width: 68px; flex: 0 0 68px; aspect-ratio: 1; place-items: center; transform: rotate(5deg); border: 1px solid #c9d8dc; border-radius: 18px 18px 18px 4px; background: #e4eef0; color: #416c78; font-family: Georgia, serif; font-size: 19px; }
-.repair-queue { overflow: hidden; border: 1px solid #dce2e2; border-radius: var(--radius-md); background: var(--surface); }
-.repair-queue-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 25px clamp(18px, 4vw, 34px); background: #edf3f2; }
+.repair-queue { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+.repair-queue-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 25px clamp(18px, 4vw, 34px); background: var(--blue-soft); }
 .repair-queue-header h2 { margin: 6px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 500; }
 .repair-queue-tag { padding: 7px 10px; border: 1px solid #d1dfdc; border-radius: 4px; color: #54716d; font-size: 11px; font-weight: 800; }
 .repair-tabs { display: flex; gap: 8px; padding-inline: clamp(18px, 4vw, 34px); border-bottom: 1px solid var(--line); }
 .repair-tabs button { min-height: 45px; padding: 9px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--ink-soft); font-weight: 700; cursor: pointer; }
-.repair-tabs button[aria-selected="true"] { border-bottom-color: #497b7e; color: var(--ink); }
+.repair-tabs button[aria-selected="true"] { border-bottom-color: var(--orange); color: var(--navy); }
 .repair-tab-panel { display: flex; min-height: 152px; align-items: center; gap: 20px; padding: 25px clamp(18px, 4vw, 34px); }
 .repair-tab-panel[hidden] { display: none; }
 .repair-empty-icon { display: grid; width: 54px; flex: 0 0 54px; aspect-ratio: 1; place-items: center; border-radius: 50%; background: var(--repair-tint); color: var(--repair-accent); font-family: Georgia, serif; font-size: 18px; }

@@ -143,6 +143,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.context_processors.navigation_context",
                 "notifications.context_processors.unread_notification_count",
             ],
         },
@@ -225,3 +226,13 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+PRIVATE_MEDIA_ROOT = Path(
+    os.environ.get("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private-media"))
+).resolve()
+if (
+    PRIVATE_MEDIA_ROOT == MEDIA_ROOT.resolve()
+    or MEDIA_ROOT.resolve() in PRIVATE_MEDIA_ROOT.parents
+):
+    raise ImproperlyConfigured(
+        "PRIVATE_MEDIA_ROOT must be outside the publicly served MEDIA_ROOT."
+    )

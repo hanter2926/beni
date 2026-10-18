@@ -5,9 +5,9 @@
 {% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
 {% block content %}
 <div class="catalog-content checkout-layout">
-    <section>
+    <section class="checkout-form-panel">
         <p class="catalog-kicker">BENI / CHECKOUT</p>
-        <h1 style="margin-top:0;">Delivery details</h1>
+        <h1>Delivery details</h1>
         <form method="post" class="account-form" novalidate>
             {% csrf_token %}
             <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
@@ -29,26 +29,26 @@
     </section>
 
     <aside class="checkout-summary">
-        <h2 style="margin-top:0;">Order summary</h2>
+        <h2>Order summary</h2>
         {% for item in items %}
-            <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.7rem 0; border-bottom:1px solid #dfe7e2;">
+            <div class="checkout-item-line">
                 <div>
-                    {% if item.image %}<img class="checkout-item-image" src="{{ item.image }}" alt="">{% else %}<img class="checkout-item-image" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="">{% endif %}
+                    {% if item.image %}<img class="checkout-item-image" src="{{ item.image }}" alt="" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}">{% else %}<img class="checkout-item-image" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="">{% endif %}
                     <strong>{{ item.name }}</strong>
-                    <div style="color:#4b5e59;">Qty {{ item.quantity }}</div>
+                    <div class="checkout-item-quantity">Qty {{ item.quantity }}</div>
                 </div>
                 <span>{{ item.line_total }}</span>
             </div>
         {% endfor %}
-        <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+        <div class="checkout-total-line">
             <span>Subtotal</span>
             <strong>{{ subtotal }}</strong>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-top:0.5rem;">
+        <div class="checkout-total-line">
             <span>Delivery</span>
             <strong>{{ delivery_fee }}</strong>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-top:0.75rem; font-size:1.2rem;">
+        <div class="checkout-total-line checkout-grand-total">
             <span>Total</span>
             <strong>{{ total }}</strong>
         </div>

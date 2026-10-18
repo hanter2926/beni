@@ -1,9 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from beni.private_files import private_image_response
+
+from .models import Profile
 from .forms import ProfileForm, RegistrationForm
 from .roles import REPAIR_WORKER_GROUP, SHOPKEEPER_GROUP, user_has_role_group
 
@@ -34,7 +38,14 @@ def register(request):
 @login_required(login_url='accounts:login')
 def profile(request):
 	form_data = request.POST if request.method == 'POST' else None
-	form = ProfileForm(form_data, instance=request.user)
+	files_data = request.FILES if request.method == 'POST' else None
+	profile_record = Profile.objects.filter(user=request.user).first()
+	form = ProfileForm(
+		form_data,
+		files_data,
+		instance=request.user,
+		profile=profile_record,
+	)
 	if request.method == 'POST' and form.is_valid():
 		form.save()
 		messages.success(request, 'Your profile was updated.')
@@ -45,7 +56,21 @@ def profile(request):
 		'auth/profile.html',
 		{
 			'form': form,
+			'profile': profile_record,
 			'role_label': 'Account',
 			'dashboard_url': role_dashboard_url(request.user),
 		},
 	)
+
+
+@login_required(login_url='accounts:login')
+def private_profile_image(request, user_id):
+	if request.user.pk != user_id and not request.user.is_staff:
+		raise Http404
+	profile_record = get_object_or_404(
+		Profile.objects.select_related('user'),
+		user_id=user_id,
+	)
+	if not profile_record.image:
+		raise Http404
+	return private_image_response(profile_record.image)

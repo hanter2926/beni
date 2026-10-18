@@ -13,26 +13,26 @@
     </header>
 
     {% if orders %}
-        <div style="display:grid; gap:1rem; margin-top:1.5rem;">
+        <div class="shop-order-list">
             {% for order in orders %}
-                <article style="background:#f8faf8; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                <article class="shop-order-card">
+                    <div class="shop-order-header">
                         <div>
-                            <p style="margin:0; color:#4b5e59;">{{ order.created_at }}</p>
-                            <h2 style="margin:0.2rem 0;"><a href="{% url 'shopkeeper_order_detail' order.order_number %}">{{ order.order_number }}</a></h2>
-                            <p style="margin:0;">Shop: {{ order.shop.name }}</p>
-                            <p style="margin:0;">Customer: {{ order.contact_name }} · {{ order.contact_phone }}</p>
-                            <p style="margin:0;">Deliver to: {{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
-                            {% if order.delivery_notes %}<p style="margin:0;">Notes: {{ order.delivery_notes }}</p>{% endif %}
+                            <p class="shop-order-date">{{ order.created_at }}</p>
+                            <h2><a href="{% url 'shopkeeper_order_detail' order.order_number %}">{{ order.order_number }}</a></h2>
+                            <p>Shop: {{ order.shop.name }}</p>
+                            <p>Customer: {{ order.contact_name }} · {{ order.contact_phone }}</p>
+                            <p>Deliver to: {{ order.address_line1 }}, {{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
+                            {% if order.delivery_notes %}<p>Notes: {{ order.delivery_notes }}</p>{% endif %}
                         </div>
-                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.get_status_display }}</span>
+                        <span class="management-status">{{ order.get_status_display }}</span>
                     </div>
-                    <div style="margin-top:0.75rem;">
+                    <div class="shop-order-items">
                         {% for item in order.items.all %}
-                            <p style="margin:0.25rem 0;">{{ item.product_name }} × {{ item.quantity }}</p>
+                            <p>{{ item.product_name }} × {{ item.quantity }}</p>
                         {% endfor %}
                     </div>
-                    <p style="margin-top:0.75rem; font-size:1.1rem; font-weight:700;">Total: {{ order.total }}</p>
+                    <p class="shop-order-total">Total: {{ order.total }}</p>
                     {% if order.status_form.fields.status.choices %}
                         <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form">
                             {% csrf_token %}

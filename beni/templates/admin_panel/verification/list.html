@@ -6,17 +6,30 @@
 {% block content %}
 <div class="admin-workspace">
     <header class="admin-heading">
-        <div><p class="admin-kicker">BENI / VERIFICATION</p><h1>Verification applications</h1><p>Status-only review. Identity documents, numbers and bank credentials are not stored here.</p></div>
+        <div><p class="admin-kicker">BENI / VERIFICATION</p><h1>Verification applications</h1><p>Supporting documents are private and accessible only to authorized staff reviewers.</p></div>
         <a href="{% url 'dashboard:admin' %}">Back to operations</a>
     </header>
     {% if applications %}
-        <div class="account-form">
+        <div class="admin-review-list">
             {% for application in applications %}
-                <article class="admin-records" style="padding:1.25rem; margin-bottom:1rem;">
+                <article class="admin-review-card">
                     <h2>{{ application.get_application_type_display }} · {{ application.get_status_display }}</h2>
                     <p>Applicant: {{ application.applicant.get_full_name|default:application.applicant.get_username }}</p>
                     {% if application.shop %}<p>Shop: {{ application.shop.name }}</p>{% endif %}
                     <p>Submitted {{ application.created_at }} · Updated {{ application.updated_at }}</p>
+                    {% if application.documents.all %}
+                        <section aria-label="Private supporting documents">
+                            <h3>Supporting documents</h3>
+                            <ul>
+                                {% for document in application.documents.all %}
+                                    <li>
+                                        {{ document.get_document_type_display }} · {{ document.uploaded_at }}
+                                        <a href="{% url 'verification:admin_document' document.pk %}">Download private file</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                    {% endif %}
                     <form method="post" action="{% url 'verification:admin_review' application.pk %}" class="account-form">
                         {% csrf_token %}
                         {% for field in application.review_form %}

@@ -16,13 +16,22 @@
         </nav>
         {% if bookings %}
             {% for booking in bookings %}
-                <article class="admin-record-row" style="grid-template-columns:minmax(0, 1fr); padding-block:20px;">
+                <article class="admin-record-row admin-booking-row">
                     <div>
                         <strong>{{ booking.service_category }} · {{ booking.get_status_display }}</strong>
                         <small>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }} · Preferred: {{ booking.preferred_at }}</small>
                         <p>{{ booking.problem_description|linebreaksbr }}</p>
                         <p>Address: {{ booking.service_address|linebreaksbr }}</p>
                         {% if booking.assigned_worker %}<p>Worker: {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</p>{% endif %}
+                        {% if booking.images.all %}
+                            <div class="upload-gallery">
+                                {% for image in booking.images.all %}
+                                    <figure>
+                                        <a href="{% url 'bookings:image' image.pk %}">View {{ image.get_image_type_display|lower }}</a>
+                                    </figure>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     {% if booking.can_assign %}
                         <form method="post" action="{% url 'bookings:admin_assign' booking.pk %}" class="account-form">
