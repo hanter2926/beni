@@ -12,6 +12,7 @@ from django.urls import reverse
 from products.models import Product
 from shops.models import Shop
 from customers.views import CART_OWNER_SESSION_KEY
+from notifications.models import Notification
 from verification.models import VerificationApplication
 
 from .models import CheckoutAttempt, Order, OrderItem
@@ -155,6 +156,73 @@ class OrdersWorkflowTests(TestCase):
         self.assertEqual(Order.objects.count(), 1)
         self.assertEqual(CheckoutAttempt.objects.count(), 1)
         self.assertEqual(Product.objects.get(pk=self.product_one.pk).stock_quantity, 4)
+        self.assertEqual(
+            Notification.objects.filter(
+                recipient=self.customer,
+                event_key=f'order:{first_order.pk}:placed:customer',
+            ).count(),
+            1,
+        )
+
+    def test_order_creation_notifies_customer_and_each_shopkeeper(self):
+        token = uuid.uuid4()
+        _, orders, replayed = create_orders(
+            customer=self.customer,
+            cart=self.cart_for(
+                (self.product_one, 1),
+                (self.product_two, 1),
+            ),
+            token=token,
+            contact=self.contact(),
+        )
+
+        self.assertFalse(replayed)
+        self.assertEqual(len(orders), 2)
+        self.assertEqual(
+            Notification.objects.filter(
+                recipient=self.customer,
+                title='Order placed',
+            ).count(),
+            2,
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.owner_one,
+                title='New shop order',
+                destination_url__contains=orders[0].order_number,
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.owner_two,
+                title='New shop order',
+                destination_url__contains=orders[1].order_number,
+            ).exists()
+        )
+
+    def test_order_transition_rolls_back_when_notification_persistence_fails(self):
+        _, orders, _ = create_orders(
+            customer=self.customer,
+            cart=self.cart_for((self.product_one, 1)),
+            token=uuid.uuid4(),
+            contact=self.contact(),
+        )
+        order = orders[0]
+
+        with patch(
+            'orders.services.create_notification',
+            side_effect=RuntimeError('notification persistence failed'),
+        ):
+            with self.assertRaises(RuntimeError):
+                transition_order(
+                    order_number=order.order_number,
+                    actor=self.owner_one,
+                    new_status=Order.STATUS_CONFIRMED,
+                    shopkeeper=True,
+                )
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_PENDING)
 
     def test_stale_or_tampered_cart_price_is_rejected_without_stock_change(self):
         cart = self.cart_for((self.product_one, 1))

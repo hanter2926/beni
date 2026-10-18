@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from accounts.roles import REPAIR_WORKER_GROUP, user_has_role_group
+from notifications.services import create_notification
 from .models import VerificationApplication, VerificationDecision
 
 
@@ -104,7 +105,7 @@ def review_application(*, application_id, reviewer, cleaned_data):
         )
         application.shop.save(update_fields=('is_active', 'updated_at'))
 
-    return VerificationDecision.objects.create(
+    decision = VerificationDecision.objects.create(
         application=application,
         reviewer=reviewer,
         status=status,
@@ -115,3 +116,21 @@ def review_application(*, application_id, reviewer, cleaned_data):
         face_status=face_status,
         reason=reason,
     )
+    if application.application_type == VerificationApplication.TYPE_REPAIR_WORKER:
+        destination_name = 'verification:worker_application'
+        destination_args = ()
+    else:
+        destination_name = 'verification:shopkeeper_application'
+        destination_args = (application.shop_id,)
+    create_notification(
+        recipient=application.applicant,
+        event_key=f'verification-decision:{decision.pk}:applicant',
+        title='Verification application updated',
+        message=(
+            f'Your {application.get_application_type_display().lower()} '
+            f'application was {application.get_status_display().lower()}.'
+        ),
+        destination_name=destination_name,
+        destination_args=destination_args,
+    )
+    return decision

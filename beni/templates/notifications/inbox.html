@@ -1,0 +1,56 @@
+{% extends 'base/base.html' %}
+{% block title %}Notifications | BENI{% endblock %}
+{% block content %}
+<section class="catalog-content" style="max-width: 900px; margin: 2rem auto;">
+    <header style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div>
+            <p class="catalog-kicker">BENI / NOTIFICATIONS</p>
+            <h1>Notifications</h1>
+        </div>
+        {% if unread_notification_count %}
+            <form method="post" action="{% url 'notifications:mark_all_read' %}">
+                {% csrf_token %}
+                <button class="button button-primary" type="submit">Mark all as read</button>
+            </form>
+        {% endif %}
+    </header>
+
+    {% if page_obj.object_list %}
+        <div style="display:grid; gap:0.75rem; margin-top:1rem;">
+            {% for notification in page_obj %}
+                <article style="background:{% if notification.read_at %}#fff{% else %}#f3f8f4{% endif %}; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+                    <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                        <div>
+                            <h2 style="margin:0;">{{ notification.title }}</h2>
+                            <p>{{ notification.message }}</p>
+                            <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at }}</time>
+                            <span>{% if notification.read_at %}Read{% else %}Unread{% endif %}</span>
+                            {% if notification.destination_url %}
+                                <p><a href="{{ notification.destination_url }}">View details</a></p>
+                            {% endif %}
+                        </div>
+                        {% if not notification.read_at %}
+                            <form method="post" action="{% url 'notifications:mark_read' notification.pk %}">
+                                {% csrf_token %}
+                                <button type="submit">Mark as read</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Notification pages" style="display:flex; gap:1rem; margin-top:1rem;">
+                {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+            </nav>
+        {% endif %}
+    {% else %}
+        <section class="catalog-empty" aria-labelledby="notifications-empty-title">
+            <p class="catalog-kicker">All caught up</p>
+            <h2 id="notifications-empty-title">You have no notifications yet.</h2>
+        </section>
+    {% endif %}
+</section>
+{% endblock %}

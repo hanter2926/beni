@@ -27,6 +27,9 @@
                 {% endif %}
                 {% if request.user.is_authenticated %}
                     <span class="account-name">{{ request.user.get_username }}</span>
+                    <a class="header-link" href="{% url 'notifications:inbox' %}">
+                        Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}
+                    </a>
                     <a class="header-link" href="{% url 'accounts:profile' %}">Profile</a>
                     <a class="header-link" href="{% url 'accounts:password_change' %}">Change password</a>
                     <form class="signout-form" method="post" action="{% url 'accounts:logout' %}">

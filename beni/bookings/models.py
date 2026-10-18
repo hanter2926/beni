@@ -53,3 +53,45 @@ class RepairBooking(models.Model):
 
     def __str__(self):
         return f'Repair booking #{self.pk} ({self.get_status_display()})'
+
+
+class BookingAssignmentEvent(models.Model):
+    booking = models.ForeignKey(
+        RepairBooking,
+        on_delete=models.PROTECT,
+        related_name='assignment_events',
+    )
+    assigned_worker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='repair_assignment_events',
+    )
+    previous_worker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='previous_repair_assignment_events',
+        null=True,
+        blank=True,
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='created_repair_assignment_events',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('created_at', 'pk')
+        indexes = [
+            models.Index(
+                fields=('booking', 'created_at'),
+                name='booking_assign_history_idx',
+            ),
+            models.Index(
+                fields=('assigned_worker', 'created_at'),
+                name='booking_assign_worker_idx',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Assignment for repair booking #{self.booking_id}'

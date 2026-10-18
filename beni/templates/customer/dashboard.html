@@ -11,6 +11,7 @@
         <a href="{% url 'catalog:list' %}">Shop products</a>
         <a href="{% url 'customers:cart' %}">Cart</a>
         <a href="{% url 'customers:orders' %}">Orders</a>
+        <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
         <a href="{% url 'bookings:customer_list' %}">Repair services</a>
         <a href="#account">Account</a>
     </nav>

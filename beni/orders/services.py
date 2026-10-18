@@ -11,6 +11,7 @@ from products.models import Product
 from products.services import eligible_shop_verifications, is_product_marketable
 from shops.models import Shop
 
+from notifications.services import create_notification
 from .models import CheckoutAttempt, Order, OrderItem
 
 CART_SESSION_KEY = 'beni_cart'
@@ -72,7 +73,7 @@ def _load_products(lines, lock=False):
         raise CheckoutError('One or more products are no longer available.')
 
     shop_ids = sorted({product.shop_id for product in products.values()})
-    shops = Shop.objects.filter(pk__in=shop_ids).order_by('pk')
+    shops = Shop.objects.filter(pk__in=shop_ids).select_related('owner').order_by('pk')
     if lock:
         shops = shops.select_for_update()
     shop_by_id = {shop.pk: shop for shop in shops}
@@ -225,6 +226,22 @@ def _create_orders_transaction(*, customer, cart, token, digest, contact):
             product.save(update_fields=('stock_quantity', 'updated_at'))
         OrderItem.objects.bulk_create(order_items)
         orders.append(order)
+        create_notification(
+            recipient=customer,
+            event_key=f'order:{order.pk}:placed:customer',
+            title='Order placed',
+            message=f'Your order {order.order_number} was placed.',
+            destination_name='customers:order_detail',
+            destination_args=(order.order_number,),
+        )
+        create_notification(
+            recipient=shop.owner,
+            event_key=f'order:{order.pk}:placed:shopkeeper',
+            title='New shop order',
+            message=f'Order {order.order_number} is ready for review.',
+            destination_name='shopkeeper_order_detail',
+            destination_args=(order.order_number,),
+        )
     return attempt, orders, False
 
 
@@ -283,8 +300,31 @@ def transition_order(*, order_number, actor, new_status, shopkeeper=False):
             product.stock_quantity += item.quantity
             product.save(update_fields=('stock_quantity', 'updated_at'))
 
+    old_status = order.status
     order.status = new_status
     order.save(update_fields=('status', 'updated_at'))
+
+    if shopkeeper:
+        recipient = order.customer
+        destination_name = 'customers:order_detail'
+        destination_args = (order.order_number,)
+        recipient_role = 'customer'
+    else:
+        recipient = order.shop.owner
+        destination_name = 'shopkeeper_order_detail'
+        destination_args = (order.order_number,)
+        recipient_role = 'shopkeeper'
+    create_notification(
+        recipient=recipient,
+        event_key=f'order:{order.pk}:status:{old_status}:{new_status}:{recipient_role}',
+        title='Order status updated',
+        message=(
+            f'Order {order.order_number} is now '
+            f'{order.get_status_display().lower()}.'
+        ),
+        destination_name=destination_name,
+        destination_args=destination_args,
+    )
     return order
 
 

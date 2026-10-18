@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.roles import REPAIR_WORKER_GROUP, SHOPKEEPER_GROUP, role_group_required
+from notifications.services import notify_active_staff
 from shops.models import Shop
 
 from .forms import VerificationReviewForm
@@ -14,29 +16,48 @@ from .services import review_application
 @role_group_required(SHOPKEEPER_GROUP)
 def shopkeeper_application(request, shop_id):
     shop = get_object_or_404(Shop, pk=shop_id, owner=request.user)
-    application, _ = VerificationApplication.objects.get_or_create(
-        applicant=request.user,
-        shop=shop,
-        application_type=VerificationApplication.TYPE_SHOPKEEPER,
-    )
+    with transaction.atomic():
+        application, created = VerificationApplication.objects.get_or_create(
+            applicant=request.user,
+            shop=shop,
+            application_type=VerificationApplication.TYPE_SHOPKEEPER,
+        )
+        if created:
+            notify_active_staff(
+                event_key=f'verification-application:{application.pk}:created:admin',
+                title='Shop verification needs review',
+                message='A Shopkeeper submitted an application for review.',
+                destination_name='verification:admin_list',
+            )
     if request.method == 'POST':
         if application.status == VerificationApplication.STATUS_APPROVED:
             messages.info(request, 'This shop is already approved.')
         else:
             if application.status == VerificationApplication.STATUS_REJECTED:
-                application.status = VerificationApplication.STATUS_PENDING
-                application.phone_status = VerificationApplication.CHECK_PENDING
-                application.aadhaar_status = (
-                    VerificationApplication.CHECK_NOT_SUBMITTED
-                )
-                application.pan_status = VerificationApplication.CHECK_NOT_SUBMITTED
-                application.bank_status = VerificationApplication.CHECK_NOT_SUBMITTED
-                application.face_status = (
-                    VerificationApplication.CHECK_NOT_SUBMITTED
-                )
-                application.decision_reason = ''
-                application.reviewed_by = None
-                application.save()
+                with transaction.atomic():
+                    application.status = VerificationApplication.STATUS_PENDING
+                    application.phone_status = VerificationApplication.CHECK_PENDING
+                    application.aadhaar_status = (
+                        VerificationApplication.CHECK_NOT_SUBMITTED
+                    )
+                    application.pan_status = VerificationApplication.CHECK_NOT_SUBMITTED
+                    application.bank_status = VerificationApplication.CHECK_NOT_SUBMITTED
+                    application.face_status = (
+                        VerificationApplication.CHECK_NOT_SUBMITTED
+                    )
+                    application.decision_reason = ''
+                    application.reviewed_by = None
+                    application.save()
+                    submission_number = application.decisions.count()
+                    notify_active_staff(
+                        event_key=(
+                            f'verification-application:{application.pk}:'
+                            f'resubmission:{submission_number}:admin'
+                        ),
+                        title='Shop verification needs review',
+                        message='A Shopkeeper resubmitted an application for review.',
+                        destination_name='verification:admin_list',
+                    )
             messages.success(
                 request,
                 'Verification application submitted for staff review.',
@@ -59,26 +80,45 @@ def shopkeeper_application(request, shop_id):
 
 @role_group_required(REPAIR_WORKER_GROUP)
 def worker_application(request):
-    application, _ = VerificationApplication.objects.get_or_create(
-        applicant=request.user,
-        application_type=VerificationApplication.TYPE_REPAIR_WORKER,
-        shop=None,
-        defaults={
-            'phone_status': VerificationApplication.CHECK_PENDING,
-            'face_status': VerificationApplication.CHECK_PENDING,
-        },
-    )
+    with transaction.atomic():
+        application, created = VerificationApplication.objects.get_or_create(
+            applicant=request.user,
+            application_type=VerificationApplication.TYPE_REPAIR_WORKER,
+            shop=None,
+            defaults={
+                'phone_status': VerificationApplication.CHECK_PENDING,
+                'face_status': VerificationApplication.CHECK_PENDING,
+            },
+        )
+        if created:
+            notify_active_staff(
+                event_key=f'verification-application:{application.pk}:created:admin',
+                title='Repair Worker verification needs review',
+                message='A Repair Worker submitted an application for review.',
+                destination_name='verification:admin_list',
+            )
     if request.method == 'POST':
         if application.status == VerificationApplication.STATUS_APPROVED:
             messages.info(request, 'Your Repair Worker account is already approved.')
         else:
             if application.status == VerificationApplication.STATUS_REJECTED:
-                application.status = VerificationApplication.STATUS_PENDING
-                application.phone_status = VerificationApplication.CHECK_PENDING
-                application.face_status = VerificationApplication.CHECK_PENDING
-                application.decision_reason = ''
-                application.reviewed_by = None
-                application.save()
+                with transaction.atomic():
+                    application.status = VerificationApplication.STATUS_PENDING
+                    application.phone_status = VerificationApplication.CHECK_PENDING
+                    application.face_status = VerificationApplication.CHECK_PENDING
+                    application.decision_reason = ''
+                    application.reviewed_by = None
+                    application.save()
+                    submission_number = application.decisions.count()
+                    notify_active_staff(
+                        event_key=(
+                            f'verification-application:{application.pk}:'
+                            f'resubmission:{submission_number}:admin'
+                        ),
+                        title='Repair Worker verification needs review',
+                        message='A Repair Worker resubmitted an application for review.',
+                        destination_name='verification:admin_list',
+                    )
             messages.success(
                 request,
                 'Verification application submitted for staff review.',

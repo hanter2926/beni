@@ -9,6 +9,8 @@
     <nav class="role-nav" id="role-navigation" aria-label="Repair worker navigation">
         <a href="#today" aria-current="page">Today</a>
         <a href="{% url 'bookings:worker_list' %}">Assigned jobs</a>
+        <a href="{% url 'wallets:repair_worker' %}">Wallet</a>
+        <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
         <a href="{% url 'verification:worker_application' %}">Verification</a>
         <a href="#schedule">Schedule</a>
         <a href="#profile">My profile</a>

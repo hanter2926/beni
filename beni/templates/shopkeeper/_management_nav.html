@@ -5,6 +5,8 @@
         <a href="{% url 'shops:list' %}" {% if active_nav == 'shops' %}aria-current="page"{% endif %}>My shops</a>
         <a href="{% url 'products:list' %}" {% if active_nav == 'products' %}aria-current="page"{% endif %}>Products</a>
         <a href="{% url 'shopkeeper_orders' %}" {% if active_nav == 'orders' %}aria-current="page"{% endif %}>Orders</a>
+        <a href="{% url 'wallets:shopkeeper' %}" {% if active_nav == 'wallet' %}aria-current="page"{% endif %}>Wallet</a>
+        <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
         <a href="{% url 'shops:list' %}">Verification</a>
     </nav>
 </aside>

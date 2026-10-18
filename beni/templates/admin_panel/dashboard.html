@@ -13,6 +13,7 @@
         <a href="{% url 'dashboard:admin_users' %}">Marketplace users</a>
         <a href="{% url 'bookings:admin_list' %}">Repair bookings</a>
         <a href="{% url 'verification:admin_list' %}">Verification review</a>
+        <a href="{% url 'notifications:inbox' %}">Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
         <a href="{% url 'admin:index' %}">Django admin</a>
     </nav>
 </aside>

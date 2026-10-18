@@ -2,11 +2,13 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.roles import REPAIR_WORKER_GROUP, role_group_required
 from customers.views import is_customer_user
+from notifications.services import create_notification
 
 from .forms import (
     RepairBookingForm,
@@ -46,9 +48,18 @@ def customer_booking_create(request):
         request.POST if request.method == 'POST' else None,
     )
     if request.method == 'POST' and form.is_valid():
-        booking = form.save(commit=False)
-        booking.customer = request.user
-        booking.save()
+        with transaction.atomic():
+            booking = form.save(commit=False)
+            booking.customer = request.user
+            booking.save()
+            create_notification(
+                recipient=request.user,
+                event_key=f'booking:{booking.pk}:created:customer',
+                title='Repair request submitted',
+                message='Your repair request was submitted.',
+                destination_name='bookings:customer_detail',
+                destination_args=(booking.pk,),
+            )
         messages.success(request, 'Your repair request was submitted.')
         return redirect('bookings:customer_detail', booking_id=booking.pk)
 
