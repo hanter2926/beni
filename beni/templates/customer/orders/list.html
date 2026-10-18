@@ -1,0 +1,47 @@
+{% extends 'base/base.html' %}
+{% block title %}My orders | BENI{% endblock %}
+{% block body_class %}customer-page{% endblock %}
+{% block content %}
+<div class="catalog-content" style="max-width: 980px; margin: 2rem auto;">
+    <p class="catalog-kicker">BENI / MY ORDERS</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.25rem;">
+        <h1 style="margin:0;">Order history</h1>
+        <a class="catalog-back-link" href="{% url 'customers:cart' %}">Back to cart</a>
+    </div>
+
+    {% if orders %}
+        <div style="display:grid; gap:1rem;">
+            {% for order in orders %}
+                <article style="background:#f5faf6; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                        <div>
+                            <p style="margin:0; color:#4b5e59;">{{ order.created_at }}</p>
+                            <h2 style="margin:0.2rem 0;">{{ order.order_number }}</h2>
+                        </div>
+                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
+                    </div>
+                    <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                        <div>
+                            {% for item in order.items %}
+                                <p style="margin:0.2rem 0;">{{ item.name }} × {{ item.quantity }}</p>
+                            {% endfor %}
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="margin:0; color:#4b5e59;">Total</p>
+                            <strong>{{ order.total }}</strong>
+                            <div style="margin-top:0.6rem;"><a href="{% url 'customers:order_detail' order.order_number %}">View details</a></div>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="catalog-empty" aria-labelledby="orders-empty-title">
+            <span class="catalog-empty-mark" aria-hidden="true">B</span>
+            <p class="catalog-kicker">No orders yet</p>
+            <h2 id="orders-empty-title">Your completed orders will appear here.</h2>
+            <a class="catalog-submit catalog-empty-link" href="{% url 'catalog:list' %}">Shop now</a>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

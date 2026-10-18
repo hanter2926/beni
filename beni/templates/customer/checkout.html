@@ -1,0 +1,48 @@
+{% extends 'base/base.html' %}
+{% block title %}Checkout | BENI{% endblock %}
+{% block body_class %}customer-page{% endblock %}
+{% block content %}
+<div class="catalog-content" style="max-width: 1100px; margin: 2rem auto; display:grid; grid-template-columns: 1.3fr .9fr; gap:1.5rem;">
+    <section>
+        <p class="catalog-kicker">BENI / CHECKOUT</p>
+        <h1 style="margin-top:0;">Delivery details</h1>
+        <form method="post" class="account-form" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    {{ field.label_tag }}
+                    {% if field.errors %}<div class="field-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button class="button button-primary form-submit" type="submit">Place order</button>
+        </form>
+    </section>
+
+    <aside style="background:#f3f7f4; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem; height:max-content;">
+        <h2 style="margin-top:0;">Order summary</h2>
+        {% for item in items %}
+            <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.7rem 0; border-bottom:1px solid #dfe7e2;">
+                <div>
+                    <strong>{{ item.name }}</strong>
+                    <div style="color:#4b5e59;">Qty {{ item.quantity }}</div>
+                </div>
+                <span>{{ item.line_total }}</span>
+            </div>
+        {% endfor %}
+        <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+            <span>Subtotal</span>
+            <strong>{{ subtotal }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:0.5rem;">
+            <span>Delivery</span>
+            <strong>{{ delivery_fee }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:0.75rem; font-size:1.2rem;">
+            <span>Total</span>
+            <strong>{{ total }}</strong>
+        </div>
+    </aside>
+</div>
+{% endblock %}

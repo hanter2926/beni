@@ -1,0 +1,45 @@
+{% extends 'base/base.html' %}
+{% block title %}Order {{ order.order_number }} | BENI{% endblock %}
+{% block body_class %}customer-page{% endblock %}
+{% block content %}
+<div class="catalog-content" style="max-width: 960px; margin: 2rem auto;">
+    <p class="catalog-kicker">BENI / ORDER DETAILS</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+        <h1 style="margin:0;">{{ order.order_number }}</h1>
+        <span style="padding:0.4rem 0.75rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
+    </div>
+
+    <section style="background:#f5faf6; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem; margin-bottom:1rem;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:1rem;">
+            <div><p style="margin:0; color:#4b5e59;">Customer</p><strong>{{ order.customer_name }}</strong></div>
+            <div><p style="margin:0; color:#4b5e59;">Placed</p><strong>{{ order.created_at }}</strong></div>
+            <div><p style="margin:0; color:#4b5e59;">Payment status</p><strong>{{ order.payment_status }}</strong></div>
+        </div>
+    </section>
+
+    <section style="background:#fff; border:1px solid #dfe7e2; border-radius:12px; padding:1.25rem;">
+        {% for item in order.items %}
+            <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.7rem 0; border-bottom:1px solid #edf1ee;">
+                <div>
+                    <strong>{{ item.name }}</strong>
+                    <div style="color:#4b5e59;">{{ item.shop_name }} · Qty {{ item.quantity }}</div>
+                </div>
+                <span>{{ item.line_total }}</span>
+            </div>
+        {% endfor %}
+        <div style="display:flex; justify-content:space-between; padding-top:1rem;">
+            <span>Subtotal</span><strong>{{ order.subtotal }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:0.5rem;">
+            <span>Delivery</span><strong>{{ order.delivery_fee }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:0.75rem; font-size:1.2rem;">
+            <span>Total</span><strong>{{ order.total }}</strong>
+        </div>
+    </section>
+
+    <div style="margin-top:1rem;">
+        <a class="catalog-back-link" href="{% url 'customers:orders' %}">Back to orders</a>
+    </div>
+</div>
+{% endblock %}

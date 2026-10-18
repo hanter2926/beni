@@ -10,7 +10,7 @@
         <a href="#overview" aria-current="page">Overview</a>
         <a href="{% url 'shops:list' %}">My shops</a>
         <a href="{% url 'products:list' %}">Products</a>
-        <a href="#orders">Orders</a>
+        <a href="{% url 'shopkeeper_orders' %}">Orders</a>
     </nav>
 </aside>
 {% endblock %}

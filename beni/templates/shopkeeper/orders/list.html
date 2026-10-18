@@ -1,0 +1,43 @@
+{% extends 'base/base.html' %}
+{% block title %}Shop orders | BENI{% endblock %}
+{% block body_class %}shopkeeper-page{% endblock %}
+{% block content %}
+<div class="shopkeeper-workspace" id="overview">
+    <header class="shopkeeper-heading">
+        <div>
+            <p class="shopkeeper-kicker">BENI / SHOP ORDERS</p>
+            <h1>Your shop orders</h1>
+        </div>
+    </header>
+
+    {% if orders %}
+        <div style="display:grid; gap:1rem; margin-top:1.5rem;">
+            {% for order in orders %}
+                <article style="background:#f8faf8; border:1px solid #dfe7e2; border-radius:12px; padding:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                        <div>
+                            <p style="margin:0; color:#4b5e59;">{{ order.created_at }}</p>
+                            <h2 style="margin:0.2rem 0;">{{ order.order_number }}</h2>
+                            <p style="margin:0;">Customer: {{ order.customer_name }}</p>
+                        </div>
+                        <span style="padding:0.4rem 0.7rem; border-radius:999px; background:#dfeee4; color:#183d34; font-weight:700;">{{ order.status }}</span>
+                    </div>
+                    <div style="margin-top:0.75rem;">
+                        {% for item in order.items %}
+                            <p style="margin:0.25rem 0;">{{ item.name }} × {{ item.quantity }} · {{ item.shop_name }}</p>
+                        {% endfor %}
+                    </div>
+                    <p style="margin-top:0.75rem; font-size:1.1rem; font-weight:700;">Total: {{ order.total }}</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="catalog-empty" aria-labelledby="shop-orders-empty-title">
+            <span class="catalog-empty-mark" aria-hidden="true">B</span>
+            <p class="catalog-kicker">No orders yet</p>
+            <h2 id="shop-orders-empty-title">Orders for your shops will appear here.</h2>
+            <a class="catalog-submit catalog-empty-link" href="{% url 'products:list' %}">Manage products</a>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}
