@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Page not found | BENI{% endblock %}
+{% block body_class %}site-page error-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/base/error.css' %}">{% endblock %}
+{% block content %}
+<section class="error-content" aria-labelledby="not-found-title">
+    <img src="{% static 'image/beni_separate_images/errors/404.png' %}" alt="An illustration for a page that could not be found">
+    <p class="error-kicker">BENI / 404</p>
+    <h1 id="not-found-title">We couldn't find that page.</h1>
+    <p>The address may be outdated, or the page may have moved.</p>
+    <a class="error-home-link" href="{% url 'home' %}">Back to BENI home</a>
+</section>
+{% endblock %}

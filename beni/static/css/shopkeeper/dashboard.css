@@ -4,6 +4,7 @@
 .shopkeeper-kicker { margin-bottom: 15px; color: #887d72; }
 .shopkeeper-heading h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(34px, 4.5vw, 50px); font-weight: 500; line-height: 1.08; }
 .shopkeeper-heading p:not(.shopkeeper-kicker) { margin: 8px 0 0; color: var(--ink-soft); }
+.shopkeeper-heading-art { width: 170px; height: 100px; flex: 0 0 auto; object-fit: contain; }
 .shopkeeper-status { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #d7ddd5; border-radius: var(--radius-sm); background: var(--surface); color: #52665c; font-size: 12px; font-weight: 750; }
 .shopkeeper-status i, .admin-access-badge i { width: 8px; aspect-ratio: 1; border-radius: 50%; background: #68a876; }
 .shopkeeper-board { padding: clamp(22px, 4vw, 38px); border: 1px solid #e5d8d0; border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 12px 34px rgb(76 56 42 / 5%); }

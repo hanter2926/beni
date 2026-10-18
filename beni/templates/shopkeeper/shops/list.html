@@ -11,6 +11,7 @@
 <div class="shop-management">
     <header class="management-heading">
         <div><p class="management-kicker">BENI / SHOPKEEPER</p><h1>My shops</h1><p>Manage the shop profiles owned by your account.</p></div>
+        <img class="management-heading-art" src="{% static 'image/beni_separate_images/shops/shop.jpg' %}" alt="Illustration of a local shop storefront">
         <a class="management-button" href="{% url 'shops:create' %}">Add a shop <span aria-hidden="true">+</span></a>
     </header>
     {% if shops %}

@@ -24,7 +24,7 @@
             {% for item in items %}
                 <article class="cart-line">
                     <div class="cart-line-image">
-                        {% if item.image %}<img src="{{ item.image }}" alt="{{ item.name }}" />{% else %}BENI{% endif %}
+                        {% if item.image %}<img src="{{ item.image }}" alt="{{ item.name }}" />{% else %}<img class="cart-line-placeholder" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ item.name }}">{% endif %}
                     </div>
                     <div>
                         <h2 style="margin:0 0 0.35rem; font-size:1.25rem;">{{ item.name }}</h2>

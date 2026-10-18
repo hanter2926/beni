@@ -33,6 +33,7 @@
         {% for item in items %}
             <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.7rem 0; border-bottom:1px solid #dfe7e2;">
                 <div>
+                    {% if item.image %}<img class="checkout-item-image" src="{{ item.image }}" alt="">{% else %}<img class="checkout-item-image" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="">{% endif %}
                     <strong>{{ item.name }}</strong>
                     <div style="color:#4b5e59;">Qty {{ item.quantity }}</div>
                 </div>

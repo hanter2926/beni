@@ -1,0 +1,7 @@
+.error-page .main-content { display: grid; min-height: 65vh; place-items: center; }
+.error-content { display: grid; max-width: 540px; justify-items: center; padding: 36px 20px; text-align: center; }
+.error-content img { width: min(100%, 270px); max-height: 240px; object-fit: contain; }
+.error-kicker { margin: 22px 0 0; color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: .13em; }
+.error-content h1 { margin: 8px 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(32px, 5vw, 46px); font-weight: 500; }
+.error-content > p:not(.error-kicker) { max-width: 400px; margin: 4px 0 18px; color: var(--ink-soft); }
+.error-home-link { display: inline-flex; min-height: 44px; align-items: center; padding: 9px 14px; border-radius: var(--radius-sm); background: var(--green-deep); color: #fff; font-weight: 750; text-decoration: none; }

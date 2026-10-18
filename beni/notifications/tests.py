@@ -28,6 +28,8 @@ class NotificationInboxTests(TestCase):
     def test_inbox_and_unread_count_are_recipient_scoped(self):
         own_notification = self.create_for(self.recipient, 'order:1:status')
         other_notification = self.create_for(self.other_user, 'order:2:status')
+        other_notification.title = "Another customer's update"
+        other_notification.save(update_fields=('title',))
         self.client.force_login(self.recipient)
 
         response = self.client.get(reverse('notifications:inbox'))

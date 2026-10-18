@@ -11,6 +11,35 @@
         <a class="catalog-back-link" href="{% url 'dashboard:customer' %}">&larr; Customer space</a>
     </header>
 
+    {% if categories %}
+        <nav class="catalog-categories" aria-label="Browse product categories">
+            {% for category in categories %}
+                {% with category_slug=category|slugify %}
+                    <a class="catalog-category-link" href="?category={{ category|urlencode }}" {% if category == selected_category %}aria-current="page"{% endif %}>
+                        {% if category_slug == 'appliances' %}
+                            <img src="{% static 'image/beni_separate_images/category/appliances.png' %}" alt="" aria-hidden="true">
+                        {% elif category_slug == 'beauty' %}
+                            <img src="{% static 'image/beni_separate_images/category/beauty.png' %}" alt="" aria-hidden="true">
+                        {% elif category_slug == 'electronics' %}
+                            <img src="{% static 'image/beni_separate_images/category/electronics.png' %}" alt="" aria-hidden="true">
+                        {% elif category_slug == 'fashion' %}
+                            <img src="{% static 'image/beni_separate_images/category/fashion.png' %}" alt="" aria-hidden="true">
+                        {% elif category_slug == 'home' or category_slug == 'home-living' %}
+                            <img src="{% static 'image/beni_separate_images/category/home.png' %}" alt="" aria-hidden="true">
+                        {% elif category_slug == 'sports' %}
+                            <img src="{% static 'image/beni_separate_images/category/sports.png' %}" alt="" aria-hidden="true">
+                        {% elif category_slug == 'tools' %}
+                            <img src="{% static 'image/beni_separate_images/category/tools.png' %}" alt="" aria-hidden="true">
+                        {% else %}
+                            <img src="{% static 'image/beni_separate_images/category/ecommerce.png' %}" alt="" aria-hidden="true">
+                        {% endif %}
+                        <span>{{ category }}</span>
+                    </a>
+                {% endwith %}
+            {% endfor %}
+        </nav>
+    {% endif %}
+
     <form class="catalog-filters" method="get" role="search" aria-label="Search the product catalog">
         <div class="catalog-search-field">
             <label for="catalog-search">Search products and shops</label>
@@ -38,7 +67,7 @@
                         {% if product.image %}
                             <img class="catalog-card-image" src="{{ product.image.url }}" alt="{{ product.name }}">
                         {% else %}
-                            <div class="catalog-card-image catalog-image-fallback" aria-hidden="true"><span>BENI</span></div>
+                            <img class="catalog-card-image catalog-image-fallback" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">
                         {% endif %}
                         <div class="catalog-card-copy">
                             <p class="catalog-card-category">{{ product.category }}</p>

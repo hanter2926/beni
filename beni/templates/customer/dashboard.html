@@ -29,12 +29,11 @@
             <p>Explore products from active local shops in the BENI catalog.</p>
             <a class="customer-action" href="{% url 'catalog:list' %}">Browse products <span aria-hidden="true">&rarr;</span></a>
         </div>
-        <div class="customer-welcome-art" aria-hidden="true">
-            <span class="art-sun"></span>
-            <span class="art-roof"></span>
-            <span class="art-storefront"><i></i><i></i><i></i></span>
-            <span class="art-caption">Around the corner</span>
-        </div>
+        <img
+            class="customer-welcome-art"
+            src="{% static 'image/beni_separate_images/hero/home-banner.jpg' %}"
+            alt="BENI local shopping illustration"
+        >
     </section>
 
     <section class="customer-browse" id="browse" aria-labelledby="browse-title">

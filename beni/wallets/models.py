@@ -4,6 +4,17 @@ from django.db import models
 from django.db.models import Q
 
 
+class ImmutableWalletLedgerQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError('Wallet ledger entries are immutable.')
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise ValidationError('Wallet ledger entries are immutable.')
+
+    def delete(self):
+        raise ValidationError('Wallet ledger entries cannot be deleted.')
+
+
 class WalletAccount(models.Model):
     ROLE_SHOPKEEPER = 'shopkeeper'
     ROLE_REPAIR_WORKER = 'repair_worker'
@@ -33,6 +44,8 @@ class WalletAccount(models.Model):
 
 
 class WalletLedgerEntry(models.Model):
+    objects = ImmutableWalletLedgerQuerySet.as_manager()
+
     TYPE_EARNING_CREDIT = 'earning_credit'
     TYPE_WITHDRAWAL_RESERVATION = 'withdrawal_reservation'
     TYPE_RESERVATION_RELEASE = 'reservation_release'

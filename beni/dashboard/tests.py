@@ -26,7 +26,7 @@ class DashboardRouteTests(SimpleTestCase):
 	def test_all_role_templates_render(self):
 		request = RequestFactory().get('/')
 		request.user = SimpleNamespace(
-			is_authenticated=True,
+			is_authenticated=False,
 			is_staff=True,
 			get_username=lambda: 'preview-user',
 		)

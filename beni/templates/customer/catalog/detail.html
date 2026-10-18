@@ -10,7 +10,7 @@
     <a class="catalog-back-link detail-back-link" href="{% url 'catalog:list' %}">&larr; Back to catalog</a>
     <article class="catalog-detail">
         <div class="catalog-detail-media">
-            {% if product.image %}<img class="catalog-detail-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<div class="catalog-detail-image catalog-image-fallback" aria-hidden="true"><span>BENI</span></div>{% endif %}
+            {% if product.image %}<img class="catalog-detail-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<img class="catalog-detail-image catalog-image-fallback" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">{% endif %}
         </div>
         <div class="catalog-detail-copy">
             <p class="catalog-card-category">{{ product.category }}</p>

@@ -66,6 +66,17 @@ class WalletFoundationTests(TestCase):
             self.entry.save()
         with self.assertRaises(ValidationError):
             self.entry.delete()
+        with self.assertRaises(ValidationError):
+            WalletLedgerEntry.objects.filter(pk=self.entry.pk).update(
+                amount_minor=999999,
+            )
+        with self.assertRaises(ValidationError):
+            WalletLedgerEntry.objects.bulk_update(
+                [self.entry],
+                ('amount_minor',),
+            )
+        with self.assertRaises(ValidationError):
+            WalletLedgerEntry.objects.filter(pk=self.entry.pk).delete()
 
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.amount_minor, 1250)

@@ -4,6 +4,7 @@
 .repair-kicker { margin-bottom: 14px; color: #78828a; }
 .repair-heading h1 { max-width: 700px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(34px, 4.5vw, 50px); font-weight: 500; line-height: 1.08; }
 .repair-heading p:not(.repair-kicker) { margin: 8px 0 0; color: var(--ink-soft); }
+.repair-heading-art { width: 160px; height: 115px; flex: 0 0 auto; object-fit: contain; }
 .repair-date-mark { display: grid; width: 68px; flex: 0 0 68px; aspect-ratio: 1; place-items: center; transform: rotate(5deg); border: 1px solid #c9d8dc; border-radius: 18px 18px 18px 4px; background: #e4eef0; color: #416c78; font-family: Georgia, serif; font-size: 19px; }
 .repair-queue { overflow: hidden; border: 1px solid #dce2e2; border-radius: var(--radius-md); background: var(--surface); }
 .repair-queue-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 25px clamp(18px, 4vw, 34px); background: #edf3f2; }
@@ -28,7 +29,7 @@
 .repair-profile form { margin-left: auto; }
 .repair-profile button { padding: 0; border: 0; background: none; color: var(--repair-accent); font: inherit; font-weight: 750; cursor: pointer; }
 @media (max-width: 700px) {
-    .repair-heading { align-items: flex-start; }
+    .repair-heading { align-items: flex-start; flex-wrap: wrap; }
     .repair-heading h1 { font-size: 38px; }
     .repair-guidance { grid-template-columns: 38px minmax(0, 1fr); }
     .repair-guidance-link { grid-column: 2; }

@@ -17,7 +17,7 @@
         <div class="management-list">
             {% for product in products %}
                 <article class="management-card product-card">
-                    {% if product.image %}<img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<div class="product-image-placeholder" aria-hidden="true">BENI</div>{% endif %}
+                    {% if product.image %}<img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<img class="product-image product-image-placeholder" src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No image available for {{ product.name }}">{% endif %}
                     <div class="product-card-content">
                         <div class="management-card-heading"><div><p class="management-eyebrow">{{ product.shop.name }} / {{ product.category }}</p><h2>{{ product.name }}</h2></div><span class="management-status {% if not product.is_active %}is-inactive{% endif %}">{{ product.is_active|yesno:'Active,Inactive' }}</span></div>
                         <p class="management-description">{{ product.description|default:'No product description added yet.' }}</p>

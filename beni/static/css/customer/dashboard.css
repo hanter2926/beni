@@ -7,7 +7,7 @@
 .customer-welcome h1 { max-width: 520px; margin: 10px 0 12px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(36px, 5vw, 58px); font-weight: 500; line-height: 1.04; }
 .customer-welcome-copy > p:not(.customer-overline) { max-width: 440px; color: #d7e5db; }
 .customer-action { display: inline-flex; min-height: 46px; align-items: center; gap: 18px; margin-top: 14px; padding: 10px 15px; border-radius: var(--radius-sm); background: var(--gold); color: #203d31; font-weight: 800; text-decoration: none; }
-.customer-welcome-art { position: relative; min-height: 220px; }
+.customer-welcome-art { position: relative; display: block; width: 100%; max-width: 360px; aspect-ratio: 462 / 250; object-fit: contain; }
 .art-sun { position: absolute; top: 7px; right: 22px; width: 112px; aspect-ratio: 1; border-radius: 50%; background: var(--gold); }
 .art-roof { position: absolute; right: 6px; bottom: 82px; width: 218px; height: 100px; transform: rotate(-8deg); border: 4px solid #d7c6a1; border-bottom: 0; border-radius: 110px 110px 0 0; }
 .art-storefront { position: absolute; right: 28px; bottom: 30px; display: flex; width: 176px; height: 105px; align-items: flex-end; justify-content: space-around; padding: 0 16px 14px; border: 3px solid #f2e9d6; border-top: 0; background: #d47c62; }
@@ -50,7 +50,7 @@
 @media (max-width: 560px) {
     .customer-welcome { min-height: 300px; grid-template-columns: minmax(0, 1fr); padding-bottom: 140px; }
     .customer-welcome h1 { font-size: 38px; }
-    .customer-welcome-art { position: absolute; right: 14px; bottom: 9px; width: 200px; min-height: 150px; transform: scale(.62); transform-origin: bottom right; }
+    .customer-welcome-art { position: absolute; right: 14px; bottom: 9px; width: 200px; min-height: 0; transform: scale(.8); transform-origin: bottom right; }
     .customer-section-heading { align-items: start; flex-direction: column; gap: 4px; }
     .customer-section-heading h2 { font-size: 27px; }
     .customer-tabs { gap: 0; overflow-x: auto; }
