@@ -35,6 +35,14 @@ dependency order, and verified on `beni_db`.
 - After migration application, `manage.py check --database default` passed,
   `showmigrations orders payments` marks all three migrations applied, and
   `makemigrations --check --dry-run` reports no changes.
+- For the 2026-10-19 shopkeeper workflow, generated and SQL-reviewed
+  `shops.0003_shopbankdetails_shopphoto` and
+  `verification.0002_alter_verificationapplication_status_and_more` after
+  explicit approval. They created empty shop photo/bank details tables and
+  added the `info_needed` verification choice to the two existing status
+  fields (SQL no-ops). Both migration-recorder entries and affected schema
+  were verified on `beni_db`; no existing rows were rewritten or deleted.
+  The full 141-test suite passed on guarded in-memory SQLite.
 - One earlier test-isolation attempt in this recheck configured SQLite too
   late and attempted to create `test_beni_db`; MySQL rejected the create
   because that database already exists, and the runner exited at its
@@ -46,6 +54,22 @@ dependency order, and verified on `beni_db`.
   fresh server also returned HTTP 200 for `/catalog/` and HTTP 302 for the
   anonymous protected order, repair, and profile routes. No startup traceback
   was observed. The original refused-connection event was not reproducible.
+
+### Shopkeeper schema extensions — applied after approval
+
+The user explicitly approved applying these migrations to `beni_db`. Each was
+applied individually, with checks before proceeding to the next migration.
+
+| Migration | Dependency | Operations / affected schema | Data impact and risk |
+|---|---|---|---|
+| `shops.0003_shopbankdetails_shopphoto` | `shops.0002_shop_cover_image_shop_logo_image` (applied) | Create `shops_shopbankdetails` with one-to-one `shop_id`, account holder name, account number, IFSC code, and timestamps. Create `shops_shopphoto` with `shop_id`, image path, alt text, ordering, and creation time. | Both tables start empty. No existing shop rows are changed. Account details are owner-scoped in the application and not field-encrypted by this migration; application/database access must remain restricted. |
+| `verification.0002_alter_verificationapplication_status_and_more` | `verification.0001_initial` (applied) | Add `info_needed` (“Additional information required”) to `status` choices on `verification_verificationapplication` and `verification_verificationdecision`. Existing `varchar(12)` columns fit the 11-character value; `sqlmigrate` emitted no-op operations. | Existing statuses are unchanged. No data is rewritten or deleted. New status values become available only after application code is deployed. |
+
+`showmigrations shops verification` reports both as applied on `beni_db`.
+Read-only introspection confirmed the two new shop tables, required columns,
+and the two verification `status` columns remain `varchar(12)`. The migration
+changes no existing records. The 141-test run also exercised migrations on
+guarded in-memory SQLite. No migration was faked.
 
 ### Payment implementation checkpoint
 

@@ -19,6 +19,7 @@
         <form method="post" enctype="multipart/form-data" class="management-form" novalidate>
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="management-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% if bank_form.non_field_errors %}<div class="management-errors" role="alert">{{ bank_form.non_field_errors }}</div>{% endif %}
             {% for field in form %}
                 {% if field.field.widget.input_type == 'checkbox' %}
                     <div class="management-check-field">
@@ -40,9 +41,24 @@
                                     <img class="upload-current-image" src="{{ shop.cover_image.url }}" alt="Current shop cover image" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No shop cover image available">
                                 {% endif %}
                             {% endif %}
+                        {% elif field.name == 'gallery_images' and shop %}
+                            <div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>
+                            {% for photo in shop.photos.all %}
+                                <img class="upload-current-image" src="{{ photo.image.url }}" alt="{{ photo.alt_text|default:shop.name }}">
+                            {% endfor %}
                         {% endif %}
                     </div>
                 {% endif %}
+            {% endfor %}
+            <h2 class="management-form-section-title">Payout bank details</h2>
+            <p class="management-help management-form-wide">Only you can edit these details. The account number is not displayed after saving; payouts remain manual.</p>
+            {% for field in bank_form %}
+                <div class="management-field">
+                    {{ field.label_tag }}
+                    {% if field.errors %}<div class="management-errors" id="id_{{ field.name }}_errors" role="alert">{{ field.errors }}</div>{% endif %}
+                    {{ field }}
+                    {% if field.help_text %}<span class="management-help" id="id_{{ field.name }}_help">{{ field.help_text }}</span>{% endif %}
+                </div>
             {% endfor %}
             <div class="management-form-actions"><button class="management-button" type="submit">Save shop</button><a class="management-text-link" href="{% url 'shops:list' %}">Cancel</a></div>
         </form>

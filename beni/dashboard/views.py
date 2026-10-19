@@ -17,7 +17,7 @@ from bookings.forms import RepairBookingForm
 from bookings.models import RepairBooking
 from orders.models import Order
 from products.models import Product
-from products.services import marketable_products
+from products.services import eligible_shop_verifications, marketable_products
 from shops.models import Shop
 from verification.models import VerificationApplication
 
@@ -152,7 +152,74 @@ def customer_dashboard(request):
 
 @role_group_required(SHOPKEEPER_GROUP)
 def shopkeeper_dashboard(request):
-	return render(request, 'shopkeeper/dashboard.html', {'role_label': 'Shopkeeper'})
+	shops = list(
+		Shop.objects.filter(owner=request.user)
+		.annotate(
+			product_count=Count('products'),
+			active_product_count=Count(
+				'products',
+				filter=Q(products__is_active=True),
+			),
+		)
+		.select_related('verification_applications')
+	)
+	for shop in shops:
+		try:
+			shop.verification_application = shop.verification_applications
+		except VerificationApplication.DoesNotExist:
+			shop.verification_application = None
+	owned_shop_ids = tuple(shop.pk for shop in shops)
+	eligible_shop_ids = set(
+		eligible_shop_verifications(
+			shop_ids=owned_shop_ids,
+		).values_list('shop_id', flat=True)
+	)
+	for shop in shops:
+		shop.marketable = shop.is_active and shop.pk in eligible_shop_ids
+
+	product_counts = Product.objects.filter(
+		shop__owner=request.user,
+	).aggregate(
+		total=Count('pk'),
+		active=Count('pk', filter=Q(is_active=True)),
+	)
+	orders = Order.objects.filter(shop__owner=request.user)
+	order_counts = orders.aggregate(
+		total=Count('pk'),
+		open=Count(
+			'pk',
+			filter=Q(
+				status__in=(
+					Order.STATUS_PENDING,
+					Order.STATUS_CONFIRMED,
+					Order.STATUS_PROCESSING,
+					Order.STATUS_READY_FOR_PICKUP,
+					Order.STATUS_OUT_FOR_DELIVERY,
+				)
+			),
+		),
+	)
+	return render(
+		request,
+		'shopkeeper/dashboard.html',
+		{
+			'role_label': 'Shopkeeper',
+			'shopkeeper_name': (
+				request.user.get_full_name() or request.user.get_username()
+			),
+			'shops': shops,
+			'shop_count': len(shops),
+			'active_shop_count': sum(shop.marketable for shop in shops),
+			'product_count': product_counts['total'],
+			'active_product_count': product_counts['active'],
+			'inactive_product_count': (
+				product_counts['total'] - product_counts['active']
+			),
+			'order_count': order_counts['total'],
+			'open_order_count': order_counts['open'],
+			'recent_orders': orders.select_related('shop')[:5],
+		},
+	)
 
 
 @role_group_required(REPAIR_WORKER_GROUP)

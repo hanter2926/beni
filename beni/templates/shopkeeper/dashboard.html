@@ -21,30 +21,80 @@
 {% block content %}
 <div class="shopkeeper-workspace" id="overview">
     <header class="shopkeeper-heading">
-        <div><p class="shopkeeper-kicker">BENI / SHOPKEEPER</p><h1>Your store, in one place.</h1><p>Keep an eye on the storefront and the work behind it.</p></div>
+        <div><p class="shopkeeper-kicker">BENI / SHOPKEEPER</p><h1>Your store, in one place.</h1><p>Live shop, product, verification, and order information for your account.</p></div>
         <img class="shopkeeper-heading-art" src="{% static 'image/beni_separate_images/hero/shop-banner.jpg' %}" alt="Illustration of a local shop on BENI">
-        <span class="shopkeeper-status"><i aria-hidden="true"></i> Workspace ready</span>
+        <span class="shopkeeper-status"><i aria-hidden="true"></i> {{ shop_count }} shop{{ shop_count|pluralize }}</span>
     </header>
+    <section class="shopkeeper-metrics" aria-label="Shopkeeper account totals">
+        <article><span>Total products</span><strong>{{ product_count }}</strong></article>
+        <article><span>Active products</span><strong>{{ active_product_count }}</strong></article>
+        <article><span>Inactive products</span><strong>{{ inactive_product_count }}</strong></article>
+        <article><span>Orders to handle</span><strong>{{ open_order_count }}</strong></article>
+    </section>
     <section class="shopkeeper-board" aria-labelledby="store-status-title">
-        <div class="shopkeeper-board-top"><div><p class="shopkeeper-overline">Store status</p><h2 id="store-status-title">A clear view of your next steps</h2></div><span class="shopkeeper-board-index">01 / 03</span></div>
+        <div class="shopkeeper-board-top"><div><p class="shopkeeper-overline">Store status</p><h2 id="store-status-title">Manage the work in your workspace</h2></div><span class="shopkeeper-board-index">01 / 03</span></div>
         <div class="shopkeeper-tabs" role="tablist" aria-label="Store workspace sections">
             <button type="button" role="tab" id="tab-storefront" aria-selected="true" aria-controls="panel-storefront">Storefront</button>
             <button type="button" role="tab" id="tab-catalog" aria-selected="false" aria-controls="panel-catalog" tabindex="-1">Catalog</button>
             <button type="button" role="tab" id="tab-orders" aria-selected="false" aria-controls="panel-orders" tabindex="-1">Orders</button>
         </div>
         <div class="shopkeeper-panel" role="tabpanel" id="panel-storefront" aria-labelledby="tab-storefront" tabindex="0">
-            <span class="shopkeeper-panel-mark" aria-hidden="true">S</span><div><h3>Manage your BENI storefront</h3><p>Create a shop profile and update the details customers use to find it.</p><a class="shopkeeper-panel-link" href="{% url 'shops:list' %}">Open my shops <span aria-hidden="true">&rarr;</span></a></div>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">S</span><div><h3>{{ shop_count }} shop{{ shop_count|pluralize }} · {{ active_shop_count }} approved and active</h3><p>Review verification status and update the details customers use to find your shops.</p><a class="shopkeeper-panel-link" href="{% url 'shops:list' %}">Open my shops <span aria-hidden="true">&rarr;</span></a></div>
         </div>
         <div class="shopkeeper-panel" role="tabpanel" id="panel-catalog" aria-labelledby="tab-catalog" tabindex="0" hidden>
-            <span class="shopkeeper-panel-mark" aria-hidden="true">C</span><div><h3>Manage your catalog</h3><p>Add products to one of your shops and keep stock and availability up to date.</p><a class="shopkeeper-panel-link" href="{% url 'products:list' %}">Open products <span aria-hidden="true">&rarr;</span></a></div>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">C</span><div><h3>{{ product_count }} product{{ product_count|pluralize }} · {{ active_product_count }} active</h3><p>Manage product details, stock, images, and storefront availability.</p><a class="shopkeeper-panel-link" href="{% url 'products:list' %}">Open products <span aria-hidden="true">&rarr;</span></a></div>
         </div>
         <div class="shopkeeper-panel" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders" tabindex="0" hidden>
-            <span class="shopkeeper-panel-mark" aria-hidden="true">O</span><div><h3>Keep orders moving</h3><p>Review incoming orders and update their fulfilment status.</p><a class="shopkeeper-panel-link" href="{% url 'shopkeeper_orders' %}">Open orders <span aria-hidden="true">&rarr;</span></a></div>
+            <span class="shopkeeper-panel-mark" aria-hidden="true">O</span><div><h3>{{ open_order_count }} order{{ open_order_count|pluralize }} need attention</h3><p>Review incoming orders and update their fulfilment status.</p><a class="shopkeeper-panel-link" href="{% url 'shopkeeper_orders' %}">Open orders <span aria-hidden="true">&rarr;</span></a></div>
         </div>
     </section>
     <div class="shopkeeper-bottom" id="storefront">
-        <section class="shopkeeper-checklist" id="catalog" aria-labelledby="checklist-title"><p class="shopkeeper-overline">Workspace guide</p><h2 id="checklist-title">Store essentials</h2><ol><li><span>01</span><div><strong>Store profile</strong><small>Connect shop information</small></div><b>Pending</b></li><li><span>02</span><div><strong>Product catalog</strong><small>Connect product management</small></div><b>Pending</b></li><li><span>03</span><div><strong>Order handling</strong><small>Connect order workflow</small></div><b>Pending</b></li></ol></section>
-        <aside class="shopkeeper-aside" id="orders"><span class="shopkeeper-aside-icon" aria-hidden="true">+</span><p class="shopkeeper-overline">Your role</p><h2>{{ request.user.get_username }}</h2><p>Shopkeeper access is provided through your account group.</p><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out <span aria-hidden="true">&rarr;</span></button></form></aside>
+        <section class="shopkeeper-checklist" id="catalog" aria-labelledby="checklist-title">
+            <p class="shopkeeper-overline">Your storefronts</p>
+            <h2 id="checklist-title">Verification status by shop</h2>
+            {% if shops %}
+                <ol>
+                    {% for shop in shops %}
+                        <li>
+                            <span>{{ forloop.counter|stringformat:"02d" }}</span>
+                            <div>
+                                <strong><a href="{% url 'shops:edit' shop.pk %}">{{ shop.name }}</a></strong>
+                                <small>{{ shop.city }} · {{ shop.product_count }} product{{ shop.product_count|pluralize }}</small>
+                                <small>Verification:
+                                    {% if shop.verification_application %}
+                                        {{ shop.verification_application.get_status_display }}
+                                    {% else %}
+                                        Not submitted
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <b>{{ shop.marketable|yesno:'Active,Inactive' }}</b>
+                        </li>
+                    {% endfor %}
+                </ol>
+            {% else %}
+                <p>You have not created a shop yet.</p>
+                <a class="shopkeeper-panel-link" href="{% url 'shops:create' %}">Create your first shop <span aria-hidden="true">&rarr;</span></a>
+            {% endif %}
+        </section>
+        <aside class="shopkeeper-aside" id="orders">
+            <span class="shopkeeper-aside-icon" aria-hidden="true">+</span>
+            <p class="shopkeeper-overline">Your account</p>
+            <h2>{{ shopkeeper_name }}</h2>
+            <p>{{ order_count }} total order{{ order_count|pluralize }} · {{ open_order_count }} to handle.</p>
+            <a class="shopkeeper-panel-link" href="{% url 'shopkeeper_orders' %}">Review orders <span aria-hidden="true">&rarr;</span></a>
+            {% if recent_orders %}
+                <ul class="shopkeeper-recent-orders" aria-label="Recent orders">
+                    {% for order in recent_orders %}
+                        <li>
+                            <a href="{% url 'shopkeeper_order_detail' order.order_number %}">{{ order.order_number }}</a>
+                            <span>{{ order.shop.name }} · {{ order.get_status_display }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out <span aria-hidden="true">&rarr;</span></button></form>
+        </aside>
     </div>
 </div>
 {% endblock %}

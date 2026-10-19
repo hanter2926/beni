@@ -50,7 +50,10 @@ def public_catalog(request):
 
 
 def public_product_detail(request, product_id):
-	product = get_object_or_404(public_products(), pk=product_id)
+	product = get_object_or_404(
+		public_products().prefetch_related('shop__photos'),
+		pk=product_id,
+	)
 	return render(request, 'customer/catalog/detail.html', {'product': product})
 
 

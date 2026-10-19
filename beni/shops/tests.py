@@ -1,13 +1,18 @@
+from io import BytesIO
+import tempfile
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
-from .models import Shop
+from notifications.models import Notification
+from .models import Shop, ShopBankDetails, ShopPhoto
 from verification.models import VerificationApplication
 
 
@@ -125,6 +130,104 @@ class ShopOwnershipTests(TestCase):
 		self.assertEqual(response.status_code, 404)
 		self.other_shop.refresh_from_db()
 		self.assertEqual(self.other_shop.name, 'Other shop')
+
+	def test_shop_owner_can_manage_gallery_photos(self):
+		buffer = BytesIO()
+		Image.new('RGB', (20, 20), color='navy').save(buffer, format='PNG')
+		upload = SimpleUploadedFile(
+			'front.png',
+			buffer.getvalue(),
+			content_type='image/png',
+		)
+		data = self.shop_data('Photo shop')
+		data['gallery_images'] = upload
+
+		with tempfile.TemporaryDirectory() as media_root:
+			with override_settings(MEDIA_ROOT=media_root):
+				response = self.client.post(reverse('shops:create'), data)
+
+		self.assertEqual(response.status_code, 302)
+		shop = Shop.objects.get(name='Photo shop')
+		photo = ShopPhoto.objects.get(shop=shop)
+		self.assertTrue(photo.image.name.startswith('shops/gallery/'))
+		self.assertNotIn('front.png', photo.image.name)
+
+	def test_shop_owner_can_save_bank_details_without_rendering_account_number(self):
+		response = self.client.post(
+			reverse('shops:edit', args=[self.own_shop.pk]),
+			{
+				**self.shop_data('Owner shop'),
+				'account_holder_name': 'Shop Owner',
+				'account_number': '123456789012',
+				'ifsc_code': 'HDFC0001234',
+			},
+		)
+
+		self.assertRedirects(
+			response,
+			reverse('shops:list'),
+			fetch_redirect_response=False,
+		)
+		details = ShopBankDetails.objects.get(shop=self.own_shop)
+		self.assertEqual(details.account_holder_name, 'Shop Owner')
+		self.assertEqual(details.account_number, '123456789012')
+		self.assertEqual(details.ifsc_code, 'HDFC0001234')
+		self.assertNotContains(
+			self.client.get(reverse('shops:edit', args=[self.own_shop.pk])),
+			'123456789012',
+		)
+
+	def test_invalid_bank_details_are_not_saved(self):
+		response = self.client.post(
+			reverse('shops:edit', args=[self.own_shop.pk]),
+			{
+				**self.shop_data('Owner shop'),
+				'account_holder_name': 'Shop Owner',
+				'account_number': '123456789012',
+				'ifsc_code': 'not-valid',
+			},
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Enter a valid 11-character IFSC code.')
+		self.assertFalse(ShopBankDetails.objects.filter(shop=self.own_shop).exists())
+
+	def test_identity_change_on_approved_shop_suspends_listing_for_staff_review(self):
+		application = VerificationApplication.objects.create(
+			applicant=self.owner,
+			shop=self.own_shop,
+			application_type=VerificationApplication.TYPE_SHOPKEEPER,
+			status=VerificationApplication.STATUS_APPROVED,
+			phone_status=VerificationApplication.CHECK_VERIFIED,
+			aadhaar_status=VerificationApplication.CHECK_VERIFIED,
+		)
+		self.own_shop.is_active = True
+		self.own_shop.save(update_fields=('is_active',))
+		staff = get_user_model().objects.create_user(
+			username='shop-details-review-staff',
+			is_staff=True,
+		)
+
+		response = self.client.post(
+			reverse('shops:edit', args=[self.own_shop.pk]),
+			self.shop_data('Updated owner shop'),
+		)
+
+		self.assertRedirects(
+			response,
+			reverse('shops:list'),
+			fetch_redirect_response=False,
+		)
+		application.refresh_from_db()
+		self.own_shop.refresh_from_db()
+		self.assertEqual(application.status, VerificationApplication.STATUS_PENDING)
+		self.assertFalse(self.own_shop.is_active)
+		self.assertTrue(
+			Notification.objects.filter(
+				recipient=staff,
+				title='Updated shop details need review',
+			).exists()
+		)
 
 	def test_customer_and_anonymous_users_cannot_manage_shops(self):
 		self.client.logout()

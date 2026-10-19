@@ -50,6 +50,15 @@ def submit_application(*, applicant, application_type, shop=None):
     else:
         raise ValidationError('The verification application type is invalid.')
 
+    if application_type == VerificationApplication.TYPE_SHOPKEEPER:
+        profile = Profile.objects.select_for_update().filter(
+            user=applicant,
+        ).first()
+        if profile is None or not valid_phone_number(profile.phone):
+            raise ValidationError(
+                'Add a valid mobile number to your account profile before submitting.'
+            )
+
     application = VerificationApplication.objects.select_for_update().filter(
         **lookup,
     ).first()
@@ -66,32 +75,43 @@ def submit_application(*, applicant, application_type, shop=None):
     if application.status == VerificationApplication.STATUS_APPROVED:
         return application, False
 
-    resubmitted = application.status == VerificationApplication.STATUS_REJECTED
+    previous_status = application.status
+    resubmitted = previous_status in (
+        VerificationApplication.STATUS_REJECTED,
+        VerificationApplication.STATUS_INFO_NEEDED,
+    )
     if resubmitted:
         application.status = VerificationApplication.STATUS_PENDING
-        application.phone_status = VerificationApplication.CHECK_PENDING
         application.decision_reason = ''
         application.reviewed_by = None
         update_fields = [
             'status',
-            'phone_status',
             'decision_reason',
             'reviewed_by',
             'updated_at',
         ]
         if application_type == VerificationApplication.TYPE_SHOPKEEPER:
-            application.aadhaar_status = (
-                VerificationApplication.CHECK_NOT_SUBMITTED
-            )
-            application.pan_status = VerificationApplication.CHECK_NOT_SUBMITTED
-            application.bank_status = VerificationApplication.CHECK_NOT_SUBMITTED
-            application.face_status = VerificationApplication.CHECK_NOT_SUBMITTED
-            update_fields.extend(
-                ('aadhaar_status', 'pan_status', 'bank_status', 'face_status')
-            )
+            if previous_status == VerificationApplication.STATUS_REJECTED:
+                application.phone_status = VerificationApplication.CHECK_PENDING
+                application.aadhaar_status = (
+                    VerificationApplication.CHECK_NOT_SUBMITTED
+                )
+                application.pan_status = VerificationApplication.CHECK_NOT_SUBMITTED
+                application.bank_status = VerificationApplication.CHECK_NOT_SUBMITTED
+                application.face_status = VerificationApplication.CHECK_NOT_SUBMITTED
+                update_fields.extend(
+                    (
+                        'phone_status',
+                        'aadhaar_status',
+                        'pan_status',
+                        'bank_status',
+                        'face_status',
+                    )
+                )
         else:
+            application.phone_status = VerificationApplication.CHECK_PENDING
             application.face_status = VerificationApplication.CHECK_PENDING
-            update_fields.append('face_status')
+            update_fields.extend(('phone_status', 'face_status'))
         application.save(update_fields=update_fields)
 
     submission_number = application.decisions.count()
@@ -217,7 +237,10 @@ def review_application(*, application_id, reviewer, cleaned_data):
         )
     )
 
-    if application.application_type == VerificationApplication.TYPE_REPAIR_WORKER:
+    if application.application_type in (
+        VerificationApplication.TYPE_SHOPKEEPER,
+        VerificationApplication.TYPE_REPAIR_WORKER,
+    ):
         profile = Profile.objects.select_for_update().filter(
             user=application.applicant,
         ).first()
@@ -226,12 +249,10 @@ def review_application(*, application_id, reviewer, cleaned_data):
             and (profile is None or not valid_phone_number(profile.phone))
         ):
             raise ValidationError(
-                'Add a valid mobile number to the worker profile before verifying it.'
+                'Add a valid mobile number to the profile before verifying it.'
             )
-        if profile:
-            profile.phone_verified = (
-                phone_status == VerificationApplication.CHECK_VERIFIED
-            )
+        if profile is not None:
+            profile.phone_verified = phone_status == VerificationApplication.CHECK_VERIFIED
             profile.save(update_fields=('phone_verified',))
 
     if application.shop_id:

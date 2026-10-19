@@ -144,6 +144,8 @@ class AuthenticationPageTests(SimpleTestCase):
 
 		self.assertContains(response, 'name="email"')
 		self.assertContains(response, 'name="role"')
+		self.assertContains(response, 'name="name"')
+		self.assertContains(response, 'name="phone"')
 		self.assertContains(response, 'Repair Worker')
 
 	def test_profile_form_allows_users_to_set_a_recovery_email(self):
@@ -219,6 +221,8 @@ class AuthenticationFlowTests(TestCase):
 					{
 						'username': username,
 						'email': f'{username}@example.test',
+						'name': 'New Shopkeeper' if role == 'shopkeeper' else '',
+						'phone': '+15550100001' if role == 'shopkeeper' else '',
 						'role': role,
 						'password1': self.password,
 						'password2': self.password,
@@ -235,6 +239,29 @@ class AuthenticationFlowTests(TestCase):
 					list(user.groups.values_list('name', flat=True)),
 					[group_name],
 				)
+				if role == 'shopkeeper':
+					self.assertEqual(user.get_full_name(), 'New Shopkeeper')
+					self.assertEqual(user.profile.phone, '+15550100001')
+					self.assertFalse(user.profile.phone_verified)
+
+	def test_shopkeeper_registration_requires_name_and_valid_mobile(self):
+		response = self.client.post(
+			reverse('accounts:register'),
+			{
+				'username': 'incomplete-shopkeeper',
+				'email': 'incomplete-shopkeeper@example.test',
+				'role': 'shopkeeper',
+				'password1': self.password,
+				'password2': self.password,
+			},
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Enter your name to register as a Shopkeeper.')
+		self.assertContains(response, 'Enter a valid mobile number to register as a Shopkeeper.')
+		self.assertFalse(
+			get_user_model().objects.filter(username='incomplete-shopkeeper').exists()
+		)
 
 	def test_password_reset_sends_email_without_disclosing_unknown_accounts(self):
 		user = self.create_user(

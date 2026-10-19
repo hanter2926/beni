@@ -28,6 +28,13 @@
                 <p class="catalog-kicker">Available from</p>
                 <h2>{{ product.shop.name }}</h2>
                 <p>{{ product.shop.city }}, {{ product.shop.state }}</p>
+                {% if product.shop.photos.all %}
+                    <div class="upload-gallery" aria-label="{{ product.shop.name }} shop photos">
+                        {% for photo in product.shop.photos.all %}
+                            <figure><img src="{{ photo.image.url }}" alt="{{ photo.alt_text|default:product.shop.name }}" loading="lazy" decoding="async"></figure>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
             <p class="catalog-stock {% if product.stock_quantity < 1 %}is-out-of-stock{% endif %}">{% if product.stock_quantity > 0 %}In stock: {{ product.stock_quantity }}{% else %}Currently out of stock{% endif %}</p>
             {% if product.stock_quantity > 0 %}

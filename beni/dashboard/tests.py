@@ -9,6 +9,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.test.client import RequestFactory
 
+from accounts.models import Profile
 from orders.models import CheckoutAttempt, Order, OrderItem
 from products.models import Product
 from shops.models import Shop
@@ -71,6 +72,11 @@ class DashboardRouteTests(TestCase):
 		owner = user_model.objects.create_user(username='space-shop-owner')
 		shopkeeper_group, _ = Group.objects.get_or_create(name='Shopkeeper')
 		owner.groups.add(shopkeeper_group)
+		Profile.objects.create(
+			user=owner,
+			phone='+15550100006',
+			phone_verified=True,
+		)
 		shop = Shop.objects.create(
 			owner=owner,
 			name='Active Local Shop',
@@ -169,6 +175,78 @@ class DashboardRouteTests(TestCase):
 		self.assertIn(order_url, management_nav)
 		self.assertIn(order_url, dashboard)
 		self.assertIn('Open orders', dashboard)
+
+	def test_shopkeeper_dashboard_shows_owned_shop_verification_and_live_counts(self):
+		shopkeeper_group, _ = Group.objects.get_or_create(name='Shopkeeper')
+		owner = get_user_model().objects.create_user(username='dashboard-shop-owner')
+		owner.groups.add(shopkeeper_group)
+		other_owner = get_user_model().objects.create_user(
+			username='dashboard-other-owner',
+		)
+		shop = Shop.objects.create(
+			owner=owner,
+			name='Dashboard Shop',
+			category='Grocery',
+			phone='555-0100',
+			address='1 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+			is_active=False,
+		)
+		VerificationApplication.objects.create(
+			applicant=owner,
+			shop=shop,
+			application_type=VerificationApplication.TYPE_SHOPKEEPER,
+		)
+		Product.objects.create(
+			shop=shop,
+			name='Active item',
+			category='Grocery',
+			price=Decimal('10.00'),
+			stock_quantity=2,
+			is_active=True,
+		)
+		Product.objects.create(
+			shop=shop,
+			name='Inactive item',
+			category='Grocery',
+			price=Decimal('15.00'),
+			stock_quantity=1,
+			is_active=False,
+		)
+		other_shop = Shop.objects.create(
+			owner=other_owner,
+			name='Private Other Shop',
+			category='Grocery',
+			phone='555-0101',
+			address='2 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+		)
+		Product.objects.create(
+			shop=other_shop,
+			name='Other owner item',
+			category='Grocery',
+			price=Decimal('25.00'),
+			stock_quantity=1,
+		)
+		self.client.force_login(owner)
+
+		response = self.client.get(reverse('dashboard:shopkeeper'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.context['shop_count'], 1)
+		self.assertEqual(response.context['active_shop_count'], 0)
+		self.assertEqual(response.context['product_count'], 2)
+		self.assertEqual(response.context['active_product_count'], 1)
+		self.assertEqual(response.context['inactive_product_count'], 1)
+		self.assertEqual(response.context['order_count'], 0)
+		self.assertContains(response, 'Dashboard Shop')
+		self.assertContains(response, 'Pending')
+		self.assertNotContains(response, 'Private Other Shop')
+		self.assertNotContains(response, 'Other owner item')
 
 
 class RoleAccessTests(TestCase):

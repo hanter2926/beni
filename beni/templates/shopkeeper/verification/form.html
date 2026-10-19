@@ -15,9 +15,10 @@
         <p class="eyebrow">Application status</p>
         {% if application %}
             <h2 id="verification-title">{{ application.get_status_display }}</h2>
+            {% if request.user.profile.phone %}<p>Account mobile: {{ request.user.profile.phone }} · {% if request.user.profile.phone_verified %}Verified{% else %}Not yet verified by staff{% endif %}</p>{% else %}<p>Add your mobile number in <a href="{% url 'accounts:profile' %}">profile settings</a> before submitting verification.</p>{% endif %}
             <p>Phone: {{ application.get_phone_status_display }}</p>
             <p>Aadhaar: {{ application.get_aadhaar_status_display }} · PAN: {{ application.get_pan_status_display }}</p>
-            <p>Bank account: {{ application.get_bank_status_display }} (tracked separately for future withdrawals)</p>
+            <p>Bank account review: {{ application.get_bank_status_display }}</p>
             {% if application.decision_reason %}<p class="form-errors">{{ application.decision_reason }}</p>{% endif %}
             {% if application.documents.all %}
                 <p>Documents on file:</p>
@@ -30,7 +31,7 @@
         {% if not application or application.status != 'approved' %}
             <form method="post" enctype="multipart/form-data" class="account-form">
                 {% csrf_token %}
-                <p>Your shop is not publicly listed until staff verify its phone and either Aadhaar or PAN status.</p>
+                <p>Your shop is not publicly listed until authorized staff verify the account mobile number and either Aadhaar or PAN.</p>
                 {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
                 <div class="form-field">
                     {{ form.confirmation }}
@@ -49,7 +50,7 @@
                     {% endif %}
                 {% endfor %}
                 <button class="button button-primary form-submit" type="submit">
-                    {% if application and application.status == 'rejected' %}Resubmit for review{% else %}Submit for review{% endif %}
+                    {% if application and application.status == 'rejected' %}Resubmit for review{% elif application and application.status == 'info_needed' %}Submit additional information{% else %}Submit for review{% endif %}
                 </button>
             </form>
         {% endif %}

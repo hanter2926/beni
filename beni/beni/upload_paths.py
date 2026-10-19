@@ -44,6 +44,10 @@ def shop_cover_path(instance, filename):
     return _image_path('shops/covers', instance, filename, 'cover_image')
 
 
+def shop_gallery_image_path(instance, filename):
+    return _image_path('shops/gallery', instance, filename, 'image')
+
+
 def profile_image_path(instance, filename):
     return _image_path('profiles', instance, filename, 'image')
 

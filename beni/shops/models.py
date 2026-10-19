@@ -5,7 +5,11 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
-from beni.upload_paths import shop_cover_path, shop_logo_path
+from beni.upload_paths import (
+	shop_cover_path,
+	shop_gallery_image_path,
+	shop_logo_path,
+)
 
 
 class Shop(models.Model):
@@ -70,3 +74,37 @@ class Shop(models.Model):
 
 	def __str__(self):
 		return self.name
+
+
+class ShopPhoto(models.Model):
+	shop = models.ForeignKey(
+		Shop,
+		on_delete=models.CASCADE,
+		related_name='photos',
+	)
+	image = models.ImageField(upload_to=shop_gallery_image_path)
+	alt_text = models.CharField(max_length=200, blank=True)
+	sort_order = models.PositiveSmallIntegerField(default=0)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ('sort_order', 'created_at', 'pk')
+
+	def __str__(self):
+		return f'Photo for {self.shop.name}'
+
+
+class ShopBankDetails(models.Model):
+	shop = models.OneToOneField(
+		Shop,
+		on_delete=models.CASCADE,
+		related_name='bank_details',
+	)
+	account_holder_name = models.CharField(max_length=150)
+	account_number = models.CharField(max_length=34)
+	ifsc_code = models.CharField(max_length=11)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	def __str__(self):
+		return f'Bank details for shop #{self.shop_id}'

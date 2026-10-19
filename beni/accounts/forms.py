@@ -73,9 +73,23 @@ class RegistrationForm(UserCreationForm):
     ROLE_SHOPKEEPER = 'shopkeeper'
     ROLE_REPAIR_WORKER = 'repair_worker'
 
+    name = forms.CharField(
+        max_length=150,
+        required=False,
+        help_text='Shopkeepers must provide their name.',
+    )
     email = forms.EmailField(
         required=True,
         help_text='Used for password recovery.',
+    )
+    phone = forms.CharField(
+        max_length=30,
+        required=False,
+        label='Mobile number',
+        help_text=(
+            'Shopkeepers must provide a mobile number. Staff review is '
+            'required before the number is marked verified.'
+        ),
     )
     role = forms.ChoiceField(
         choices=(
@@ -96,11 +110,51 @@ class RegistrationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.order_fields(('username', 'email', 'role', 'password1', 'password2'))
+        self.order_fields((
+            'username',
+            'name',
+            'email',
+            'phone',
+            'role',
+            'password1',
+            'password2',
+        ))
         style_fields(self)
 
     def clean_email(self):
         return _validate_unique_email(self.cleaned_data['email'].strip())
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone', '').strip()
+        if phone and not valid_phone_number(phone):
+            raise forms.ValidationError(
+                'Enter a valid mobile number with 7 to 15 digits.'
+            )
+        return phone
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('role') == self.ROLE_SHOPKEEPER:
+            if not cleaned_data.get('name', '').strip():
+                self.add_error('name', 'Enter your name to register as a Shopkeeper.')
+            if not cleaned_data.get('phone'):
+                self.add_error(
+                    'phone',
+                    'Enter a valid mobile number to register as a Shopkeeper.',
+                )
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        name_parts = self.cleaned_data.get('name', '').strip().split(maxsplit=1)
+        user.first_name = name_parts[0] if name_parts else ''
+        user.last_name = name_parts[1] if len(name_parts) == 2 else ''
+        if commit:
+            user.save()
+            phone = self.cleaned_data.get('phone', '')
+            if phone:
+                Profile.objects.create(user=user, phone=phone)
+        return user
 
 
 class ProfileForm(ModelForm):

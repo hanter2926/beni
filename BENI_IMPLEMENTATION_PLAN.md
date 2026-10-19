@@ -1,13 +1,47 @@
 # BENI Implementation Checklist
 
 Inventory date: 2026-10-18; implementation recheck: 2026-10-19
-Scope: original project inventory plus subsequent approved database repairs and Orders/Checkout implementation. The payment migrations were generated, reviewed, explicitly approved, and applied to the configured MySQL database.
+Scope: original project inventory, approved database repairs, Orders/Checkout, and the current shopkeeper workflow implementation. The payment and shopkeeper migrations have been applied to MySQL after explicit approval.
 
 ## Resume checklist — 2026-10-19
 
 This recheck supersedes older “current” status statements below where they
 conflict with the live migration recorder or current checkout. Historical
 implementation notes are retained for context, not as proof of current state.
+
+### Shopkeeper workflow — 2026-10-19
+
+- [x] Shopkeeper registration now requires a name and valid mobile number,
+  stores them on the user/profile, and leaves the mobile unverified until
+  staff review. Existing login and role routing remain in place.
+- [x] Shopkeeper dashboard now reads owned-shop verification states, active
+  and total shops, active/inactive product totals, and open/recent order data.
+  Existing shop/product/order/wallet/notification routes remain linked.
+- [x] Shop profiles support up to five validated public gallery photos and
+  owner-only bank-detail entry. Account numbers are password-masked and never
+  rendered after saving; details are not exposed in staff review pages.
+- [x] A shopkeeper can be asked for additional verification information and
+  resubmit through the existing private-document flow. Phone verification is
+  tied to a valid profile number and staff review; changing that number
+  suspends approved shops until it is reviewed again.
+- [x] Catalog eligibility now requires both approved verification and a
+  verified profile mobile, so shops with missing/unverified numbers cannot
+  remain publicly marketable.
+- [x] Generated, SQL-reviewed, and applied `shops.0003_shopbankdetails_shopphoto` and
+  `verification.0002_alter_verificationapplication_status_and_more`.
+  After explicit approval, each was applied individually and verified on
+  `beni_db`; the shop tables are present and verification status columns
+  remain `varchar(12)`. No migration was faked and no existing rows were
+  rewritten or deleted.
+- [x] The full 141-test suite passed on guarded in-memory SQLite, including
+  ephemeral execution of migrations. The MySQL database check and
+  `makemigrations --check --dry-run` also passed.
+- [ ] Test authenticated shopkeeper registration, image upload, bank-detail
+  editing, and admin verification in an approved live/staging environment.
+  No browser/provider or live upload test was performed.
+- [ ] The original request was truncated after “Total products and
+  active/inactive products.” This checklist covers only the requirements
+  received; add omitted sections before claiming the entire requested scope.
 
 ### Verified in this recheck
 
@@ -19,13 +53,10 @@ implementation notes are retained for context, not as proof of current state.
   The existing 8000 process uses system Python / Django 6.0.8; use the project
   virtualenv for reproducible development.
 - [x] Read-only migration and schema inspection found the earlier account,
-  booking, verification, wallet, and shop-image migrations applied, with
-  `accounts.0002_profile_alternate_phone_profile_phone_and_more` and
-  `bookings.0003_repairbooking_locality_and_more` pending.
-- [x] After receiving explicit approval for those exact migrations on
-  `beni_db`, applied each individually and verified its migration-recorder row.
-  Read-only introspection now confirms all installed model tables/columns and
-  both booking-support indexes are present.
+  booking, verification, wallet, and shop-image migrations applied. The
+  explicitly approved account, booking, and shopkeeper migrations were
+  applied individually; migration-recorder entries and affected tables and
+  columns were verified.
 - [x] Post-migration fresh-server smoke test: `/accounts/login/` and
   `/catalog/` returned HTTP 200; anonymous `/customer/orders/`, `/repairs/`,
   and `/accounts/profile/` returned the expected HTTP 302 login redirect.
@@ -35,9 +66,10 @@ implementation notes are retained for context, not as proof of current state.
   These runs did not use or modify the configured MySQL database and do not
   establish MySQL locking/concurrency behavior.
 - [x] Implemented code-only Razorpay checkout and staff-reviewed paid-order
-  cancellation. The latest 131-test suite passes against guarded in-memory
-  SQLite with provider calls mocked. The payment migrations were applied to
-  `beni_db` after separate approval and their tables/columns were verified.
+  cancellation. The earlier 131-test suite passed against guarded in-memory
+  SQLite with provider calls mocked; the current 141-test run also covers the
+  shopkeeper work. The payment migrations were applied to `beni_db` after
+  separate approval and their tables/columns were verified.
 - [x] `git diff --check` and `git diff --cached --check` passed. Existing
   worktree changes were left intact.
 
@@ -82,10 +114,12 @@ implementation notes are retained for context, not as proof of current state.
 The 2026-10-19 recheck found working authentication, catalog, shop/product,
 order, booking, verification, notification, and wallet source workflows. The
 configured MySQL database has the order, booking, verification, wallet,
-shop-image, and payment schema; the approved profile, repair-support, and
-payment migrations have been applied and verified. The latest 131-test suite
-passed using in-memory SQLite, but this does not verify MySQL locking or
-authenticated live pages.
+shop-image, payment, shopkeeper gallery, and bank-details schema; the approved
+profile, repair-support, payment, and shopkeeper migrations have been applied
+and verified. Shopkeeper registration, verification, dashboard metrics,
+gallery/bank-detail forms, and role-scoped catalog eligibility have been
+implemented. The latest 141-test suite passed using guarded in-memory SQLite,
+but this does not verify MySQL locking or authenticated live pages.
 Billing/digital bills, reviews, wallet withdrawals, worker-specific
 profile/availability workflows, and sandbox Razorpay verification remain
 unfinished. Payment code and schema are present, but the provider has not
@@ -109,20 +143,25 @@ decided.
 - Settings configure MySQL (`django.db.backends.mysql`), database `beni_db`; read-only inspection using the project virtualenv connected to MySQL 8.0.46, default engine InnoDB, isolation `READ-COMMITTED`.
 - The 2026-10-19 read-only inspection found `shops_shop`, `products_product`,
   and the order tables present. `orders.0001_initial` is recorded as applied.
-  `accounts.0002` and `bookings.0003` are the only pending project migrations
-  relevant to the observed profile/booking schema gaps.
+  The previously pending account, booking, and shopkeeper migrations have
+  since been applied after approval and verified; no shopkeeper migrations
+  remain pending.
 - The configured test database name is `test_beni_db`; it already existed
-  during the latest recheck. The passing 115-test run explicitly set Django's
-  database to in-memory SQLite before setup and asserted `:memory:`; it did
-  not use or modify `test_beni_db`.
+  during the latest recheck and is distinct from `beni_db`. The passing
+  141-test run explicitly set Django's database to in-memory SQLite before
+  setup and asserted its vendor; it did not use or modify `test_beni_db`.
 - Settings do not define `DATABASES['default']['TEST']`, `DATABASE_ROUTERS`, or a custom test runner.
 
 ### Outstanding safety gates
 
 - Preserve the selected project virtual environment (Python 3.14.6, Django 5.2.18); do not change the runtime or dependencies.
 - The latest DB check found shop/product migrations already applied. Recheck before future schema actions; do not infer live schema state from this checklist.
-- The user explicitly approved creation of `orders.0001_initial.py` only. Its dependency graph and dry-run plan are inspected; applying it to any persistent database still requires separate explicit approval.
-- Test DB name `test_beni_db` was confirmed distinct from `beni_db` and absent before testing. The successful 26-test run used a transient, process-local `MIGRATION_MODULES` override setting all installed apps to unmigrated so Django synchronized their model tables only in the isolated test DB. This bypasses migrations and is for source-level tests only; never use it against the runtime database.
+- `orders.0001_initial` was applied after explicit approval and verified in the
+  migration recorder. Do not fake or apply future migrations without required
+  explicit approval.
+- An earlier 26-test run used a transient, process-local `MIGRATION_MODULES`
+  override to synchronize model tables only in an isolated test database.
+  That bypasses migrations and must never be used against the runtime database.
 
 ## 3. Feature status inventory
 

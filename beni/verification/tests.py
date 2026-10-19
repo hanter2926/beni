@@ -67,6 +67,10 @@ class VerificationNotificationTests(TestCase):
             username='verification-notification-shopkeeper',
         )
         self.shopkeeper.groups.add(self.shopkeeper_group)
+        Profile.objects.create(
+            user=self.shopkeeper,
+            phone='+15550100009',
+        )
         self.shop = Shop.objects.create(
             owner=self.shopkeeper,
             name='Verification Test Shop',
@@ -250,6 +254,135 @@ class VerificationNotificationTests(TestCase):
                 event_key=f'verification-application:{application.pk}:created:admin',
             ).exists()
         )
+
+    def test_shopkeeper_can_resubmit_after_staff_requests_additional_information(self):
+        application = VerificationApplication.objects.create(
+            applicant=self.shopkeeper,
+            shop=self.shop,
+            application_type=VerificationApplication.TYPE_SHOPKEEPER,
+            phone_status=VerificationApplication.CHECK_VERIFIED,
+            pan_status=VerificationApplication.CHECK_PENDING,
+        )
+        review_application(
+            application_id=application.pk,
+            reviewer=self.staff,
+            cleaned_data={
+                'status': VerificationApplication.STATUS_INFO_NEEDED,
+                'phone_status': VerificationApplication.CHECK_VERIFIED,
+                'aadhaar_status': VerificationApplication.CHECK_NOT_SUBMITTED,
+                'pan_status': VerificationApplication.CHECK_PENDING,
+                'bank_status': VerificationApplication.CHECK_NOT_SUBMITTED,
+                'reason': 'Upload a clearer PAN document.',
+            },
+        )
+        self.client.force_login(self.shopkeeper)
+
+        response = self.client.post(
+            reverse(
+                'verification:shopkeeper_application',
+                args=[self.shop.pk],
+            ),
+            {'confirmation': 'on'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                'verification:shopkeeper_application',
+                args=[self.shop.pk],
+            ),
+            fetch_redirect_response=False,
+        )
+        application.refresh_from_db()
+        self.assertEqual(application.status, VerificationApplication.STATUS_PENDING)
+        self.assertEqual(application.pan_status, VerificationApplication.CHECK_PENDING)
+        self.assertEqual(application.decision_reason, '')
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.staff,
+                event_key=(
+                    f'verification-application:{application.pk}:'
+                    'resubmission:1:admin'
+                ),
+            ).exists()
+        )
+
+    def test_shopkeeper_phone_is_verified_only_after_staff_confirms_a_profile_number(self):
+        self.shopkeeper.profile.delete()
+        application = VerificationApplication.objects.create(
+            applicant=self.shopkeeper,
+            shop=self.shop,
+            application_type=VerificationApplication.TYPE_SHOPKEEPER,
+        )
+        with self.assertRaisesMessage(
+            ValidationError,
+            'Add a valid mobile number to the profile before verifying it.',
+        ):
+            review_application(
+                application_id=application.pk,
+                reviewer=self.staff,
+                cleaned_data={
+                    'status': VerificationApplication.STATUS_APPROVED,
+                    'phone_status': VerificationApplication.CHECK_VERIFIED,
+                    'aadhaar_status': VerificationApplication.CHECK_VERIFIED,
+                    'pan_status': VerificationApplication.CHECK_NOT_SUBMITTED,
+                    'bank_status': VerificationApplication.CHECK_NOT_SUBMITTED,
+                    'reason': 'A mobile number must be supplied first.',
+                },
+            )
+
+        profile = Profile.objects.create(
+            user=self.shopkeeper,
+            phone='+15550100002',
+        )
+        decision = review_application(
+            application_id=application.pk,
+            reviewer=self.staff,
+            cleaned_data={
+                'status': VerificationApplication.STATUS_APPROVED,
+                'phone_status': VerificationApplication.CHECK_VERIFIED,
+                'aadhaar_status': VerificationApplication.CHECK_VERIFIED,
+                'pan_status': VerificationApplication.CHECK_NOT_SUBMITTED,
+                'bank_status': VerificationApplication.CHECK_NOT_SUBMITTED,
+                'reason': 'Mobile and identity documents verified.',
+            },
+        )
+
+        profile.refresh_from_db()
+        self.shop.refresh_from_db()
+        self.assertTrue(profile.phone_verified)
+        self.assertTrue(self.shop.is_active)
+        self.assertEqual(decision.status, VerificationApplication.STATUS_APPROVED)
+
+    def test_changing_verified_shopkeeper_phone_suspends_shop_until_review(self):
+        profile = self.shopkeeper.profile
+        profile.phone = '+15550100007'
+        profile.phone_verified = True
+        profile.save()
+        application = VerificationApplication.objects.create(
+            applicant=self.shopkeeper,
+            shop=self.shop,
+            application_type=VerificationApplication.TYPE_SHOPKEEPER,
+            status=VerificationApplication.STATUS_APPROVED,
+            phone_status=VerificationApplication.CHECK_VERIFIED,
+            aadhaar_status=VerificationApplication.CHECK_VERIFIED,
+        )
+        self.shop.is_active = True
+        self.shop.save(update_fields=('is_active',))
+
+        profile.phone = '+15550100008'
+        profile.save()
+
+        profile.refresh_from_db()
+        application.refresh_from_db()
+        self.shop.refresh_from_db()
+        self.assertFalse(profile.phone_verified)
+        self.assertEqual(application.status, VerificationApplication.STATUS_PENDING)
+        self.assertEqual(
+            application.phone_status,
+            VerificationApplication.CHECK_PENDING,
+        )
+        self.assertFalse(self.shop.is_active)
 
     def test_non_shopkeeper_cannot_submit_worker_application(self):
         self.client.force_login(self.shopkeeper)

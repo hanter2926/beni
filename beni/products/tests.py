@@ -12,6 +12,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from PIL import Image
 
+from accounts.models import Profile
 from shops.models import Shop
 from verification.models import VerificationApplication
 
@@ -356,6 +357,11 @@ class PublicProductCatalogTests(TestCase):
 	@classmethod
 	def setUpTestData(cls):
 		owner = get_user_model().objects.create_user(username='catalog-owner')
+		Profile.objects.create(
+			user=owner,
+			phone='+15550100005',
+			phone_verified=True,
+		)
 		cls.active_shop = Shop.objects.create(
 			owner=owner,
 			name='Active Corner Shop',

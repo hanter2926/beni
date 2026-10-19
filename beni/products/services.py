@@ -10,6 +10,7 @@ def eligible_shop_verifications(shop_ids=None, *, lock=False):
         application_type=VerificationApplication.TYPE_SHOPKEEPER,
         status=VerificationApplication.STATUS_APPROVED,
         phone_status=VerificationApplication.CHECK_VERIFIED,
+        applicant__profile__phone_verified=True,
     ).filter(
         Q(aadhaar_status=VerificationApplication.CHECK_VERIFIED)
         | Q(pan_status=VerificationApplication.CHECK_VERIFIED)

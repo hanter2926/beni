@@ -16,10 +16,12 @@ class VerificationApplication(models.Model):
     STATUS_PENDING = 'pending'
     STATUS_APPROVED = 'approved'
     STATUS_REJECTED = 'rejected'
+    STATUS_INFO_NEEDED = 'info_needed'
     STATUS_CHOICES = [
         (STATUS_PENDING, 'Pending'),
         (STATUS_APPROVED, 'Approved'),
         (STATUS_REJECTED, 'Rejected'),
+        (STATUS_INFO_NEEDED, 'Additional information required'),
     ]
 
     CHECK_NOT_SUBMITTED = 'not_submitted'

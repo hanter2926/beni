@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Profile
 from products.models import Product
 from shops.models import Shop
 from verification.models import VerificationApplication
@@ -18,6 +19,11 @@ class CustomerCartTests(TestCase):
         self.customer = get_user_model().objects.create_user(username='customer-cart-user')
         self.shop_owner = get_user_model().objects.create_user(username='shop-cart-owner')
         self.shop_owner.groups.add(self.shopkeeper_group)
+        Profile.objects.create(
+            user=self.shop_owner,
+            phone='+15550100003',
+            phone_verified=True,
+        )
         self.shop = Shop.objects.create(
             owner=self.shop_owner,
             name='North Market',
@@ -51,6 +57,11 @@ class CustomerCartTests(TestCase):
                               application_status=VerificationApplication.STATUS_APPROVED):
         owner = get_user_model().objects.create_user(username=f'owner-{suffix}')
         owner.groups.add(self.shopkeeper_group)
+        Profile.objects.create(
+            user=owner,
+            phone='+15550100004',
+            phone_verified=True,
+        )
         shop = Shop.objects.create(
             owner=owner,
             name=f'Shop {suffix}',
@@ -192,6 +203,26 @@ class CustomerCartTests(TestCase):
             inactive_listing,
         ):
             self.assertNotContains(response, product.name)
+
+    def test_changing_verified_owner_mobile_removes_products_from_public_catalog(self):
+        self.assertContains(
+            self.client.get(reverse('catalog:list')),
+            self.product.name,
+        )
+
+        profile = self.shop_owner.profile
+        profile.phone = '+15550100010'
+        profile.save()
+
+        response = self.client.get(reverse('catalog:list'))
+        self.shop.refresh_from_db()
+        self.verification.refresh_from_db()
+        self.assertNotContains(response, self.product.name)
+        self.assertFalse(self.shop.is_active)
+        self.assertEqual(
+            self.verification.status,
+            VerificationApplication.STATUS_PENDING,
+        )
 
     def test_cart_rejects_and_removes_product_when_shop_becomes_ineligible(self):
         self.client.force_login(self.customer)

@@ -9,6 +9,7 @@ from django.db.models.deletion import ProtectedError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
+from accounts.models import Profile
 from products.models import Product
 from shops.models import Shop
 from customers.views import CART_OWNER_SESSION_KEY
@@ -32,8 +33,18 @@ class OrdersWorkflowTests(TestCase):
         self.customer = user_model.objects.create_user(username='order-customer')
         self.owner_one = user_model.objects.create_user(username='order-owner-one')
         self.owner_one.groups.add(self.shopkeeper_group)
+        Profile.objects.create(
+            user=self.owner_one,
+            phone='+15550100011',
+            phone_verified=True,
+        )
         self.owner_two = user_model.objects.create_user(username='order-owner-two')
         self.owner_two.groups.add(self.shopkeeper_group)
+        Profile.objects.create(
+            user=self.owner_two,
+            phone='+15550100012',
+            phone_verified=True,
+        )
         self.shop_one = self.make_shop(self.owner_one, 'One')
         self.shop_two = self.make_shop(self.owner_two, 'Two')
         self.make_shopkeeper_verification(self.owner_one, self.shop_one)
