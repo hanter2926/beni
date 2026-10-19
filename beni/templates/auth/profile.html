@@ -15,7 +15,11 @@
     <div class="auth-panel">
         <p class="eyebrow">Account details</p>
         <h2 id="profile-title">Your profile</h2>
-        <p class="form-intro">Update your name. Your email address is not editable here.</p>
+        <p class="form-intro">Update your name and private contact information. Your mobile number must be verified by BENI staff before it can be shared for a repair booking.</p>
+        <p class="form-field">
+            <strong>Mobile verification</strong>
+            <span>{% if profile and profile.phone_verified %}Verified{% else %}Not verified{% endif %}</span>
+        </p>
         <p class="form-field">
             <strong>Email address</strong>
             <span>{{ request.user.email|default:"Not provided" }}</span>

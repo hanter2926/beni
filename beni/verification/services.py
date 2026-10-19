@@ -6,6 +6,7 @@ from accounts.roles import (
     SHOPKEEPER_GROUP,
     user_has_role_group,
 )
+from accounts.models import Profile, valid_phone_number
 from notifications.services import create_notification, notify_active_staff
 from .models import VerificationApplication, VerificationDecision
 
@@ -119,9 +120,13 @@ def submit_application(*, applicant, application_type, shop=None):
 
 
 def is_verified_repair_worker(user):
+    profile = Profile.objects.filter(user=user).first()
     return (
         user.is_active
         and user_has_role_group(user, REPAIR_WORKER_GROUP)
+        and profile is not None
+        and profile.phone_verified
+        and valid_phone_number(profile.phone)
         and VerificationApplication.objects.filter(
             applicant=user,
             application_type=VerificationApplication.TYPE_REPAIR_WORKER,
@@ -210,6 +215,23 @@ def review_application(*, application_id, reviewer, cleaned_data):
             'updated_at',
         )
     )
+
+    if application.application_type == VerificationApplication.TYPE_REPAIR_WORKER:
+        profile = Profile.objects.select_for_update().filter(
+            user=application.applicant,
+        ).first()
+        if (
+            phone_status == VerificationApplication.CHECK_VERIFIED
+            and (profile is None or not valid_phone_number(profile.phone))
+        ):
+            raise ValidationError(
+                'Add a valid mobile number to the worker profile before verifying it.'
+            )
+        if profile:
+            profile.phone_verified = (
+                phone_status == VerificationApplication.CHECK_VERIFIED
+            )
+            profile.save(update_fields=('phone_verified',))
 
     if application.shop_id:
         application.shop.is_active = (

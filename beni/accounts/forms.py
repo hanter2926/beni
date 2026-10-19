@@ -11,7 +11,7 @@ from django.forms import ModelForm
 
 from beni.upload_validation import validate_decoded_image
 
-from .models import Profile
+from .models import Profile, valid_phone_number
 
 
 def style_fields(form):
@@ -116,6 +116,23 @@ class ProfileForm(ModelForm):
             attrs={'accept': 'image/jpeg,image/png,image/webp'}
         ),
     )
+    phone = forms.CharField(
+        max_length=30,
+        required=False,
+        label='Mobile number',
+        help_text='Your number is shared only with authorized participants in an active repair booking.',
+    )
+    alternate_phone = forms.CharField(
+        max_length=30,
+        required=False,
+        label='Alternate contact number',
+    )
+    service_details = forms.CharField(
+        required=False,
+        label='Repair services offered',
+        help_text='Repair Workers can describe their services and experience.',
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
 
     class Meta:
         model = get_user_model()
@@ -125,6 +142,13 @@ class ProfileForm(ModelForm):
         super().__init__(*args, **kwargs)
         self.profile = profile
         self.fields['profile_image'].widget.attrs['data-image-preview-input'] = ''
+        self.fields['phone'].initial = profile.phone if profile else ''
+        self.fields['alternate_phone'].initial = (
+            profile.alternate_phone if profile else ''
+        )
+        self.fields['service_details'].initial = (
+            profile.service_details if profile else ''
+        )
         if profile and profile.image:
             self.fields['profile_image'].initial = profile.image
         style_fields(self)
@@ -141,18 +165,35 @@ class ProfileForm(ModelForm):
             return validate_decoded_image(image, max_size=3 * 1024 * 1024)
         return image
 
+    def clean_phone(self):
+        return self._clean_phone(self.cleaned_data.get('phone', ''))
+
+    def clean_alternate_phone(self):
+        return self._clean_phone(self.cleaned_data.get('alternate_phone', ''))
+
+    @staticmethod
+    def _clean_phone(phone):
+        phone = phone.strip()
+        if phone and not valid_phone_number(phone):
+            raise forms.ValidationError(
+                'Enter a valid phone number with 7 to 15 digits.'
+            )
+        return phone
+
     def save(self, commit=True):
         user = super().save(commit=commit)
         if not commit:
             return user
 
         profile = self.profile or Profile(user=user)
+        profile.phone = self.cleaned_data['phone']
+        profile.alternate_phone = self.cleaned_data['alternate_phone']
+        profile.service_details = self.cleaned_data['service_details']
         new_image = self.cleaned_data.get('profile_image')
         if isinstance(new_image, UploadedFile):
             profile.image = new_image
-            profile.save()
         elif new_image is False and profile.image:
             profile.image = ''
-            profile.save()
+        profile.save()
         self.profile = profile
         return user

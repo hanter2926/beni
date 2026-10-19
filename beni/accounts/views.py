@@ -75,7 +75,16 @@ def profile(request):
 
 @login_required(login_url='accounts:login')
 def private_profile_image(request, user_id):
-	if request.user.pk != user_id and not request.user.is_staff:
+	authorized = request.user.pk == user_id or request.user.is_staff
+	if not authorized:
+		from bookings.models import RepairBooking
+
+		authorized = RepairBooking.objects.filter(
+			customer_id=request.user.pk,
+			assigned_worker_id=user_id,
+			status__in=RepairBooking.CONTACT_ALLOWED_STATUSES,
+		).exists()
+	if not authorized:
 		raise Http404
 	profile_record = get_object_or_404(
 		Profile.objects.select_related('user'),

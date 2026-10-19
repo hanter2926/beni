@@ -2,7 +2,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.core.paginator import Paginator
 from django.shortcuts import render
 
@@ -12,11 +12,38 @@ from accounts.roles import (
 	role_group_required,
 	user_has_role_group,
 )
+from bookings.forms import RepairBookingForm
 from bookings.models import RepairBooking
 from orders.models import Order
 from products.models import Product
 from shops.models import Shop
 from verification.models import VerificationApplication
+from products.services import marketable_products
+from accounts.models import Profile
+
+
+REPAIR_CATEGORIES = (
+	{
+		'name': 'Mobile repair',
+		'keywords': ('mobile', 'phone', 'smartphone'),
+		'description': 'Screen, battery, charging, and other mobile device problems.',
+	},
+	{
+		'name': 'Laptop repair',
+		'keywords': ('laptop', 'notebook', 'computer'),
+		'description': 'Hardware, performance, display, and software troubleshooting.',
+	},
+	{
+		'name': 'Electronics repair',
+		'keywords': ('electronics', 'electronic', 'tv', 'television'),
+		'description': 'Help with household electronics and electronic devices.',
+	},
+	{
+		'name': 'Other repairs',
+		'keywords': ('appliance', 'repair', 'service'),
+		'description': 'Describe your issue and BENI will route it to a suitable worker.',
+	},
+)
 
 
 @login_required(login_url='accounts:login')
@@ -26,7 +53,100 @@ def customer_dashboard(request):
 		for group_name in (SHOPKEEPER_GROUP, REPAIR_WORKER_GROUP)
 	):
 		raise PermissionDenied
-	return render(request, 'customer/dashboard.html', {'role_label': 'Customer'})
+
+	query = request.GET.get('q', '').strip()[:100]
+	selected_category = request.GET.get('category', '').strip()[:100]
+	shop_products = marketable_products().select_related('shop')
+	if query:
+		shop_products = shop_products.filter(
+			Q(name__icontains=query)
+			| Q(description__icontains=query)
+			| Q(category__icontains=query)
+			| Q(shop__name__icontains=query)
+		)
+	if selected_category:
+		shop_products = shop_products.filter(category__iexact=selected_category)
+	products = list(shop_products[:8])
+	categories = (
+		marketable_products()
+		.order_by('category')
+		.values_list('category', flat=True)
+		.distinct()
+	)
+
+	worker_profiles = list(
+		Profile.objects.filter(
+			user__is_active=True,
+			user__groups__name=REPAIR_WORKER_GROUP,
+			user__verification_applications__application_type=(
+				VerificationApplication.TYPE_REPAIR_WORKER
+			),
+			user__verification_applications__status=(
+				VerificationApplication.STATUS_APPROVED
+			),
+			user__verification_applications__phone_status=(
+				VerificationApplication.CHECK_VERIFIED
+			),
+			user__verification_applications__face_status=(
+				VerificationApplication.CHECK_VERIFIED
+			),
+			phone_verified=True,
+		).select_related('user').distinct()[:100]
+	)
+	repair_services = []
+	for category in REPAIR_CATEGORIES:
+		keywords = category['keywords']
+		providers = [
+			profile.user.get_full_name() or profile.user.get_username()
+			for profile in worker_profiles
+			if any(
+				keyword in profile.service_details.casefold()
+				for keyword in keywords
+			)
+		][:2]
+		repair_services.append({
+			**category,
+			'providers': providers,
+			'estimated_price': 'Quote after inspection',
+		})
+
+	orders = list(
+		Order.objects.filter(customer=request.user)
+		.select_related('shop')
+		.prefetch_related('items__product')
+		.order_by('-created_at', '-pk')[:5]
+	)
+	for order in orders:
+		order.can_cancel = order.status in (
+			Order.STATUS_PENDING,
+			Order.STATUS_CONFIRMED,
+		)
+
+	selected_tab = request.GET.get('tab', 'shops')
+	if selected_tab not in {'shops', 'repair', 'orders'}:
+		selected_tab = 'shops'
+	booking_form = RepairBookingForm(
+		initial={
+			'service_category': request.GET.get('service_category', '')[:100],
+		}
+	)
+	return render(
+		request,
+		'customer/dashboard.html',
+		{
+			'role_label': 'Customer',
+			'products': products,
+			'product_count': shop_products.count(),
+			'categories': categories,
+			'query': query,
+			'selected_category': selected_category,
+			'repair_services': repair_services,
+			'booking_form': booking_form,
+			'orders': orders,
+			'order_count': Order.objects.filter(customer=request.user).count(),
+			'selected_tab': selected_tab,
+		},
+	)
 
 
 @role_group_required(SHOPKEEPER_GROUP)

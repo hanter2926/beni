@@ -20,9 +20,23 @@
                     <div>
                         <strong>{{ booking.service_category }} · {{ booking.get_status_display }}</strong>
                         <small>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }} · Preferred: {{ booking.preferred_at }}</small>
+                        {% if booking.customer_profile and booking.customer_profile.phone_verified %}<p>Verified customer mobile: {{ booking.customer_profile.phone }}{% if booking.customer_profile.alternate_phone %} · Alternate: {{ booking.customer_profile.alternate_phone }}{% endif %}</p>{% endif %}
                         <p>{{ booking.problem_description|linebreaksbr }}</p>
                         <p>Address: {{ booking.service_address|linebreaksbr }}</p>
-                        {% if booking.assigned_worker %}<p>Worker: {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</p>{% endif %}
+                        <p>Locality: {{ booking.locality }}</p>
+                        {% if booking.assigned_worker %}<p>Worker: {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</p>{% if booking.worker_profile and booking.worker_profile.phone_verified %}<p>Verified worker mobile: {{ booking.worker_profile.phone }}{% if booking.worker_profile.alternate_phone %} · Alternate: {{ booking.worker_profile.alternate_phone }}{% endif %}</p>{% endif %}{% endif %}
+                        {% if booking.support_requests.all %}
+                            <section aria-label="Support requests">
+                                <h3>Support requests</h3>
+                                {% for support_request in booking.support_requests.all %}
+                                    <article>
+                                        <strong>{{ support_request.get_request_type_display }} · {{ support_request.get_status_display }}</strong>
+                                        <p>From {{ support_request.reporter.get_full_name|default:support_request.reporter.get_username }} · {{ support_request.created_at }}</p>
+                                        <p>{{ support_request.description|linebreaksbr }}</p>
+                                    </article>
+                                {% endfor %}
+                            </section>
+                        {% endif %}
                         {% if booking.images.all %}
                             <div class="upload-gallery">
                                 {% for image in booking.images.all %}

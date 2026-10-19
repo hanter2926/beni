@@ -15,6 +15,7 @@
                 <article class="admin-review-card">
                     <h2>{{ application.get_application_type_display }} · {{ application.get_status_display }}</h2>
                     <p>Applicant: {{ application.applicant.get_full_name|default:application.applicant.get_username }}</p>
+                    {% if application.application_type == 'repair_worker' and application.applicant.profile.phone %}<p>Worker mobile supplied for verification: {{ application.applicant.profile.phone }} · Profile status: {% if application.applicant.profile.phone_verified %}verified{% else %}not verified{% endif %}</p>{% endif %}
                     {% if application.shop %}<p>Shop: {{ application.shop.name }}</p>{% endif %}
                     <p>Submitted {{ application.created_at }} · Updated {{ application.updated_at }}</p>
                     {% if application.documents.all %}

@@ -20,8 +20,38 @@
             <div class="form-field"><dt>Preferred appointment</dt><dd>{{ booking.preferred_at }}</dd></div>
             <div class="form-field"><dt>Problem</dt><dd>{{ booking.problem_description|linebreaksbr }}</dd></div>
             <div class="form-field"><dt>Service address</dt><dd>{{ booking.service_address|linebreaksbr }}</dd></div>
-            {% if booking.assigned_worker %}<div class="form-field"><dt>Assigned Repair Worker</dt><dd>{{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</dd></div>{% endif %}
+            <div class="form-field"><dt>Locality</dt><dd>{{ booking.locality }}</dd></div>
+            <div class="form-field"><dt>Preferred contact method</dt><dd>{{ booking.get_preferred_contact_method_display }}</dd></div>
+            {% if booking.assigned_worker %}
+                <div class="form-field">
+                    <dt>Assigned Repair Worker</dt>
+                    <dd>
+                        {% if booking.worker_profile and booking.worker_profile.image %}
+                            <img class="upload-current-image" src="{% url 'accounts:profile_image' booking.assigned_worker.pk %}" alt="Repair Worker profile photo">
+                        {% endif %}
+                        {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}
+                        {% if booking.worker_profile.service_details %}<p>{{ booking.worker_profile.service_details|linebreaksbr }}</p>{% endif %}
+                        {% if booking.contact_verified %}
+                            <p>Verified mobile: {{ booking.contact_phone }}</p>
+                            {% if booking.contact_alternate_phone %}<p>Alternate number: {{ booking.contact_alternate_phone }}</p>{% endif %}
+                            <p class="contact-actions">
+                                <a class="button button-primary" href="{{ booking.contact_tel_url }}">Call Repair Worker</a>
+                                {% if booking.contact_whatsapp_url %}<a class="button" href="{{ booking.contact_whatsapp_url }}" target="_blank" rel="noopener noreferrer">WhatsApp Repair Worker</a>{% endif %}
+                            </p>
+                            <small>Calling and WhatsApp require a compatible app/device and do not guarantee that a call or message will be received or delivered.</small>
+                        {% else %}
+                            <p>Worker contact details are unavailable or not verified for this booking.</p>
+                        {% endif %}
+                    </dd>
+                </div>
+            {% endif %}
         </dl>
+        {% if can_cancel %}
+            <form method="post" action="{% url 'bookings:customer_cancel' booking.pk %}">
+                {% csrf_token %}
+                <button class="button" type="submit">Cancel repair request</button>
+            </form>
+        {% endif %}
         <section class="booking-photo-section" aria-labelledby="booking-photos-title">
             <h3 id="booking-photos-title">Repair photos</h3>
             {% if booking.images.all %}
@@ -49,6 +79,22 @@
                     </div>
                 {% endfor %}
                 <button class="button button-primary" type="submit">Save repair photos</button>
+            </form>
+        </section>
+        <section class="booking-support" aria-labelledby="booking-support-title">
+            <h3 id="booking-support-title">Help and support</h3>
+            <p>Report a non-response, late arrival, booking problem, complaint, or safety concern. Your message goes to BENI staff.</p>
+            <form method="post" action="{% url 'bookings:support_request' booking.pk %}" class="account-form">
+                {% csrf_token %}
+                {% for field in support_form %}
+                    <div class="form-field">
+                        {{ field.label_tag }}
+                        {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                        {{ field }}
+                        {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+                    </div>
+                {% endfor %}
+                <button class="button button-primary" type="submit">Request help</button>
             </form>
         </section>
         <p class="auth-switch"><a href="{% url 'bookings:customer_list' %}">Back to my repair requests</a></p>

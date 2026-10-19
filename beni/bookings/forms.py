@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from beni.upload_forms import MultipleImageField
 
-from .models import RepairBooking, RepairBookingImage
+from .models import BookingSupportRequest, RepairBooking, RepairBookingImage
 from .services import WORKER_TRANSITIONS, active_repair_workers
 
 
@@ -22,6 +22,8 @@ class RepairBookingForm(forms.ModelForm):
             'service_category',
             'problem_description',
             'service_address',
+            'locality',
+            'preferred_contact_method',
             'preferred_at',
         )
         widgets = {
@@ -36,6 +38,8 @@ class RepairBookingForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['preferred_at'].input_formats = ['%Y-%m-%dT%H:%M']
+        self.fields['locality'].required = True
+        self.fields['locality'].widget.attrs['maxlength'] = 120
         self.fields['images'].widget.attrs['accept'] = 'image/jpeg,image/png,image/webp'
         for name, field in self.fields.items():
             field.widget.attrs['class'] = 'form-control'
@@ -192,3 +196,24 @@ class WorkerBookingStatusForm(forms.Form):
             ):
                 self.add_error('images', 'A booking can have no more than ten photos.')
         return cleaned_data
+
+
+class BookingSupportRequestForm(forms.Form):
+    request_type = forms.ChoiceField(
+        choices=(
+            ('', 'Choose a reason'),
+            *BookingSupportRequest.TYPE_CHOICES,
+        ),
+        label='What do you need help with?',
+    )
+    description = forms.CharField(
+        max_length=2000,
+        widget=forms.Textarea(attrs={'rows': 4}),
+        label='Details for BENI support',
+        help_text='This message is sent to BENI staff, not to the other participant.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'

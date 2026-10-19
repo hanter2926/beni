@@ -23,6 +23,17 @@
                         <p>{{ booking.preferred_at }} · {{ booking.service_address }}</p>
                         <p>{{ booking.problem_description|linebreaksbr }}</p>
                         <p>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }}</p>
+                        {% if booking.contact_verified %}
+                            <p>Verified customer mobile: {{ booking.contact_phone }}</p>
+                            {% if booking.contact_alternate_phone %}<p>Alternate number: {{ booking.contact_alternate_phone }}</p>{% endif %}
+                            <p class="contact-actions">
+                                <a class="button button-primary" href="{{ booking.contact_tel_url }}">Call customer</a>
+                                {% if booking.contact_whatsapp_url %}<a class="button" href="{{ booking.contact_whatsapp_url }}" target="_blank" rel="noopener noreferrer">WhatsApp customer</a>{% endif %}
+                            </p>
+                            <small>Calling and WhatsApp require a compatible app/device and do not guarantee that a call or message will be received or delivered.</small>
+                        {% else %}
+                            <p>Customer contact details are unavailable or not verified for this booking.</p>
+                        {% endif %}
                         {% if booking.images.all %}
                             <div class="upload-gallery">
                                 {% for image in booking.images.all %}
@@ -52,6 +63,22 @@
                             {% endfor %}
                             <button class="button button-primary" type="submit">Save job update</button>
                         </form>
+                        <section aria-labelledby="support-{{ booking.pk }}">
+                            <h4 id="support-{{ booking.pk }}">Help and support</h4>
+                            <p>Report a non-response, late arrival, booking problem, complaint, or safety concern to BENI staff.</p>
+                            <form method="post" action="{% url 'bookings:support_request' booking.pk %}" class="account-form">
+                                {% csrf_token %}
+                                {% for field in booking.support_form %}
+                                    <div class="form-field">
+                                        {{ field.label_tag }}
+                                        {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                                        {{ field }}
+                                        {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+                                    </div>
+                                {% endfor %}
+                                <button class="button button-primary" type="submit">Request help</button>
+                            </form>
+                        </section>
                     </article>
                 {% endfor %}
             </div>

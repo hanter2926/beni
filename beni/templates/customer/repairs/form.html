@@ -15,7 +15,7 @@
     <div class="auth-panel">
         <p class="eyebrow">New service request</p>
         <h2 id="booking-form-title">Request a repair</h2>
-        <p class="form-intro">A Repair Worker will be assigned by BENI staff. The preferred time is a request, not a confirmed appointment.</p>
+        <p class="form-intro">Your verified mobile number and account name are associated with this request. A Repair Worker will be assigned by BENI staff; the preferred time is a request, not a confirmed appointment.</p>
         <form method="post" enctype="multipart/form-data" class="account-form">
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
