@@ -1,4 +1,6 @@
 from types import SimpleNamespace
+from decimal import Decimal
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -7,8 +9,13 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.test.client import RequestFactory
 
+from orders.models import CheckoutAttempt, Order, OrderItem
+from products.models import Product
+from shops.models import Shop
+from verification.models import VerificationApplication
 
-class DashboardRouteTests(SimpleTestCase):
+
+class DashboardRouteTests(TestCase):
 	def test_dashboard_routes_require_authentication(self):
 		for route_name in (
 			'dashboard:customer',
@@ -54,6 +61,99 @@ class DashboardRouteTests(SimpleTestCase):
 
 		self.assertIn(reverse('customers:orders'), content)
 		self.assertIn('View order history', content)
+
+	def test_customer_space_uses_only_marketable_products_and_own_orders(self):
+		user_model = get_user_model()
+		customer = user_model.objects.create_user(username='space-customer')
+		other_customer = user_model.objects.create_user(
+			username='space-other-customer',
+		)
+		owner = user_model.objects.create_user(username='space-shop-owner')
+		shopkeeper_group, _ = Group.objects.get_or_create(name='Shopkeeper')
+		owner.groups.add(shopkeeper_group)
+		shop = Shop.objects.create(
+			owner=owner,
+			name='Active Local Shop',
+			category='Home',
+			phone='555-0100',
+			address='1 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+			is_active=True,
+		)
+		VerificationApplication.objects.create(
+			applicant=owner,
+			shop=shop,
+			application_type=VerificationApplication.TYPE_SHOPKEEPER,
+			status=VerificationApplication.STATUS_APPROVED,
+			phone_status=VerificationApplication.CHECK_VERIFIED,
+			aadhaar_status=VerificationApplication.CHECK_VERIFIED,
+		)
+		product = Product.objects.create(
+			shop=shop,
+			name='Real Active Product',
+			category='Home',
+			price=Decimal('12.50'),
+			stock_quantity=3,
+			is_active=True,
+		)
+		attempt = CheckoutAttempt.objects.create(
+			customer=customer,
+			token=uuid.uuid4(),
+			cart_digest='a' * 64,
+		)
+		order = Order.objects.create(
+			customer=customer,
+			shop=shop,
+			checkout_attempt=attempt,
+			order_number='BENI-SPACE-CUSTOMER',
+			contact_name='Space Customer',
+			contact_phone='555-0199',
+			address_line1='1 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+			subtotal=Decimal('12.50'),
+			total=Decimal('12.50'),
+		)
+		OrderItem.objects.create(
+			order=order,
+			product=product,
+			product_name=product.name,
+			product_category=product.category,
+			unit_price=product.price,
+			quantity=1,
+			line_total=product.price,
+		)
+		other_attempt = CheckoutAttempt.objects.create(
+			customer=other_customer,
+			token=uuid.uuid4(),
+			cart_digest='b' * 64,
+		)
+		Order.objects.create(
+			customer=other_customer,
+			shop=shop,
+			checkout_attempt=other_attempt,
+			order_number='BENI-SPACE-OTHER',
+			contact_name='Other Customer',
+			contact_phone='555-0188',
+			address_line1='2 Main Street',
+			city='Example City',
+			state='Example State',
+			postal_code='12345',
+		)
+		self.client.force_login(customer)
+
+		response = self.client.get(reverse('dashboard:customer'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Real Active Product')
+		self.assertContains(response, 'Active Local Shop')
+		self.assertContains(response, 'BENI-SPACE-CUSTOMER')
+		self.assertNotContains(response, 'BENI-SPACE-OTHER')
+		self.assertContains(response, 'Available · 3 in stock')
+		self.assertContains(response, reverse('customers:cart_add', args=[product.pk]))
 
 	def test_shopkeeper_order_pages_are_linked_from_navigation_and_dashboard(self):
 		management_nav = render_to_string(

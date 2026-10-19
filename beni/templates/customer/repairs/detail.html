@@ -26,12 +26,12 @@
                 <div class="form-field">
                     <dt>Assigned Repair Worker</dt>
                     <dd>
-                        {% if booking.worker_profile and booking.worker_profile.image %}
-                            <img class="upload-current-image" src="{% url 'accounts:profile_image' booking.assigned_worker.pk %}" alt="Repair Worker profile photo">
-                        {% endif %}
                         {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}
-                        {% if booking.worker_profile.service_details %}<p>{{ booking.worker_profile.service_details|linebreaksbr }}</p>{% endif %}
                         {% if booking.contact_verified %}
+                            {% if booking.worker_profile and booking.worker_profile.image %}
+                                <img class="upload-current-image" src="{% url 'accounts:profile_image' booking.assigned_worker.pk %}" alt="Repair Worker profile photo">
+                            {% endif %}
+                            {% if booking.worker_profile.service_details %}<p>{{ booking.worker_profile.service_details|linebreaksbr }}</p>{% endif %}
                             <p>Verified mobile: {{ booking.contact_phone }}</p>
                             {% if booking.contact_alternate_phone %}<p>Alternate number: {{ booking.contact_alternate_phone }}</p>{% endif %}
                             <p class="contact-actions">

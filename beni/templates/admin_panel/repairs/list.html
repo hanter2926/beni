@@ -20,11 +20,11 @@
                     <div>
                         <strong>{{ booking.service_category }} · {{ booking.get_status_display }}</strong>
                         <small>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }} · Preferred: {{ booking.preferred_at }}</small>
-                        {% if booking.customer_profile and booking.customer_profile.phone_verified %}<p>Verified customer mobile: {{ booking.customer_profile.phone }}{% if booking.customer_profile.alternate_phone %} · Alternate: {{ booking.customer_profile.alternate_phone }}{% endif %}</p>{% endif %}
+                        {% if booking.customer_profile and booking.customer_profile.phone %}<p>Customer mobile: {{ booking.customer_profile.phone }} · {% if booking.customer_profile.phone_verified %}verified{% else %}not verified{% endif %}{% if booking.customer_profile.alternate_phone %} · Alternate: {{ booking.customer_profile.alternate_phone }}{% endif %}</p>{% endif %}
                         <p>{{ booking.problem_description|linebreaksbr }}</p>
                         <p>Address: {{ booking.service_address|linebreaksbr }}</p>
                         <p>Locality: {{ booking.locality }}</p>
-                        {% if booking.assigned_worker %}<p>Worker: {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</p>{% if booking.worker_profile and booking.worker_profile.phone_verified %}<p>Verified worker mobile: {{ booking.worker_profile.phone }}{% if booking.worker_profile.alternate_phone %} · Alternate: {{ booking.worker_profile.alternate_phone }}{% endif %}</p>{% endif %}{% endif %}
+                        {% if booking.assigned_worker %}<p>Worker: {{ booking.assigned_worker.get_full_name|default:booking.assigned_worker.get_username }}</p>{% if booking.worker_profile and booking.worker_profile.phone %}<p>Worker mobile: {{ booking.worker_profile.phone }} · {% if booking.worker_profile.phone_verified %}verified{% else %}not verified{% endif %}{% if booking.worker_profile.alternate_phone %} · Alternate: {{ booking.worker_profile.alternate_phone }}{% endif %}</p>{% endif %}{% endif %}
                         {% if booking.support_requests.all %}
                             <section aria-label="Support requests">
                                 <h3>Support requests</h3>

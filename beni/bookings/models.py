@@ -28,7 +28,7 @@ class RepairBooking(models.Model):
     )
 
     STATUS_CHOICES = [
-        (STATUS_REQUESTED, 'Requested'),
+        (STATUS_REQUESTED, 'Pending'),
         (STATUS_ASSIGNED, 'Assigned'),
         (STATUS_ACCEPTED, 'Accepted'),
         (STATUS_REJECTED, 'Rejected'),

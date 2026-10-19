@@ -7,9 +7,10 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from notifications.models import Notification
+from accounts.models import Profile
 from verification.models import VerificationApplication
 
-from .models import BookingAssignmentEvent, RepairBooking
+from .models import BookingAssignmentEvent, BookingSupportRequest, RepairBooking
 from .services import assign_worker, transition_worker_booking
 
 
@@ -78,6 +79,11 @@ class BookingNotificationTests(TestCase):
         self.customer = user_model.objects.create_user(
             username='booking-notification-customer',
         )
+        Profile.objects.create(
+            user=self.customer,
+            phone='+15550100002',
+            phone_verified=True,
+        )
         self.staff = user_model.objects.create_user(
             username='booking-notification-staff',
             is_staff=True,
@@ -97,6 +103,11 @@ class BookingNotificationTests(TestCase):
             username=f'booking-notification-worker-{suffix}',
         )
         worker.groups.add(self.worker_group)
+        Profile.objects.create(
+            user=worker,
+            phone='+15550100000',
+            phone_verified=True,
+        )
         VerificationApplication.objects.create(
             applicant=worker,
             application_type=VerificationApplication.TYPE_REPAIR_WORKER,
@@ -171,4 +182,84 @@ class BookingNotificationTests(TestCase):
         self.assertIsNone(self.booking.assigned_worker_id)
         self.assertFalse(
             BookingAssignmentEvent.objects.filter(booking=self.booking).exists()
+        )
+
+    def test_contact_is_visible_only_to_booking_participants(self):
+        assign_worker(
+            booking_id=self.booking.pk,
+            worker=self.worker,
+            actor=self.staff,
+        )
+        self.client.force_login(self.customer)
+        customer_response = self.client.get(
+            f'/repairs/{self.booking.pk}/',
+        )
+        self.assertEqual(customer_response.status_code, 200)
+        self.assertContains(customer_response, '+15550100000')
+        self.assertContains(customer_response, 'https://wa.me/15550100000')
+
+        self.client.force_login(self.worker)
+        worker_response = self.client.get('/repairs/worker/')
+        self.assertEqual(worker_response.status_code, 200)
+        self.assertContains(worker_response, '+15550100002')
+
+        self.client.force_login(self.replacement_worker)
+        unrelated_worker_response = self.client.get('/repairs/worker/')
+        self.assertEqual(unrelated_worker_response.status_code, 200)
+        self.assertNotContains(unrelated_worker_response, '+15550100002')
+
+        other_customer = get_user_model().objects.create_user(
+            username='booking-unrelated-customer',
+        )
+        self.client.force_login(other_customer)
+        self.assertEqual(
+            self.client.get(f'/repairs/{self.booking.pk}/').status_code,
+            404,
+        )
+
+    def test_safety_support_is_staff_scoped_and_disputes_active_booking(self):
+        assign_worker(
+            booking_id=self.booking.pk,
+            worker=self.worker,
+            actor=self.staff,
+        )
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            f'/repairs/{self.booking.pk}/support/',
+            {
+                'request_type': BookingSupportRequest.TYPE_SAFETY,
+                'description': 'Please have a staff member contact me.',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.booking.refresh_from_db()
+        self.assertEqual(self.booking.status, RepairBooking.STATUS_DISPUTED)
+        self.assertTrue(
+            BookingSupportRequest.objects.filter(
+                booking=self.booking,
+                reporter=self.customer,
+                request_type=BookingSupportRequest.TYPE_SAFETY,
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.staff,
+                title='Repair booking support requested',
+            ).exists()
+        )
+        self.assertNotContains(
+            self.client.get(f'/repairs/{self.booking.pk}/'),
+            '+15550100000',
+        )
+
+        self.client.force_login(self.replacement_worker)
+        self.assertEqual(
+            self.client.post(
+                f'/repairs/{self.booking.pk}/support/',
+                {
+                    'request_type': BookingSupportRequest.TYPE_COMPLAINT,
+                    'description': 'Not my booking.',
+                },
+            ).status_code,
+            404,
         )

@@ -145,6 +145,7 @@ def customer_dashboard(request):
 			'orders': orders,
 			'order_count': Order.objects.filter(customer=request.user).count(),
 			'selected_tab': selected_tab,
+			'customer_profile': Profile.objects.filter(user=request.user).first(),
 		},
 	)
 

@@ -44,7 +44,13 @@ class PrivateProfileImageAccessTests(SimpleTestCase):
 		make_response.assert_called_once_with(profile.image)
 
 	@patch('accounts.views.get_object_or_404')
-	def test_other_non_staff_user_cannot_access_profile_image(self, get_profile):
+	@patch('bookings.models.RepairBooking.objects.filter')
+	def test_other_non_staff_user_cannot_access_profile_image(
+		self,
+		filter_bookings,
+		get_profile,
+	):
+		filter_bookings.return_value.exists.return_value = False
 		with self.assertRaises(Http404):
 			private_profile_image(self.make_request(8), 7)
 		get_profile.assert_not_called()

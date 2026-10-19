@@ -41,22 +41,165 @@
             <div><p class="customer-overline">Choose your next step</p><h2 id="browse-title">Browse BENI</h2></div>
             <span class="customer-section-note">Active local listings</span>
         </div>
-        <div class="customer-tabs" role="tablist" aria-label="Browse BENI">
-            <button type="button" role="tab" id="tab-shops" aria-selected="true" aria-controls="panel-shops">Local shops</button>
-            <button type="button" role="tab" id="tab-repair" aria-selected="false" aria-controls="panel-repair" tabindex="-1">Repair help</button>
-            <button type="button" role="tab" id="tab-orders" aria-selected="false" aria-controls="panel-orders" tabindex="-1">My orders</button>
+        <div class="customer-tabs" role="tablist" aria-label="Customer services">
+            <button type="button" role="tab" id="tab-shops" aria-selected="{% if selected_tab == 'shops' %}true{% else %}false{% endif %}" aria-controls="panel-shops" {% if selected_tab != 'shops' %}tabindex="-1"{% endif %}>Local shops</button>
+            <button type="button" role="tab" id="tab-repair" aria-selected="{% if selected_tab == 'repair' %}true{% else %}false{% endif %}" aria-controls="panel-repair" {% if selected_tab != 'repair' %}tabindex="-1"{% endif %}>Repair help</button>
+            <button type="button" role="tab" id="tab-orders" aria-selected="{% if selected_tab == 'orders' %}true{% else %}false{% endif %}" aria-controls="panel-orders" {% if selected_tab != 'orders' %}tabindex="-1"{% endif %}>My orders</button>
         </div>
-        <div class="customer-tab-panel" role="tabpanel" id="panel-shops" aria-labelledby="tab-shops" tabindex="0">
-            <div class="customer-empty-mark" aria-hidden="true">01</div>
-            <div><h3>Browse products from local shops.</h3><p>Only active products from active shops are shown in the public catalog.</p><a class="customer-catalog-link" href="{% url 'catalog:list' %}">Open product catalog <span aria-hidden="true">&rarr;</span></a></div>
+
+        <div class="customer-tab-panel customer-panel-content" role="tabpanel" id="panel-shops" aria-labelledby="tab-shops" tabindex="0" {% if selected_tab != 'shops' %}hidden{% endif %}>
+            <form class="customer-shop-filters" method="get" role="search" aria-label="Search local shops and products" data-shop-search>
+                <input type="hidden" name="tab" value="shops">
+                <label>
+                    <span>Search products and shops</span>
+                    <input type="search" name="q" value="{{ query }}" placeholder="Product, category, or shop">
+                </label>
+                <label>
+                    <span>Category</span>
+                    <select name="category">
+                        <option value="">All categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button class="customer-action" type="submit">Search shops</button>
+                {% if query or selected_category %}<a class="customer-catalog-link" href="{% url 'dashboard:customer' %}?tab=shops">Clear filters</a>{% endif %}
+                <p class="customer-loading" data-shop-loading role="status" hidden>Loading local products…</p>
+            </form>
+            {% if products %}
+                <p class="customer-result-count">{{ product_count }} matching product{{ product_count|pluralize }}{% if product_count > products|length %} · showing the first {{ products|length }}{% endif %}</p>
+                <div class="customer-product-grid">
+                    {% for product in products %}
+                        <article class="customer-product-card">
+                            <a class="customer-product-image-link" href="{% url 'catalog:detail' product.pk %}">
+                                {% if product.image %}
+                                    <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
+                                {% else %}
+                                    <span class="customer-product-image-fallback" aria-hidden="true">BENI</span>
+                                {% endif %}
+                            </a>
+                            <div class="customer-product-copy">
+                                <p class="customer-product-category">{{ product.category }}</p>
+                                <h3>{{ product.name }}</h3>
+                                <p class="customer-product-shop">{{ product.shop.name }}</p>
+                                <p class="customer-product-price">{{ product.price|floatformat:2 }}</p>
+                                <p class="customer-product-availability {% if not product.stock_quantity %}is-unavailable{% endif %}">
+                                    {% if product.stock_quantity %}Available · {{ product.stock_quantity }} in stock{% else %}Out of stock{% endif %}
+                                </p>
+                                <div class="customer-product-actions">
+                                    <a class="customer-outline-button" href="{% url 'catalog:detail' product.pk %}">View Product</a>
+                                    {% if product.stock_quantity %}
+                                        <form method="post" action="{% url 'customers:cart_add' product.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="quantity" value="1">
+                                            <button class="customer-small-action" type="submit">Add to Cart</button>
+                                        </form>
+                                    {% else %}
+                                        <button class="customer-small-action" type="button" disabled>Add to Cart</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+                {% if product_count > products|length %}<a class="customer-catalog-link" href="{% url 'catalog:list' %}?q={{ query|urlencode }}&amp;category={{ selected_category|urlencode }}">See all matching products <span aria-hidden="true">&rarr;</span></a>{% endif %}
+            {% else %}
+                <section class="customer-empty-state" aria-labelledby="shops-empty-title">
+                    <span class="customer-empty-mark" aria-hidden="true">01</span>
+                    <div><h3 id="shops-empty-title">No matching products yet</h3><p>Try a different search or category. Only products from active local shops are shown.</p><a class="customer-catalog-link" href="{% url 'catalog:list' %}">Open full catalog <span aria-hidden="true">&rarr;</span></a></div>
+                </section>
+            {% endif %}
         </div>
-        <div class="customer-tab-panel" role="tabpanel" id="panel-repair" aria-labelledby="tab-repair" tabindex="0" hidden>
-            <div class="customer-empty-mark" aria-hidden="true">02</div>
-            <div><h3>Request a repair service.</h3><p>Submit a repair request and track its appointment and status from your account.</p><a class="customer-catalog-link" href="{% url 'bookings:customer_create' %}">Create a repair request <span aria-hidden="true">&rarr;</span></a> · <a class="customer-catalog-link" href="{% url 'bookings:customer_list' %}">View my repair requests</a></div>
+
+        <div class="customer-tab-panel customer-panel-content" role="tabpanel" id="panel-repair" aria-labelledby="tab-repair" tabindex="0" {% if selected_tab != 'repair' %}hidden{% endif %}>
+            <div class="customer-panel-heading">
+                <div><p class="customer-overline">Local repair services</p><h3>Find help for what needs fixing.</h3></div>
+                <a class="customer-outline-button" href="{% url 'bookings:customer_list' %}">My repair requests</a>
+            </div>
+            <div class="customer-repair-grid">
+                {% for service in repair_services %}
+                    <article class="customer-repair-card">
+                        <span class="customer-repair-icon" aria-hidden="true">{% if forloop.counter == 1 %}M{% elif forloop.counter == 2 %}L{% elif forloop.counter == 3 %}E{% else %}+{% endif %}</span>
+                        <p class="customer-product-category">Repair service</p>
+                        <h3>{{ service.name }}</h3>
+                        <p>{{ service.description }}</p>
+                        <p><strong>Provider:</strong> {% if service.providers %}{{ service.providers|join:", " }}{% else %}Assigned by BENI after booking{% endif %}</p>
+                        <p class="customer-estimate"><strong>Estimated price:</strong> {{ service.estimated_price }}</p>
+                        <button class="customer-small-action" type="button" data-repair-category="{{ service.name }}">Book this repair</button>
+                    </article>
+                {% endfor %}
+            </div>
+            <section class="customer-booking-panel" id="repair-request" aria-labelledby="repair-request-title">
+                <div><p class="customer-overline">Repair booking</p><h3 id="repair-request-title">Tell us what needs fixing.</h3><p>A preferred visit time is a request and is not confirmed until a worker accepts.</p></div>
+                {% if customer_profile.phone_verified and customer_profile.phone %}
+                    <form method="post" action="{% url 'bookings:customer_create' %}" enctype="multipart/form-data" class="customer-booking-form">
+                        {% csrf_token %}
+                        {% if booking_form.non_field_errors %}<div class="form-errors" role="alert">{{ booking_form.non_field_errors }}</div>{% endif %}
+                        {% for field in booking_form %}
+                            <div class="form-field">
+                                {{ field.label_tag }}
+                                {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                                {{ field }}
+                                {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+                                {% if field.name == 'images' %}<div class="upload-preview-list" data-image-preview-list aria-live="polite"></div>{% endif %}
+                            </div>
+                        {% endfor %}
+                        <button class="customer-action" type="submit">Book Repair</button>
+                    </form>
+                {% else %}
+                    <p class="customer-verification-notice">Add your mobile number and have it verified by BENI staff before booking. <a href="{% url 'accounts:profile' %}">Update your profile</a></p>
+                {% endif %}
+            </section>
         </div>
-        <div class="customer-tab-panel" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders" tabindex="0" hidden>
-            <div class="customer-empty-mark" aria-hidden="true">03</div>
-            <div><h3>Keep track of your orders.</h3><p>Review order status and details from your order history.</p><a class="customer-catalog-link" href="{% url 'customers:orders' %}">View order history <span aria-hidden="true">&rarr;</span></a></div>
+
+        <div class="customer-tab-panel customer-panel-content" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders" tabindex="0" {% if selected_tab != 'orders' %}hidden{% endif %}>
+            <div class="customer-panel-heading">
+                <div><p class="customer-overline">Order history</p><h3>Your recent orders</h3><p>{{ order_count }} order{{ order_count|pluralize }} in your account.</p></div>
+                <a class="customer-outline-button" href="{% url 'customers:orders' %}">View order history (all orders)</a>
+            </div>
+            {% if orders %}
+                <div class="customer-orders">
+                    {% for order in orders %}
+                        <article class="customer-order-card">
+                            <header class="customer-order-header">
+                                <div><p>{{ order.created_at|date:"M j, Y" }}</p><h4>Order {{ order.order_number }}</h4><small>{{ order.shop.name }}</small></div>
+                                <div class="customer-order-badges">
+                                    <span class="customer-status-badge">{{ order.get_status_display }}</span>
+                                    <span class="customer-status-badge customer-payment-badge">{{ order.get_payment_status_display }}</span>
+                                </div>
+                            </header>
+                            <div class="customer-order-items">
+                                {% for item in order.items.all %}
+                                    <div class="customer-order-item">
+                                        {% if item.product.image %}<img src="{{ item.product.image.url }}" alt="" loading="lazy">
+                                        {% else %}<span class="customer-order-image-fallback" aria-hidden="true">B</span>{% endif %}
+                                        <div><strong>{{ item.product_name }}</strong><span>Qty {{ item.quantity }}</span></div>
+                                        <strong>{{ item.line_total|floatformat:2 }}</strong>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <footer class="customer-order-footer">
+                                <strong>Total {{ order.total|floatformat:2 }}</strong>
+                                <div>
+                                    <a class="customer-outline-button" href="{% url 'customers:order_detail' order.order_number %}">Track Order / View Details</a>
+                                    {% if order.can_cancel %}
+                                        <form method="post" action="{% url 'customers:order_cancel' order.order_number %}">
+                                            {% csrf_token %}
+                                            <button class="customer-cancel-button" type="submit">Cancel Order</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <section class="customer-empty-state" aria-labelledby="orders-empty-title">
+                    <span class="customer-empty-mark" aria-hidden="true">03</span>
+                    <div><h3 id="orders-empty-title">Your orders will appear here</h3><p>You have not placed an order yet. Browse local shops to get started.</p><a class="customer-action" href="{% url 'catalog:list' %}">Shop local <span aria-hidden="true">&rarr;</span></a></div>
+                </section>
+            {% endif %}
         </div>
     </section>
 
@@ -73,4 +216,4 @@
     </div>
 </div>
 {% endblock %}
-{% block scripts %}<script defer src="{% static 'js/customer/discovery.js' %}"></script>{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/customer/discovery.js' %}"></script><script defer src="{% static 'js/base/upload-preview.js' %}"></script>{% endblock %}

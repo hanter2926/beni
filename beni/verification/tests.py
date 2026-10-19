@@ -9,6 +9,7 @@ from django.urls import reverse
 from types import SimpleNamespace
 
 from notifications.models import Notification
+from accounts.models import Profile
 from shops.models import Shop
 
 from .models import VerificationApplication
@@ -58,6 +59,10 @@ class VerificationNotificationTests(TestCase):
             username='verification-notification-worker',
         )
         self.worker.groups.add(self.worker_group)
+        Profile.objects.create(
+            user=self.worker,
+            phone='+15550100001',
+        )
         self.shopkeeper = get_user_model().objects.create_user(
             username='verification-notification-shopkeeper',
         )

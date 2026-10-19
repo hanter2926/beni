@@ -11,7 +11,7 @@ from accounts.models import valid_phone_number
 from accounts.roles import REPAIR_WORKER_GROUP, role_group_required
 from beni.private_files import private_image_response
 from customers.views import is_customer_user
-from notifications.services import create_notification
+from notifications.services import create_notification, notify_active_staff
 
 from .forms import (
     BookingImageForm,
@@ -139,6 +139,12 @@ def customer_booking_create(request):
                 message='Your repair request was submitted.',
                 destination_name='bookings:customer_detail',
                 destination_args=(booking.pk,),
+            )
+            notify_active_staff(
+                event_key=f'booking:{booking.pk}:created:admin',
+                title='Repair request needs assignment',
+                message='A customer submitted a repair request.',
+                destination_name='bookings:admin_list',
             )
         messages.success(request, 'Your repair request was submitted.')
         return redirect('bookings:customer_detail', booking_id=booking.pk)
