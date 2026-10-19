@@ -3,12 +3,12 @@
 ## Scope and safety
 
 The original comparison of Django models, migration recorder, and live MySQL
-schema was read-only. In the follow-up implementation, the bookings index
+schema was read-only. After explicit user approval, the reviewed pending
+migrations were applied to the primary MySQL database. The bookings index
 name was shortened consistently in the model and its unapplied initial
 migration, and a wallet initial migration was generated from the models after
-repository history inspection found no prior wallet migration file. No
-migration was applied to the primary MySQL database. Secrets were not read
-out or reported.
+repository history inspection found no prior wallet migration file. Secrets
+were not read out or reported.
 
 The active connection resolved from `beni.settings` is MySQL database
 `beni_db`, host `127.0.0.1`, port `3306`, alias `default`. `INSTALLED_APPS`
@@ -33,7 +33,27 @@ was not the primary `beni_db`; read-only verification afterward confirmed
 test database `test_beni_db` is currently absent. Subsequent tests explicitly
 asserted and used in-memory SQLite.
 
-## Findings for reported errors
+## Current state after approved migrations
+
+The user-approved `manage.py migrate --noinput` completed successfully. It
+applied `accounts.0001_initial`, `bookings.0001_initial`,
+`bookings.0002_repairbookingimage`,
+`products.0002_alter_product_image_productimage`,
+`shops.0002_shop_cover_image_shop_logo_image`, `verification.0001_initial`,
+and `wallets.0001_initial`. Read-only introspection confirmed the previously
+missing account, booking, gallery, verification, and wallet tables, and the
+`shops_shop.logo_image` and `shops_shop.cover_image` columns. The notification
+table remains present. All migrations are now applied.
+
+`/accounts/login/` and `/catalog/` each returned HTTP 200 from the running
+server. Anonymous requests to `/customer/orders/`, `/repairs/`, and
+`/accounts/profile/` returned HTTP 302 to login as intended. Authenticated
+live MySQL rendering for those three endpoints was not directly exercised.
+
+## Original findings for reported errors
+
+The following table records causes before migrations were applied. See
+“Approved migration plan” for current schema status and runtime checks.
 
 | URL / reported error | Model or query | Evidence and root cause | Risk / approval |
 |---|---|---|---|
@@ -43,20 +63,21 @@ asserted and used in-memory SQLite.
 | `/accounts/profile/` — missing `accounts_profile` | `accounts.views.profile` reads `Profile` | `accounts_profile` is absent and `accounts.0001_initial` is unapplied. The view's optional `.filter(...).first()` still requires the table to exist; suppressing the database error would hide the schema defect. | High. Requires approval to create the profile table. |
 | Previous customer dashboard — missing `notifications_notification` | `notifications.Notification` | The current database contains this table with all model columns; its `notifications.0001_initial` migration is recorded as applied. The prior error is not reproducible from the present schema evidence. It may predate the migration application or have come from a different runtime connection, but the available evidence cannot establish which. | Low for the current schema; investigate the old process/connection if it recurs. |
 
-The missing tables/columns still require schema migrations and are not hidden
-by code fallbacks. Separately, code-level defects found during implementation
-were fixed: the bookings index name now fits Django's backend limit, and
-verification submission notifications now link staff to the admin review
-inbox. No primary-database schema changes were made.
+The missing tables/columns were not hidden by code fallbacks. Code-level
+defects found during implementation were fixed: the bookings index name now
+fits Django's backend limit, and verification submission notifications now
+link staff to the admin review inbox.
 
 The prior `models.E034` blocker was resolved by renaming the index to
 `booking_customer_created_idx` in both `bookings/models.py` and
 `bookings/migrations/0001_initial.py`. This migration is unapplied on the
-observed database, and the database-aware check now passes.
+observed database snapshot before approval; the database-aware check passed
+after the correction, and the migration was subsequently applied.
 
-## Model-to-database inventory
+## Pre-migration model-to-database inventory
 
-Column lists below are database column names as reported by Django model
+The following inventory is the pre-migration snapshot. Column lists below are
+database column names as reported by Django model
 metadata and MySQL introspection. A missing table means all expected columns
 are absent. For existing tables, “matches” means all model columns are
 present; this column comparison does not independently certify indexes,
@@ -104,16 +125,16 @@ tables `notifications_notification`, `orders_checkoutattempt`, `orders_order`,
 `orders_orderitem`, `products_product`, and `shops_shop`. No other live
 project-app tables were found.
 
-## Migration recorder and operation review
+## Pre-migration recorder and operation review
 
-Currently applied project migrations:
+Project migrations recorded as applied before the follow-up migration run:
 
 - `notifications.0001_initial`
 - `orders.0001_initial`
 - `products.0001_initial`
 - `shops.0001_initial`
 
-Currently unapplied existing project migrations:
+Project migrations that were pending before the follow-up migration run:
 
 - `accounts.0001_initial`
 - `bookings.0001_initial`
@@ -123,27 +144,27 @@ Currently unapplied existing project migrations:
 - `verification.0001_initial` (depends on `shops.0002_shop_cover_image_shop_logo_image`)
 - `wallets.0001_initial` (generated from current wallet models; depends on the swappable user model)
 
-Those reviewed unapplied migrations contain model/table creation, two shop
-image-field additions, and declared indexes. No `RunSQL`, `RunPython`, fake
+Those migrations contained model/table creation, two shop image-field
+additions, and declared indexes. No `RunSQL`, `RunPython`, fake
 migration, or data-deletion operation was found in these migrations.
 Read-only plans confirmed: accounts creates `Profile`; shops adds the two
 image fields; bookings creates `RepairBooking`, `BookingAssignmentEvent`,
 their indexes, and `RepairBookingImage`; products alters the `image` field
 state and creates `ProductImage`; verification creates its three models. The
-bookings plan includes the overlong index name described above and is not
-ready for application until that is resolved.
+bookings index name was shortened to `booking_customer_created_idx` in both
+the model and initial migration before the approved migration run.
 
 Repository history contains no earlier wallet migration. A new
 `wallets.0001_initial` was generated from the current `WalletAccount` and
-`WalletLedgerEntry` models. It is pending on the observed database. Other
+`WalletLedgerEntry` models and applied during the approved migration run. Other
 installed model apps without migration files have no models and therefore no
 detected migration gap.
 
-## Approval-gated migration plan
+## Approved migration plan
 
-No schema-changing command below has been run. Read-only migration plans were
-inspected successfully after the bookings index-name issue was resolved.
-These schema-changing actions still require explicit approval:
+The plan below was reviewed and explicitly approved. It creates missing
+tables and constraints/indexes and adds two shop image columns; it contains no
+`RunSQL`, `RunPython`, fake migration, or data-deletion operation.
 
 1. `python manage.py migrate accounts 0001_initial` — create
    `accounts_profile`.
@@ -162,36 +183,36 @@ These schema-changing actions still require explicit approval:
    `wallets_walletaccount` and `wallets_walletledgerentry`, their foreign keys,
    uniqueness/check constraints, and indexes.
 
-The order above satisfies declared migration dependencies. It is not approval
-to execute them. Review each command's `--plan` output, then apply only
-approved targets and re-run introspection and checks. The wallet migration
-file now exists but remains unapplied.
+The plan was rechecked immediately before execution and applied with
+`venv\\Scripts\\python.exe manage.py migrate --noinput`. All seven project
+migrations completed with `OK`; they are no longer pending on the observed
+database.
 
 ## Verification performed
 
-- `python manage.py check` — passed (`System check identified no issues`).
-- `python manage.py check --database default` — passed after the index-name
-  correction.
-- `python manage.py showmigrations --list` — completed; statuses are recorded
-  above.
-- `python manage.py makemigrations --check --dry-run` — passed after
-  generating `wallets.0001_initial`.
-- Targeted and full `migrate --plan` previews — completed without applying
-  any migration.
+- `venv\\Scripts\\python.exe manage.py check --database default` — passed
+  before and after the approved migrations; the system-Python server
+  environment also passed its database-aware check.
+- `venv\\Scripts\\python.exe manage.py showmigrations --list` — confirmed all
+  project migrations are applied except apps without migrations/models.
+- `venv\\Scripts\\python.exe manage.py makemigrations --check --dry-run` —
+  passed (`No changes detected`).
+- `venv\\Scripts\\python.exe manage.py migrate --noinput` — all seven
+  approved migrations completed with `OK`.
 - Full tests — ran against asserted in-memory SQLite; all 112 tests passed.
   The cart test setup now retains one session-store instance when saving, and
   the ineligible-product test consumes the add-to-cart redirect before
   asserting the later cart response.
 - Template static-reference scan — all 132 literal references resolved; no
   missing static files found.
-- Browser/HTTP verification — `/accounts/login/` returned HTTP 200 with a
-  rendered login form on the server listening at `127.0.0.1:8000`.
+- Browser/HTTP verification — `/accounts/login/` and `/catalog/` returned
+  HTTP 200 on the server listening at `127.0.0.1:8000`; protected pages
+  redirected anonymous requests to login.
 - Read-only Django/MySQL introspection — confirmed the active database name,
   full live table set, columns, expected model tables/columns, and applied
   migration recorder rows. It did not read database records.
 
-The login URL is verified. The catalog, orders, repairs, and profile pages were
-not runtime-tested against MySQL and remain blocked by the missing
-tables/columns until the approved migrations are applied and verified.
-Other workflows should be tested against an isolated database or after schema
-approval.
+The login and public catalog URLs were verified. The authenticated
+database-backed `/customer/orders/`, `/repairs/`, and `/accounts/profile/`
+pages were not directly tested against live accounts; the isolated full test
+suite passed after the schema was applied.
