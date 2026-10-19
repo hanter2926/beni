@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from django.shortcuts import render
 
 from accounts.models import Profile
@@ -14,36 +14,14 @@ from accounts.roles import (
 	user_has_role_group,
 )
 from bookings.forms import RepairBookingForm
+from bookings.categories import REPAIR_CATEGORIES
 from bookings.models import RepairBooking
 from orders.models import Order
 from products.models import Product
 from products.services import eligible_shop_verifications, marketable_products
+from reviews.models import Review
 from shops.models import Shop
 from verification.models import VerificationApplication
-
-
-REPAIR_CATEGORIES = (
-	{
-		'name': 'Mobile repair',
-		'keywords': ('mobile', 'phone', 'smartphone'),
-		'description': 'Screen, battery, charging, and other mobile device problems.',
-	},
-	{
-		'name': 'Laptop repair',
-		'keywords': ('laptop', 'notebook', 'computer'),
-		'description': 'Hardware, performance, display, and software troubleshooting.',
-	},
-	{
-		'name': 'Electronics repair',
-		'keywords': ('electronics', 'electronic', 'tv', 'television'),
-		'description': 'Help with household electronics and electronic devices.',
-	},
-	{
-		'name': 'Other repairs',
-		'keywords': ('appliance', 'repair', 'service'),
-		'description': 'Describe your issue and BENI will route it to a suitable worker.',
-	},
-)
 
 
 @login_required(login_url='accounts:login')
@@ -91,13 +69,37 @@ def customer_dashboard(request):
 				VerificationApplication.CHECK_VERIFIED
 			),
 			phone_verified=True,
+		).annotate(
+			review_count=Count(
+				'user__assigned_repair_bookings__customer_review',
+				filter=Q(
+					user__assigned_repair_bookings__customer_review__status=(
+						Review.STATUS_PUBLISHED
+					)
+				),
+			),
+			average_rating=Avg(
+				'user__assigned_repair_bookings__customer_review__rating',
+				filter=Q(
+					user__assigned_repair_bookings__customer_review__status=(
+						Review.STATUS_PUBLISHED
+					)
+				),
+			),
 		).select_related('user').distinct()[:100]
 	)
 	repair_services = []
 	for category in REPAIR_CATEGORIES:
 		keywords = category['keywords']
 		providers = [
-			profile.user.get_full_name() or profile.user.get_username()
+			{
+				'name': (
+					profile.user.get_full_name()
+					or profile.user.get_username()
+				),
+				'average_rating': profile.average_rating,
+				'review_count': profile.review_count,
+			}
 			for profile in worker_profiles
 			if any(
 				keyword in profile.service_details.casefold()

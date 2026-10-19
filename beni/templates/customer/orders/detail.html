@@ -48,7 +48,20 @@
         </div>
     </section>
 
+    {% if order.status == 'delivered' %}
+        <section class="review-order-callout">
+            {% if order.customer_review %}
+                <p>Your review is {{ order.customer_review.get_status_display|lower }}.</p>
+                <a href="{% url 'reviews:customer_list' %}">View your reviews</a>
+            {% else %}
+                <p>Your order is complete. Share feedback about {{ order.shop.name }}.</p>
+                <a class="button button-primary" href="{% url 'reviews:submit_order' order.order_number %}">Review this shop</a>
+            {% endif %}
+        </section>
+    {% endif %}
+
     <div class="order-detail-actions">
+        <a class="catalog-back-link" href="{% url 'billing:order_invoice' order.order_number %}">View or print order receipt</a>
         {% if payment_attempt and order.payment_status != 'paid' %}
             <a class="button button-primary" href="{% url 'payments:attempt' payment_attempt.pk %}">Continue online payment</a>
         {% endif %}

@@ -1,9 +1,10 @@
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.roles import SHOPKEEPER_GROUP, role_group_required
+from reviews.models import Review
 
 from .forms import ProductForm
 from .models import Product
@@ -54,7 +55,22 @@ def public_product_detail(request, product_id):
 		public_products().prefetch_related('shop__photos'),
 		pk=product_id,
 	)
-	return render(request, 'customer/catalog/detail.html', {'product': product})
+	shop_reviews = Review.objects.filter(
+		order__shop_id=product.shop_id,
+		status=Review.STATUS_PUBLISHED,
+	).select_related('order')
+	return render(
+		request,
+		'customer/catalog/detail.html',
+		{
+			'product': product,
+			'shop_reviews': shop_reviews,
+			'shop_review_count': shop_reviews.count(),
+			'shop_average_rating': shop_reviews.aggregate(
+				average_rating=Avg('rating'),
+			)['average_rating'],
+		},
+	)
 
 
 @role_group_required(SHOPKEEPER_GROUP)

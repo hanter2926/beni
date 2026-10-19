@@ -10,6 +10,8 @@ from notifications.models import Notification
 from accounts.models import Profile
 from verification.models import VerificationApplication
 
+from .categories import REPAIR_CATEGORY_CHOICES
+from .forms import RepairBookingForm
 from .models import BookingAssignmentEvent, BookingSupportRequest, RepairBooking
 from .services import assign_worker, transition_worker_booking
 
@@ -68,6 +70,20 @@ class PrivateBookingImageAccessTests(SimpleTestCase):
 
         with self.assertRaises(Http404):
             private_booking_image(self.make_request(9), 14)
+
+
+class RepairCategoryFormTests(SimpleTestCase):
+    def test_booking_form_uses_the_customer_dashboard_categories(self):
+        form = RepairBookingForm()
+
+        self.assertEqual(
+            tuple(form.fields['service_category'].choices[1:]),
+            REPAIR_CATEGORY_CHOICES,
+        )
+        self.assertIn(
+            ('Other repairs', 'Other repairs'),
+            form.fields['service_category'].choices,
+        )
 
 
 class BookingNotificationTests(TestCase):

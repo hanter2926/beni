@@ -15,6 +15,8 @@ DESTINATION_ARGUMENT_COUNTS = {
     'verification:worker_application': 0,
     'verification:shopkeeper_application': 1,
     'payments:cancellation_queue': 0,
+    'reviews:customer_list': 0,
+    'reviews:moderation_queue': 0,
 }
 
 

@@ -1,0 +1,22 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Customer reviews | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/reviews/reviews.css' %}">{% endblock %}
+{% block content %}
+<section class="reviews-page" aria-labelledby="target-reviews-title">
+    <p class="review-kicker">BENI / CUSTOMER FEEDBACK</p>
+    <h1 id="target-reviews-title">Published reviews</h1>
+    {% if review_count %}
+        <p class="review-summary">{{ review_count }} published review{{ review_count|pluralize }} · Average {{ average_rating|floatformat:1 }} / 5</p>
+    {% endif %}
+    {% for review in reviews %}
+        <article class="review-card">
+            <header><strong>{{ review.rating }} / 5</strong><span>{{ review.created_at|date:"DATE_FORMAT" }}</span></header>
+            {% if review.order %}<p>Order {{ review.order.order_number }}</p>{% else %}<p>Completed repair #{{ review.booking_id }}</p>{% endif %}
+            {% if review.body %}<p class="review-body">{{ review.body|linebreaksbr }}</p>{% else %}<p>No written comment.</p>{% endif %}
+        </article>
+    {% empty %}
+        <div class="reviews-empty"><h2>No published reviews yet</h2><p>Reviews appear here after BENI staff moderation.</p></div>
+    {% endfor %}
+</section>
+{% endblock %}

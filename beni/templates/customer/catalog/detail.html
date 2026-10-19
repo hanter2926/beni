@@ -3,7 +3,7 @@
 {% block title %}{{ product.name }} | BENI{% endblock %}
 {% block body_class %}customer-page catalog-page{% endblock %}
 {% block layout_class %}catalog-layout{% endblock %}
-{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}">{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/dashboard.css' %}"><link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}"><link rel="stylesheet" href="{% static 'css/base/uploads.css' %}"><link rel="stylesheet" href="{% static 'css/reviews/reviews.css' %}">{% endblock %}
 {% block content %}
 <div class="catalog-content">
     <p class="catalog-kicker">BENI / PRODUCT DETAILS</p>
@@ -53,5 +53,17 @@
             {% endif %}
         </div>
     </article>
+    {% if shop_review_count %}
+        <section class="shop-public-reviews" aria-labelledby="shop-reviews-title">
+            <h2 id="shop-reviews-title">Shop reviews</h2>
+            <p>{{ shop_review_count }} published review{{ shop_review_count|pluralize }} · Average {{ shop_average_rating|floatformat:1 }} / 5</p>
+            {% for review in shop_reviews %}
+                <article class="shop-public-review">
+                    <strong>{{ review.rating }} / 5</strong>
+                    {% if review.body %}<p>{{ review.body|linebreaksbr }}</p>{% else %}<p>Rating only.</p>{% endif %}
+                </article>
+            {% endfor %}
+        </section>
+    {% endif %}
 </div>
 {% endblock %}

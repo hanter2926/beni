@@ -33,6 +33,7 @@
                         {% endfor %}
                     </div>
                     <p class="shop-order-total">Total: {{ order.total }}</p>
+                    <p><a href="{% url 'billing:order_invoice' order.order_number %}">View or print receipt</a></p>
                     {% if order.status_form.fields.status.choices %}
                         <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form">
                             {% csrf_token %}

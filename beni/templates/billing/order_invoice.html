@@ -1,0 +1,81 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Order receipt {{ order.order_number }} | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/billing/invoice.css' %}">{% endblock %}
+{% block content %}
+<div class="invoice-page">
+    <header class="invoice-heading">
+        <div>
+            <p class="invoice-kicker">BENI / ORDER RECEIPT</p>
+            <h1>Order receipt</h1>
+            <p>This receipt reflects the order and payment records stored by BENI.</p>
+        </div>
+        <button class="invoice-print-button" type="button" data-print-invoice>Print receipt</button>
+    </header>
+
+    <section class="invoice-facts" aria-label="Receipt information">
+        <div><span>Order number</span><strong>{{ order.order_number }}</strong></div>
+        <div><span>Order date</span><strong>{{ order.created_at|date:"DATE_FORMAT" }}</strong></div>
+        <div><span>Order status</span><strong>{{ order.get_status_display }}</strong></div>
+        <div><span>Payment status</span><strong>{{ order.get_payment_status_display }}</strong></div>
+        <div><span>Payment method</span><strong>{{ order.checkout_attempt.get_payment_method_display }}</strong></div>
+        <div><span>Shop</span><strong>{{ order.shop.name }}</strong></div>
+    </section>
+
+    <section class="invoice-parties">
+        <div>
+            <h2>Customer</h2>
+            <p>{{ order.contact_name }}</p>
+            <p>{{ order.contact_phone }}</p>
+            <p>{{ order.address_line1 }}<br>{{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
+        </div>
+        <div>
+            <h2>Shop</h2>
+            <p>{{ order.shop.name }}</p>
+            <p>{{ order.shop.address }}<br>{{ order.shop.city }}, {{ order.shop.state }} {{ order.shop.postal_code }}</p>
+        </div>
+    </section>
+
+    <section class="invoice-items">
+        <h2>Items</h2>
+        <div class="invoice-table-wrap">
+            <table>
+                <thead>
+                    <tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Unit price</th><th scope="col">Line total</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items.all %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>₹{{ item.unit_price }}</td>
+                            <td>₹{{ item.line_total }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4">No item lines are recorded for this order.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <dl class="invoice-totals">
+            <div><dt>Subtotal</dt><dd>₹{{ order.subtotal }}</dd></div>
+            <div><dt>Delivery</dt><dd>₹{{ order.delivery_fee }}</dd></div>
+            <div><dt>Service fee</dt><dd>₹{{ order.service_fee }}</dd></div>
+            <div class="invoice-grand-total"><dt>Order total</dt><dd>₹{{ order.total }}</dd></div>
+        </dl>
+    </section>
+
+    {% if order.delivery_notes %}<p class="invoice-notes"><strong>Delivery notes:</strong> {{ order.delivery_notes }}</p>{% endif %}
+    <p class="invoice-disclaimer">This is a digital order receipt, not a tax invoice. Payment status is shown as recorded in BENI.</p>
+    <nav class="invoice-actions" aria-label="Receipt actions">
+        {% if role_label == 'Shopkeeper' %}
+            <a href="{% url 'shopkeeper_order_detail' order.order_number %}">Back to order</a>
+        {% elif role_label == 'Customer' %}
+            <a href="{% url 'customers:order_detail' order.order_number %}">Back to order</a>
+        {% else %}
+            <a href="{% url 'admin:index' %}">Admin</a>
+        {% endif %}
+    </nav>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/billing/invoice.js' %}" defer></script>{% endblock %}

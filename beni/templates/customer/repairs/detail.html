@@ -52,6 +52,18 @@
                 <button class="button" type="submit">Cancel repair request</button>
             </form>
         {% endif %}
+        {% if booking.status == 'completed' and booking.assigned_worker %}
+            <section class="booking-support" aria-labelledby="repair-review-title">
+                <h3 id="repair-review-title">Review your repair service</h3>
+                {% if booking.customer_review %}
+                    <p>Your review is {{ booking.customer_review.get_status_display|lower }}.</p>
+                    <a href="{% url 'reviews:customer_list' %}">View your reviews</a>
+                {% else %}
+                    <p>Share feedback about the Repair Worker after this completed service.</p>
+                    <a class="button button-primary" href="{% url 'reviews:submit_repair' booking.pk %}">Review this repair</a>
+                {% endif %}
+            </section>
+        {% endif %}
         <section class="booking-photo-section" aria-labelledby="booking-photos-title">
             <h3 id="booking-photos-title">Repair photos</h3>
             {% if booking.images.all %}

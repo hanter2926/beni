@@ -124,7 +124,13 @@
                         <p class="customer-product-category">Repair service</p>
                         <h3>{{ service.name }}</h3>
                         <p>{{ service.description }}</p>
-                        <p><strong>Provider:</strong> {% if service.providers %}{{ service.providers|join:", " }}{% else %}Assigned by BENI after booking{% endif %}</p>
+                        <p><strong>Provider:</strong>
+                            {% if service.providers %}
+                                {% for provider in service.providers %}
+                                    {{ provider.name }}{% if provider.review_count %} · {{ provider.average_rating|floatformat:1 }}/5 ({{ provider.review_count }} review{{ provider.review_count|pluralize }}){% endif %}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}Assigned by BENI after booking{% endif %}
+                        </p>
                         <p class="customer-estimate"><strong>Estimated price:</strong> {{ service.estimated_price }}</p>
                         <button class="customer-small-action" type="button" data-repair-category="{{ service.name }}">Book this repair</button>
                     </article>

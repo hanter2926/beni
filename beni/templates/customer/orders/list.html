@@ -33,6 +33,7 @@
                             <p>Total</p>
                             <strong>{{ order.total }}</strong>
                             <a href="{% url 'customers:order_detail' order.order_number %}">View details <span aria-hidden="true">&rarr;</span></a>
+                            <a href="{% url 'billing:order_invoice' order.order_number %}">View receipt</a>
                         </div>
                     </div>
                 </article>

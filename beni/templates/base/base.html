@@ -73,6 +73,7 @@
                             <a href="{% url 'catalog:list' %}">Shop products</a>
                             <a href="{% url 'customers:cart' %}">Cart</a>
                             <a href="{% url 'customers:orders' %}" {% if request.resolver_match.namespace == 'customers' and request.resolver_match.url_name == 'orders' or request.resolver_match.url_name == 'order_detail' or request.resolver_match.url_name == 'order_cancel' %}aria-current="page"{% endif %}>Orders</a>
+                            <a href="{% url 'reviews:customer_list' %}" {% if request.resolver_match.namespace == 'reviews' and request.resolver_match.url_name == 'customer_list' %}aria-current="page"{% endif %}>My reviews</a>
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'bookings:customer_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair services</a>
                             <a href="{% url 'accounts:profile' %}">Profile</a>
@@ -88,6 +89,7 @@
                             <a href="{% url 'dashboard:repair_worker' %}">Overview</a>
                             <a href="{% url 'bookings:worker_list' %}" {% if request.resolver_match.namespace == 'bookings' and request.resolver_match.url_name == 'worker_list' or request.resolver_match.url_name == 'worker_update' %}aria-current="page"{% endif %}>Assigned jobs</a>
                             <a href="{% url 'wallets:repair_worker' %}" {% if request.resolver_match.namespace == 'wallets' %}aria-current="page"{% endif %}>Wallet</a>
+                            <a href="{% url 'reviews:worker_list' %}" {% if request.resolver_match.namespace == 'reviews' and request.resolver_match.url_name == 'worker_list' %}aria-current="page"{% endif %}>Customer reviews</a>
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'verification:worker_application' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification</a>
                             <a href="{% url 'accounts:profile' %}">Profile</a>
@@ -103,6 +105,7 @@
                             <a href="{% url 'bookings:admin_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair bookings</a>
                             <a href="{% url 'verification:admin_list' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification review</a>
                             <a href="{% url 'payments:cancellation_queue' %}" {% if request.resolver_match.namespace == 'payments' and request.resolver_match.url_name == 'cancellation_queue' %}aria-current="page"{% endif %}>Paid cancellation review</a>
+                            <a href="{% url 'reviews:moderation_queue' %}" {% if request.resolver_match.namespace == 'reviews' and request.resolver_match.url_name == 'moderation_queue' %}aria-current="page"{% endif %}>Review moderation</a>
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'admin:index' %}">Django admin</a>
                             <a class="workspace-mobile-link" href="{% url 'accounts:profile' %}">Profile</a>

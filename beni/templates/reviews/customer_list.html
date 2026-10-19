@@ -1,0 +1,34 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}My reviews | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/reviews/reviews.css' %}">{% endblock %}
+{% block content %}
+<section class="reviews-page" aria-labelledby="customer-reviews-title">
+    <p class="review-kicker">BENI / MY REVIEWS</p>
+    <h1 id="customer-reviews-title">Reviews you submitted</h1>
+    {% for review in reviews %}
+        <article class="review-card">
+            <header>
+                <strong>{{ review.rating }} / 5</strong>
+                <span>{{ review.get_status_display }}</span>
+            </header>
+            {% if review.order %}
+                <p>Shop: {{ review.order.shop.name }} · Order {{ review.order.order_number }}</p>
+                <a href="{% url 'customers:order_detail' review.order.order_number %}">View order</a>
+            {% else %}
+                <p>Repair worker: {{ review.booking.assigned_worker.get_full_name|default:review.booking.assigned_worker.get_username }}</p>
+                <a href="{% url 'bookings:customer_detail' review.booking_id %}">View repair request</a>
+            {% endif %}
+            {% if review.body %}<p class="review-body">{{ review.body|linebreaksbr }}</p>{% endif %}
+            {% if review.status == 'rejected' and review.moderation_note %}
+                <p class="review-moderation-note"><strong>Staff note:</strong> {{ review.moderation_note|linebreaksbr }}</p>
+            {% endif %}
+        </article>
+    {% empty %}
+        <div class="reviews-empty">
+            <h2>No reviews submitted</h2>
+            <p>After an order is delivered or a repair is completed, you can leave a review for moderation.</p>
+        </div>
+    {% endfor %}
+</section>
+{% endblock %}

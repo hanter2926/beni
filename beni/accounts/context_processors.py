@@ -38,6 +38,14 @@ PAGE_LABELS = {
     ('', 'shopkeeper_orders'): 'Shop orders',
     ('', 'shopkeeper_order_detail'): 'Order details',
     ('', 'shopkeeper_order_update'): 'Update order',
+    ('billing', 'order_invoice'): 'Order receipt',
+    ('reviews', 'customer_list'): 'My reviews',
+    ('reviews', 'submit_order'): 'Write a review',
+    ('reviews', 'submit_repair'): 'Write a repair review',
+    ('reviews', 'shopkeeper_list'): 'Customer reviews',
+    ('reviews', 'worker_list'): 'Customer reviews',
+    ('reviews', 'moderation_queue'): 'Review moderation',
+    ('reviews', 'moderate'): 'Moderate review',
 }
 
 WORKSPACE_URLS = {

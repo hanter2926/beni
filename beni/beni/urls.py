@@ -24,9 +24,11 @@ urlpatterns = [
     path('', RedirectView.as_view(pattern_name='accounts:login', permanent=False), name='home'),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
+    path('customer-space/', include('Customer.urls')),
     path('customer/', include('customers.urls')),
     path('notifications/', include('notifications.urls')),
     path('repairs/', include('bookings.urls')),
+    path('repair-service/', include('Repair.urls')),
     path('wallets/', include('wallets.urls')),
     path('payments/', include('payments.urls')),
     path('verification/', include('verification.urls')),
@@ -35,6 +37,9 @@ urlpatterns = [
     path('workspace/shopkeeper/shops/', include('shops.urls')),
     path('workspace/shopkeeper/products/', include('products.urls')),
     path('workspace/shopkeeper/orders/', include('customers.shopkeeper_urls')),
+    path('dukandaar/', include('Dukandaar.urls')),
+    path('billing/', include('billing.urls')),
+    path('reviews/', include('reviews.urls')),
 ]
 
 if settings.DEBUG:

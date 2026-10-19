@@ -1,0 +1,31 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Review moderation | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/reviews/reviews.css' %}"><link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<section class="reviews-page" aria-labelledby="moderation-title">
+    <p class="review-kicker">BENI / ADMIN MODERATION</p>
+    <h1 id="moderation-title">Reviews awaiting moderation</h1>
+    {% for review in reviews %}
+        <article class="review-card">
+            <header><strong>{{ review.rating }} / 5</strong><span>Submitted {{ review.created_at }}</span></header>
+            <p>Customer: {{ review.customer.get_full_name|default:review.customer.get_username }}</p>
+            {% if review.order %}<p>Shop: {{ review.order.shop.name }} · Order {{ review.order.order_number }}</p>{% else %}<p>Repair worker: {{ review.booking.assigned_worker.get_full_name|default:review.booking.assigned_worker.get_username }} · Booking #{{ review.booking_id }}</p>{% endif %}
+            {% if review.body %}<p class="review-body">{{ review.body|linebreaksbr }}</p>{% else %}<p>No written comment.</p>{% endif %}
+            <form method="post" action="{% url 'reviews:moderate' review.pk %}" class="account-form">
+                {% csrf_token %}
+                {% for field in review.moderation_form %}
+                    <div class="form-field">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+                <button class="button button-primary" type="submit">Record moderation</button>
+            </form>
+        </article>
+    {% empty %}
+        <div class="reviews-empty"><h2>No reviews awaiting moderation</h2></div>
+    {% endfor %}
+</section>
+{% endblock %}

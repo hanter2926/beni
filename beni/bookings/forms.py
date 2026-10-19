@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from beni.upload_forms import MultipleImageField
 
+from .categories import REPAIR_CATEGORY_CHOICES
 from .models import BookingSupportRequest, RepairBooking, RepairBookingImage
 from .services import WORKER_TRANSITIONS, active_repair_workers
 
@@ -37,6 +38,10 @@ class RepairBookingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['service_category'].choices = (
+            ('', 'Choose a repair category'),
+            *REPAIR_CATEGORY_CHOICES,
+        )
         self.fields['preferred_at'].input_formats = ['%Y-%m-%dT%H:%M']
         self.fields['locality'].required = True
         self.fields['locality'].widget.attrs['maxlength'] = 120

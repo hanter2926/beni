@@ -46,6 +46,8 @@
         {% endfor %}
     </section>
 
+    <p class="shop-order-back"><a href="{% url 'billing:order_invoice' order.order_number %}">View or print order receipt</a></p>
+
     {% if status_form.fields.status.choices %}
         <form method="post" action="{% url 'shopkeeper_order_update' order.order_number %}" class="account-form shop-order-status-form">
             {% csrf_token %}

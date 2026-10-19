@@ -1,3 +1,35 @@
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, render
 
-# Create your views here.
+from orders.models import Order
+
+
+@login_required(login_url='accounts:login')
+def order_invoice(request, order_number):
+    orders = Order.objects.select_related(
+        'customer',
+        'shop',
+        'checkout_attempt',
+    ).prefetch_related('items')
+    if not request.user.is_staff and not request.user.is_superuser:
+        orders = orders.filter(
+            Q(customer=request.user) | Q(shop__owner=request.user)
+        )
+
+    order = get_object_or_404(orders, order_number=order_number)
+    if request.user.is_staff or request.user.is_superuser:
+        role_label = 'Admin'
+    elif order.shop.owner_id == request.user.pk:
+        role_label = 'Shopkeeper'
+    else:
+        role_label = 'Customer'
+
+    return render(
+        request,
+        'billing/order_invoice.html',
+        {
+            'order': order,
+            'role_label': role_label,
+        },
+    )

@@ -1,0 +1,23 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Write a review | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/reviews/reviews.css' %}">{% endblock %}
+{% block content %}
+<section class="review-panel" aria-labelledby="review-form-title">
+    <p class="review-kicker">BENI / CUSTOMER REVIEW</p>
+    <h1 id="review-form-title">Review {{ review_target }}</h1>
+    <p>Reviews are checked by BENI staff before they are published.</p>
+    <form method="post" action="{% url submit_url submit_args.0 %}" class="account-form">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.errors %}<div class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+            </div>
+        {% endfor %}
+        <button class="button button-primary" type="submit">Submit review for moderation</button>
+    </form>
+    <p><a href="{% url back_url back_args.0 %}">Back</a></p>
+</section>
+{% endblock %}
