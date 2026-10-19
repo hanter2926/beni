@@ -72,8 +72,8 @@ def _set_booking_contact(booking, *, participant, is_worker=False):
     booking.contact_verified = bool(phone)
 
 
-def _support_form():
-    return BookingSupportRequestForm()
+def _support_form(**kwargs):
+    return BookingSupportRequestForm(**kwargs)
 
 
 def _save_booking_images(*, booking, uploaded_by, image_type, images):
@@ -238,7 +238,9 @@ def worker_booking_list(request):
     )
     for booking in bookings:
         _set_booking_contact(booking, participant=booking.customer)
-        booking.support_form = _support_form()
+        booking.support_form = _support_form(
+            prefix=f'booking-support-{booking.pk}',
+        )
         booking.status_form = WorkerBookingStatusForm(
             current_status=booking.status,
             booking=booking,

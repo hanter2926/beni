@@ -3,7 +3,7 @@ from django.db import transaction
 
 from accounts.roles import REPAIR_WORKER_GROUP, user_has_role_group
 from accounts.models import Profile, valid_phone_number
-from notifications.services import create_notification
+from notifications.services import create_notification, notify_active_staff
 from verification.models import VerificationApplication
 from .models import BookingAssignmentEvent, BookingSupportRequest, RepairBooking
 
@@ -187,7 +187,6 @@ def cancel_customer_booking(*, booking_id, customer):
         raise BookingTransitionError(
             'This booking can no longer be cancelled online. Contact support.'
         )
-    old_status = booking.status
     booking.status = RepairBooking.STATUS_CANCELLED
     booking.save(update_fields=('status', 'updated_at'))
     create_notification(
@@ -253,8 +252,6 @@ def submit_support_request(*, booking_id, reporter, request_type, description):
                 message='A repair booking has been referred to BENI support.',
                 destination_name='bookings:worker_list',
             )
-    from notifications.services import notify_active_staff
-
     notify_active_staff(
         event_key=f'repair-support:{request_record.pk}:admin',
         title='Repair booking support requested',

@@ -28,6 +28,7 @@ urlpatterns = [
     path('notifications/', include('notifications.urls')),
     path('repairs/', include('bookings.urls')),
     path('wallets/', include('wallets.urls')),
+    path('payments/', include('payments.urls')),
     path('verification/', include('verification.urls')),
     path('catalog/', include('products.public_urls')),
     path('workspace/', include('dashboard.urls')),

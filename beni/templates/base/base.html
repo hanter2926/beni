@@ -102,6 +102,7 @@
                             <a href="{% url 'dashboard:admin_users' %}" {% if request.resolver_match.namespace == 'dashboard' and request.resolver_match.url_name == 'admin_users' %}aria-current="page"{% endif %}>Marketplace users</a>
                             <a href="{% url 'bookings:admin_list' %}" {% if request.resolver_match.namespace == 'bookings' %}aria-current="page"{% endif %}>Repair bookings</a>
                             <a href="{% url 'verification:admin_list' %}" {% if request.resolver_match.namespace == 'verification' %}aria-current="page"{% endif %}>Verification review</a>
+                            <a href="{% url 'payments:cancellation_queue' %}" {% if request.resolver_match.namespace == 'payments' and request.resolver_match.url_name == 'cancellation_queue' %}aria-current="page"{% endif %}>Paid cancellation review</a>
                             <a href="{% url 'notifications:inbox' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Notifications{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
                             <a href="{% url 'admin:index' %}">Django admin</a>
                             <a class="workspace-mobile-link" href="{% url 'accounts:profile' %}">Profile</a>

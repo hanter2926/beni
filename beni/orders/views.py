@@ -1,4 +1,5 @@
 import uuid
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -16,7 +17,7 @@ from accounts.roles import (
 from customers.views import cart_for_customer
 
 from .forms import CheckoutForm, OrderStatusForm
-from .models import Order
+from .models import CheckoutAttempt, Order
 from .services import (
     CART_SESSION_KEY,
     CHECKOUT_RECEIPTS_SESSION_KEY,
@@ -30,6 +31,8 @@ from .services import (
     transition_order,
     valid_status_targets,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _customer_only(request):
@@ -73,12 +76,28 @@ def checkout_view(request):
 
     form = CheckoutForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
+        payment_method = form.cleaned_data['payment_method']
+        if payment_method == 'razorpay':
+            from django.core.exceptions import ImproperlyConfigured
+            from payments.gateway import (
+                PaymentProviderError,
+                assert_configured,
+            )
+            from payments.services import PaymentWorkflowError
+
+            try:
+                assert_configured()
+            except ImproperlyConfigured as exc:
+                form.add_error(None, str(exc))
+
         try:
             token = uuid.UUID(request.POST.get('checkout_token', ''))
         except (TypeError, ValueError, AttributeError):
             token = None
 
-        if token is None:
+        if form.errors:
+            pass
+        elif token is None:
             form.add_error(None, 'This checkout form is invalid. Please review it and try again.')
         else:
             receipts = request.session.get(CHECKOUT_RECEIPTS_SESSION_KEY, {})
@@ -92,6 +111,27 @@ def checkout_view(request):
                         request.session[CART_SESSION_KEY] = {}
                     if state.get('token') == str(token):
                         request.session.pop(CHECKOUT_STATE_SESSION_KEY, None)
+                    if attempt.payment_method == 'razorpay':
+                        from payments.models import PaymentAttempt
+
+                        payment_attempt = (
+                            PaymentAttempt.objects.filter(
+                                checkout_attempt=attempt,
+                            )
+                            .order_by('-created_at', '-id')
+                            .first()
+                        )
+                        if payment_attempt is not None:
+                            return redirect(
+                                'payments:attempt',
+                                payment_attempt_id=payment_attempt.pk,
+                            )
+                        return redirect(
+                            reverse(
+                                'customers:order_detail',
+                                args=[orders[0].order_number],
+                            )
+                        )
                     return redirect(
                         reverse('customers:order_detail', args=[orders[0].order_number])
                     )
@@ -106,6 +146,7 @@ def checkout_view(request):
                         cart=cart,
                         token=token,
                         contact=form.cleaned_data,
+                        payment_method=payment_method,
                     )
                 except CheckoutError as exc:
                     form.add_error(None, str(exc))
@@ -120,6 +161,54 @@ def checkout_view(request):
                     if cart_digest(request.session.get(CART_SESSION_KEY, {})) == attempt.cart_digest:
                         request.session[CART_SESSION_KEY] = {}
                     request.session.pop(CHECKOUT_STATE_SESSION_KEY, None)
+                    if payment_method == 'razorpay':
+                        from payments.models import PaymentAttempt
+                        from payments.services import (
+                            PaymentWorkflowError,
+                            create_payment_attempt,
+                        )
+
+                        try:
+                            payment_attempt = create_payment_attempt(
+                                checkout_attempt_id=attempt.pk,
+                                customer=request.user,
+                            )
+                        except (
+                            PaymentWorkflowError,
+                            PaymentProviderError,
+                        ) as exc:
+                            logger.error(
+                                'Unable to initialize online payment for checkout %s: %s',
+                                attempt.pk,
+                                exc,
+                            )
+                            messages.error(
+                                request,
+                                'Your orders were created but payment could not be '
+                                f'initialized: {exc}',
+                            )
+                            payment_attempt = (
+                                PaymentAttempt.objects.filter(
+                                    checkout_attempt=attempt,
+                                )
+                                .order_by('-created_at', '-id')
+                                .first()
+                            )
+                            if payment_attempt is not None:
+                                return redirect(
+                                    'payments:attempt',
+                                    payment_attempt_id=payment_attempt.pk,
+                                )
+                            return redirect(
+                                reverse(
+                                    'customers:order_detail',
+                                    args=[orders[0].order_number],
+                                )
+                            )
+                        return redirect(
+                            'payments:attempt',
+                            payment_attempt_id=payment_attempt.pk,
+                        )
                     messages.success(request, 'Your order was placed successfully.')
                     return redirect(
                         reverse('customers:order_detail', args=[orders[0].order_number])
@@ -163,12 +252,54 @@ def order_detail(request, order_number):
         .prefetch_related('items'),
         order_number=order_number,
     )
+    cancellation_request = None
+    payment_attempt = None
+    online_payment = (
+        order.checkout_attempt.payment_method
+        == CheckoutAttempt.PAYMENT_METHOD_RAZORPAY
+    )
+    if online_payment:
+        from payments.models import OrderCancellationRequest, PaymentAttempt
+
+        cancellation_request = OrderCancellationRequest.objects.filter(
+            order=order,
+        ).first()
+        payment_attempt = (
+            PaymentAttempt.objects.filter(
+                checkout_attempt=order.checkout_attempt,
+            )
+            .order_by('-created_at', '-id')
+            .first()
+        )
     return render(
         request,
         'customer/orders/detail.html',
         {
             'order': order,
-            'can_cancel': order.status in (Order.STATUS_PENDING, Order.STATUS_CONFIRMED),
+            'can_cancel': (
+                order.status in (Order.STATUS_PENDING, Order.STATUS_CONFIRMED)
+                and order.payment_status != Order.PAYMENT_PAID
+                and (
+                    not online_payment
+                    or order.payment_status == Order.PAYMENT_FAILED
+                )
+            ),
+            'can_request_cancel': (
+                order.status in (Order.STATUS_PENDING, Order.STATUS_CONFIRMED)
+                and order.payment_status == Order.PAYMENT_PAID
+                and cancellation_request is None
+            ),
+            'cancellation_request': cancellation_request,
+            'payment_attempt': payment_attempt,
+            'can_start_payment': (
+                online_payment
+                and payment_attempt is None
+                and order.payment_status != Order.PAYMENT_PAID
+                and order.status not in (
+                    Order.STATUS_CANCELLED,
+                    Order.STATUS_REFUNDED,
+                )
+            ),
             'role_label': 'Customer',
         },
     )
@@ -178,6 +309,36 @@ def order_detail(request, order_number):
 @login_required(login_url='accounts:login')
 def cancel_order(request, order_number):
     _customer_only(request)
+    order = get_object_or_404(
+        Order.objects.filter(customer=request.user),
+        order_number=order_number,
+    )
+    if order.payment_status == Order.PAYMENT_PAID:
+        from payments.forms import PaidOrderCancellationForm
+        from payments.services import (
+            PaymentWorkflowError,
+            request_paid_order_cancellation,
+        )
+
+        form = PaidOrderCancellationForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, 'Enter a reason for the cancellation request.')
+            return redirect(reverse('customers:order_detail', args=[order_number]))
+        try:
+            request_paid_order_cancellation(
+                order_number=order_number,
+                customer=request.user,
+                reason=form.cleaned_data['reason'],
+            )
+        except PaymentWorkflowError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(
+                request,
+                'Your cancellation request was submitted for staff review. '
+                'A refund is not issued automatically.',
+            )
+        return redirect(reverse('customers:order_detail', args=[order_number]))
     try:
         order = transition_order(
             order_number=order_number,
@@ -203,7 +364,11 @@ def shopkeeper_order_list(request):
     )
     for order in orders:
         order.status_form = OrderStatusForm(
-            allowed_statuses=valid_status_targets(order.status),
+            allowed_statuses=valid_status_targets(
+                order.status,
+                payment_status=order.payment_status,
+                payment_method=order.checkout_attempt.payment_method,
+            ),
             current_status=order.status,
         )
     return render(
@@ -221,7 +386,7 @@ def shopkeeper_order_list(request):
 def shopkeeper_order_detail(request, order_number):
     order = get_object_or_404(
         Order.objects.filter(shop__owner=request.user)
-        .select_related('shop', 'customer')
+        .select_related('shop', 'customer', 'checkout_attempt')
         .prefetch_related('items'),
         order_number=order_number,
     )
@@ -231,7 +396,11 @@ def shopkeeper_order_detail(request, order_number):
         {
             'order': order,
             'status_form': OrderStatusForm(
-                allowed_statuses=valid_status_targets(order.status),
+                allowed_statuses=valid_status_targets(
+                    order.status,
+                    payment_status=order.payment_status,
+                    payment_method=order.checkout_attempt.payment_method,
+                ),
                 current_status=order.status,
             ),
             'role_label': 'Shopkeeper',
@@ -249,7 +418,11 @@ def shopkeeper_order_update(request, order_number):
     )
     form = OrderStatusForm(
         request.POST,
-        allowed_statuses=valid_status_targets(order.status),
+        allowed_statuses=valid_status_targets(
+            order.status,
+            payment_status=order.payment_status,
+            payment_method=order.checkout_attempt.payment_method,
+        ),
         current_status=order.status,
     )
     if not form.is_valid():

@@ -1,5 +1,108 @@
 # BENI Database Schema Audit
 
+## Current recheck — 2026-10-19
+
+This recheck supersedes the historical “Current state after approved
+migrations” and verification statements below where they differ. The initial
+comparison was read-only against the configured MySQL database `beni_db`.
+The user-approved account and booking operations below were applied
+individually and verified. The payment migrations described below were
+subsequently generated, explicitly approved for application, applied in
+dependency order, and verified on `beni_db`.
+
+- `accounts.0001_initial`, `bookings.0001_initial`,
+  `bookings.0002_repairbookingimage`, `bookings.0003_repairbooking_locality_and_more`,
+  `accounts.0002_profile_alternate_phone_profile_phone_and_more`, `shops.0002`,
+  `verification.0001_initial`, `wallets.0001_initial`, and the previously
+  applied product/order/notification migrations are now recorded as applied.
+- Before approval, `accounts_profile` lacked `phone`, `alternate_phone`,
+  `phone_verified`, and `service_details`; `bookings_repairbooking` lacked
+  `locality` and `preferred_contact_method`; and
+  `bookings_bookingsupportrequest` was absent. After both migrations,
+  read-only introspection confirmed all installed model tables and columns
+  match, and both expected support-request indexes are present.
+- The project virtualenv reports Python 3.14.6 / Django 5.2.18. Its database
+  system check passed; `makemigrations --check --dry-run` reported no changes.
+  The earlier full 115-test suite and focused booking/verification run passed
+  against guarded in-memory SQLite, not MySQL. After payment implementation,
+  all 131 tests passed against guarded in-memory SQLite with provider calls
+  mocked.
+- `orders.0002_checkoutattempt_payment_method` and `payments.0001_initial`
+  were generated and SQL-reviewed, then applied after explicit approval.
+  Read-only verification confirmed both recorder entries, the
+  `orders_checkoutattempt.payment_method` column, all three payment tables,
+  required columns, unique fields, and the payment-attempt index.
+- After migration application, `manage.py check --database default` passed,
+  `showmigrations orders payments` marks all three migrations applied, and
+  `makemigrations --check --dry-run` reports no changes.
+- One earlier test-isolation attempt in this recheck configured SQLite too
+  late and attempted to create `test_beni_db`; MySQL rejected the create
+  because that database already exists, and the runner exited at its
+  confirmation prompt. No deletion, recreation, migration, or test-data
+  operation occurred in that attempt. The successful test runs set SQLite
+  before Django setup and asserted `:memory:` before starting.
+- The listener on port 8000 and fresh project-virtualenv server on port 8001
+  both returned HTTP 200 for `/accounts/login/`. After the migrations, the
+  fresh server also returned HTTP 200 for `/catalog/` and HTTP 302 for the
+  anonymous protected order, repair, and profile routes. No startup traceback
+  was observed. The original refused-connection event was not reproducible.
+
+### Payment implementation checkpoint
+
+Razorpay checkout is implemented as one platform payment per multi-shop
+checkout. Provider order creation, server-side checkout-signature verification,
+provider payment status/amount/currency verification, captured-payment webhook
+handling, and webhook event idempotency are covered with mocked provider tests.
+Cash on delivery remains available and is marked paid when the shopkeeper
+records delivery. Paid-order cancellation creates a staff-review request;
+approving it restores reserved stock but does not issue a refund. Shop payouts
+and refunds remain manual.
+
+No Razorpay credentials were read or printed, no provider request or hosted
+checkout was made, and no live webhook was delivered. Set
+`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` only in
+the private environment before a separate sandbox validation. The configured
+webhook endpoint is `/payments/webhook/razorpay/`.
+
+#### Approved payment migration plan and execution
+
+| Migration | Dependency | Exact operations / affected tables | Data impact and risk |
+|---|---|---|---|
+| `orders.0002_checkoutattempt_payment_method` | `orders.0001_initial` (already applied) | Add `orders_checkoutattempt.payment_method`, `varchar(12)`, choices `cod` / `razorpay`, default `cod`. | Existing checkout-attempt rows receive COD as the additive-column default. No orders, payment status, inventory, or other business data are rewritten or deleted. MySQL requires an `ALTER TABLE` and may briefly lock the table. |
+| `payments.0001_initial` | `orders.0002_checkoutattempt_payment_method` and swappable auth-user dependency | Create `payments_paymentattempt` (checkout FK, amount/currency/status, unique nullable provider order/payment IDs, timestamps, checkout/created index); `payments_webhookevent` (unique event ID, event type, timestamp); and `payments_ordercancellationrequest` (one-to-one order FK, reason/status, optional staff reviewer/notes, requested/reviewed timestamps). | New tables start empty; no existing order or payment row is copied or deleted. MySQL DDL can hold metadata/table locks. Reversing this migration drops these newly created tables and any records subsequently written to them. |
+
+The files were inspected with `sqlmigrate`. After separate explicit approval,
+the following commands were run individually, checking state after each:
+
+1. `.\venv\Scripts\python.exe manage.py migrate orders 0002_checkoutattempt_payment_method`
+2. Verified the migration recorder and `orders_checkoutattempt.payment_method`
+   column.
+3. `.\venv\Scripts\python.exe manage.py migrate payments 0001_initial`
+4. Verified the migration recorder and all three payment tables, required
+   columns, unique constraints, and payment-attempt index.
+
+Both commands completed with `OK`. No fake migration, data reset, row deletion,
+or live Razorpay request was performed.
+
+### Approved migration operations and data-risk record
+
+| Migration | Dependency | Operations / affected schema | Data risk |
+|---|---|---|---|
+| `accounts.0002_profile_alternate_phone_profile_phone_and_more` | `accounts.0001_initial` (applied) | On `accounts_profile`, add `alternate_phone` and `phone` (`CharField`, max 30, blank), `phone_verified` (`BooleanField`, default false), and `service_details` (`TextField`, blank). | Existing rows receive blank strings and `false`; no existing values are rewritten or deleted. |
+| `bookings.0003_repairbooking_locality_and_more` | `bookings.0002_repairbookingimage` (applied) and the swappable auth-user dependency | On `bookings_repairbooking`, add `locality` (max 120, blank/default empty) and `preferred_contact_method` (phone/WhatsApp, default phone); alter `status` from max length 20 to 24 with the current choices; create `bookings_bookingsupportrequest` with booking/reporter `PROTECT` foreign keys, request type, description, open/resolved status, creation time, and `(booking, created_at)` / `(status, created_at)` indexes. | Existing booking values are retained; the new columns use their declared defaults. The new support table starts empty. No data-deletion or data-copy operation exists. MySQL DDL can hold metadata/table locks and may not be transactionally reversible; use a verified backup and inspect state after each migration before continuing. |
+
+The user explicitly approved these exact operations. The controlled commands
+were executed in this order:
+
+1. `.\venv\Scripts\python.exe manage.py migrate accounts 0002_profile_alternate_phone_profile_phone_and_more`
+2. Verified `accounts.0002` and all four profile columns before continuing.
+3. `.\venv\Scripts\python.exe manage.py migrate bookings 0003_repairbooking_locality_and_more`
+4. Verified `bookings.0003`, both booking columns, the support-request table,
+   and its two indexes.
+
+Both commands completed with `OK`. No data-deletion or data-copy operation was
+run; no remaining approval is needed for these two completed migrations.
+
 ## Scope and safety
 
 The original comparison of Django models, migration recorder, and live MySQL
@@ -102,15 +205,13 @@ constraints, defaults, or data integrity.
 | `wallets.WalletAccount` | `wallets_walletaccount`: `id`, `owner_id`, `role`, `created_at` | Table absent | `wallets.0001_initial` generated from current models, unapplied | High — creates table and `wallet_owner_role_unique` after approval. |
 | `wallets.WalletLedgerEntry` | `wallets_walletledgerentry`: `id`, `wallet_id`, `entry_type`, `amount_minor`, `reference_key`, `actor_id`, `created_at` | Table absent | `wallets.0001_initial` generated from current models, unapplied | High — creates table, two indexes, unique reference and nonzero amount constraints after approval. |
 
-The project apps `billing`, `customers`, `dashboard`, `payments`, `reviews`,
-and `workers` currently define no Django models and have no migration files.
-Their current app directories therefore have no expected app model tables to
-compare. This is not evidence of lost schema for those apps; it reflects their
-current code state. Billing, payments, and reviews have placeholder
-views/tests and no routed workflows; the workers app has no models, views, or
-URL routes of its own (worker workflow code is in bookings and verification).
-Real payment, bill, and review flows require business/schema decisions and
-migrations; no fake transaction behavior was added.
+At the time of the original schema comparison, the project apps
+`billing`, `customers`, `dashboard`, `payments`, `reviews`, and `workers`
+had no model tables to compare. Since then, `payments` gained the three models
+and routed workflows described in the current payment checkpoint above; its
+tables are now present in `beni_db`. `billing` and `reviews` remain
+unimplemented; the `workers` app still has no models, views, or URL routes of
+its own (worker workflow code is in bookings and verification).
 
 ## Remaining current database tables
 
@@ -185,8 +286,9 @@ tables and constraints/indexes and adds two shop image columns; it contains no
 
 The plan was rechecked immediately before execution and applied with
 `venv\\Scripts\\python.exe manage.py migrate --noinput`. All seven project
-migrations completed with `OK`; they are no longer pending on the observed
-database.
+migrations in that earlier, approved set completed with `OK`. The subsequently generated and explicitly approved
+`orders.0002_checkoutattempt_payment_method` and `payments.0001_initial` were
+applied afterward and are verified in the current recheck above.
 
 ## Verification performed
 

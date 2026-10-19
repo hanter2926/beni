@@ -1,0 +1,30 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Paid order cancellation review | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/auth/auth.css' %}">{% endblock %}
+{% block content %}
+<main class="catalog-content shopping-page">
+    <p class="catalog-kicker">BENI / ADMIN</p>
+    <h1>Paid order cancellation requests</h1>
+    {% for cancellation in cancellations %}
+        <section class="order-detail-facts">
+            <h2>{{ cancellation.order.order_number }}</h2>
+            <p>Customer: {{ cancellation.order.customer }}</p>
+            <p>Shop: {{ cancellation.order.shop.name }}</p>
+            <p>Requested: {{ cancellation.requested_at }}</p>
+            <p>Reason: {{ cancellation.reason }}</p>
+            <p>Amount paid: {{ cancellation.order.total }}</p>
+            <p>Approval cancels the order and restores reserved inventory. It does not initiate a refund; any refund is handled manually.</p>
+            <form method="post" action="{% url 'payments:review_cancellation' cancellation.pk %}">
+                {% csrf_token %}
+                {{ review_form.notes.label_tag }}
+                {{ review_form.notes }}
+                <button class="button button-primary" name="action" value="approve" type="submit">Approve cancellation</button>
+                <button class="button button-danger" name="action" value="reject" type="submit">Reject request</button>
+            </form>
+        </section>
+    {% empty %}
+        <p>No paid order cancellations are awaiting review.</p>
+    {% endfor %}
+</main>
+{% endblock %}

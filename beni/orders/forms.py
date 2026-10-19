@@ -3,6 +3,15 @@ from django.core.validators import RegexValidator
 
 
 class CheckoutForm(forms.Form):
+    payment_method = forms.ChoiceField(
+        label='Payment method',
+        choices=(
+            ('cod', 'Cash on delivery'),
+            ('razorpay', 'Pay online'),
+        ),
+        required=False,
+        initial='cod',
+    )
     full_name = forms.CharField(max_length=150)
     phone = forms.CharField(
         max_length=30,
@@ -36,6 +45,9 @@ class CheckoutForm(forms.Form):
         if not 7 <= digit_count <= 15:
             raise forms.ValidationError('Enter a phone number with 7 to 15 digits.')
         return phone
+
+    def clean_payment_method(self):
+        return self.cleaned_data.get('payment_method') or 'cod'
 
 
 class OrderStatusForm(forms.Form):

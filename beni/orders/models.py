@@ -6,6 +6,13 @@ from django.db.models import Q
 
 
 class CheckoutAttempt(models.Model):
+    PAYMENT_METHOD_COD = 'cod'
+    PAYMENT_METHOD_RAZORPAY = 'razorpay'
+    PAYMENT_METHOD_CHOICES = [
+        (PAYMENT_METHOD_COD, 'Cash on delivery'),
+        (PAYMENT_METHOD_RAZORPAY, 'Online payment'),
+    ]
+
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -14,6 +21,11 @@ class CheckoutAttempt(models.Model):
     )
     token = models.UUIDField(unique=True, editable=False)
     cart_digest = models.CharField(max_length=64)
+    payment_method = models.CharField(
+        max_length=12,
+        choices=PAYMENT_METHOD_CHOICES,
+        default=PAYMENT_METHOD_COD,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

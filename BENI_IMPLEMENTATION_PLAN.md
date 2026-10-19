@@ -1,13 +1,101 @@
 # BENI Implementation Checklist
 
-Inventory date: 2026-10-18; Stage A implementation update: 2026-10-19
-Scope: original project inventory plus the current Orders/Checkout source implementation. `orders.0001_initial.py` was created after explicit file-only approval; no migration was applied, and no live database schema/data changes have been made.
+Inventory date: 2026-10-18; implementation recheck: 2026-10-19
+Scope: original project inventory plus subsequent approved database repairs and Orders/Checkout implementation. The payment migrations were generated, reviewed, explicitly approved, and applied to the configured MySQL database.
+
+## Resume checklist — 2026-10-19
+
+This recheck supersedes older “current” status statements below where they
+conflict with the live migration recorder or current checkout. Historical
+implementation notes are retained for context, not as proof of current state.
+
+### Verified in this recheck
+
+- [x] Project virtualenv is Python 3.14.6 / Django 5.2.18. `manage.py check
+  --database default` passed, and `makemigrations --check --dry-run` reported
+  no model/migration drift.
+- [x] Port 8000 was listening and `/accounts/login/` returned HTTP 200. A
+  fresh project-virtualenv server on 127.0.0.1:8001 also returned HTTP 200.
+  The existing 8000 process uses system Python / Django 6.0.8; use the project
+  virtualenv for reproducible development.
+- [x] Read-only migration and schema inspection found the earlier account,
+  booking, verification, wallet, and shop-image migrations applied, with
+  `accounts.0002_profile_alternate_phone_profile_phone_and_more` and
+  `bookings.0003_repairbooking_locality_and_more` pending.
+- [x] After receiving explicit approval for those exact migrations on
+  `beni_db`, applied each individually and verified its migration-recorder row.
+  Read-only introspection now confirms all installed model tables/columns and
+  both booking-support indexes are present.
+- [x] Post-migration fresh-server smoke test: `/accounts/login/` and
+  `/catalog/` returned HTTP 200; anonymous `/customer/orders/`, `/repairs/`,
+  and `/accounts/profile/` returned the expected HTTP 302 login redirect.
+  Authenticated live MySQL pages were not tested.
+- [x] The full 115-test suite passed against an explicitly guarded in-memory
+  SQLite database. The booking/verification subset also passed (20 tests).
+  These runs did not use or modify the configured MySQL database and do not
+  establish MySQL locking/concurrency behavior.
+- [x] Implemented code-only Razorpay checkout and staff-reviewed paid-order
+  cancellation. The latest 131-test suite passes against guarded in-memory
+  SQLite with provider calls mocked. The payment migrations were applied to
+  `beni_db` after separate approval and their tables/columns were verified.
+- [x] `git diff --check` and `git diff --cached --check` passed. Existing
+  worktree changes were left intact.
+
+### Approval-gated and unfinished
+
+- [x] Applied the explicitly approved `orders.0002_checkoutattempt_payment_method`
+  and `payments.0001_initial` to `beni_db` in sequence; verified the recorder,
+  `payment_method` column, all three tables, their required columns/indexes,
+  and a clean Django database check.
+- [ ] Configure Razorpay sandbox credentials in the private environment
+  (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`), set
+  the webhook URL to `/payments/webhook/razorpay/`, and test with the sandbox.
+  No provider or browser checkout call has been made.
+- [ ] Test authenticated profile, booking, and support-request workflows
+  against approved test fixtures now that their schema is present; do not use
+  real account credentials or live customer data.
+- [ ] Reconcile remaining billing, review, withdrawal, and role dashboard
+  requirements against current routes and code. Payment code is not yet
+  sandbox- or production-verified.
+- [ ] Verify real upload/storage and customer/shopkeeper/worker/admin
+  workflows end-to-end; do not mark presentation-only controls as complete.
+- [ ] Implement billing/digital bills: no billing route or bill workflow is
+  currently wired into the root URL configuration.
+- [x] Implement payment endpoints and mocked Razorpay checkout/webhook tests;
+  checkout offers COD and online payment, webhook signatures and event
+  idempotency are enforced, and paid-order cancellation requires staff review.
+  COD is settled when the shopkeeper records delivery; refunds and
+  multi-shop payouts remain manual.
+- [ ] Implement reviews with verified-order ownership and moderation rules;
+  no review model or routed review workflow is currently present.
+- [ ] Extend the wallet ledger to withdrawal requests, authorization, and
+  payout reconciliation; current wallet URLs expose role-specific wallet
+  history, not a withdrawal workflow.
+- [ ] Complete worker-specific profile/availability/dashboard workflows.
+  Booking assignment and verification logic exist, but the `workers` app has
+  no domain model or routed workflow of its own.
+- [ ] Define API contracts and permissions before adding API endpoints; no API
+  route is included in the current root URL configuration.
 
 ## 1. Executive summary
 
-BENI has a functional Django authentication/role foundation, customer-facing product catalog, shopkeeper shop and product CRUD, and Stage A source code for persistent Orders/Checkout. The order models, transactional service, customer and shopkeeper views, route integration, templates, focused tests, and `orders.0001_initial.py` are now present. The migration file was approved for creation only and remains unapplied; persistent checkout cannot run against `beni_db` until separate application approval. A process-local override synchronized model tables in the disposable test DB; all 26 focused Orders/customer/product tests passed before migration generation. This does not validate migration execution or replace MySQL concurrency testing.
+The 2026-10-19 recheck found working authentication, catalog, shop/product,
+order, booking, verification, notification, and wallet source workflows. The
+configured MySQL database has the order, booking, verification, wallet,
+shop-image, and payment schema; the approved profile, repair-support, and
+payment migrations have been applied and verified. The latest 131-test suite
+passed using in-memory SQLite, but this does not verify MySQL locking or
+authenticated live pages.
+Billing/digital bills, reviews, wallet withdrawals, worker-specific
+profile/availability workflows, and sandbox Razorpay verification remain
+unfinished. Payment code and schema are present, but the provider has not
+been exercised. Consult the resume checklist above;
+the detailed inventory sections below are historical planning context and
+must not override the current recheck.
 
-Orders, payments, billing, bookings, workers, verification, wallets, reviews, and notifications are mostly empty Django app scaffolds. Repair-worker and admin areas currently have presentation-only dashboards. The uppercase `Customer`, `Repair`, and `Dukandaar` directories are not installed or routed and contain scaffolds; retain them until their future disposition is explicitly decided.
+The uppercase `Customer`, `Repair`, and `Dukandaar` directories are not
+installed or routed; retain them until their future disposition is explicitly
+decided.
 
 ## 2. Environment and database facts / blockers
 
@@ -19,8 +107,14 @@ Orders, payments, billing, bookings, workers, verification, wallets, reviews, an
 - The project settings comment says Django 6.0.8. The system Python at `C:\Users\Vikram\AppData\Local\Programs\Python\Python314\python.exe` resolves Django 6.0.8. Do not assume this is the project runtime.
 - `python manage.py check` under the project virtualenv completed with no system-check issues.
 - Settings configure MySQL (`django.db.backends.mysql`), database `beni_db`; read-only inspection using the project virtualenv connected to MySQL 8.0.46, default engine InnoDB, isolation `READ-COMMITTED`.
-- Latest read-only inspection found `shops_shop` and `products_product` present, both using InnoDB, with `shops.0001_initial` and `products.0001_initial` applied. `orders.0001_initial.py` is now present but unapplied; no Orders tables exist.
-- Current settings derive the test database name `test_beni_db`; read-only confirmation found it absent before testing. The focused test runner created and dropped that separate test database. The successful tests used a test-only override before `orders.0001_initial.py` was generated; that run did not apply the migration.
+- The 2026-10-19 read-only inspection found `shops_shop`, `products_product`,
+  and the order tables present. `orders.0001_initial` is recorded as applied.
+  `accounts.0002` and `bookings.0003` are the only pending project migrations
+  relevant to the observed profile/booking schema gaps.
+- The configured test database name is `test_beni_db`; it already existed
+  during the latest recheck. The passing 115-test run explicitly set Django's
+  database to in-memory SQLite before setup and asserted `:memory:`; it did
+  not use or modify `test_beni_db`.
 - Settings do not define `DATABASES['default']['TEST']`, `DATABASE_ROUTERS`, or a custom test runner.
 
 ### Outstanding safety gates
@@ -40,11 +134,11 @@ Classification definitions: **Implemented and tested** means source supports the
 | Role-based access | Implemented and tested | `accounts/roles.py` provides exact-name group decorators; dashboard tests cover role boundaries and case-variant groups. Shopkeeper and repair-worker groups are provisioned by a management command. |
 | Customer catalog and product details | Implemented and tested | Active products from active shops are listed with search/category/pagination; detail hides inactive products. Shop/product tables and migrations were present and applied in the latest pre-implementation DB inspection. |
 | Customer cart | Implemented; session-based | Existing add/update/remove routes remain; edits invalidate the active checkout token. Cart values are revalidated against current product/shop state and current price. |
-| Checkout / order history / details | Implemented in source; blocked by unapplied Orders schema | `Order`, `OrderItem`, and `CheckoutAttempt` models and transactional multi-shop checkout are implemented in source. Each shop receives an independent order; stock is locked/deducted atomically; a database-backed attempt token prevents duplicate order sets; ownership-scoped history/detail and cancellation are present. `orders.0001_initial.py` exists but has not been applied, so runtime database-backed behavior is not yet available. |
+| Checkout / order history / details | Implemented and schema applied | `Order`, `OrderItem`, and `CheckoutAttempt` models and transactional multi-shop checkout are live against the applied order schema. Each shop receives an independent order; stock is locked/deducted atomically; a database-backed attempt token prevents duplicate order sets; ownership-scoped history/detail and cancellation are present. |
 | Shopkeeper shop management | Implemented and tested | CRUD with exact shopkeeper role gate and owner-filtered list/edit; latest DB inspection found the shop migration applied. |
 | Shopkeeper product management / inventory | Implemented and tested; workflow incomplete | CRUD scoped to shops owned by the user; form shop choices are restricted to owned shops. Inventory is manually edited outside the atomic order reservation/cancellation service; no general stock ledger exists. |
 | Shopkeeper order management | Implemented in source; blocked by Orders schema | Existing route name `shopkeeper_orders` is preserved. Persistent order lists are filtered by `shop__owner=request.user`; status transitions are restricted and validated in the service; no payment handling is provided. |
-| Billing, payments, refunds, cancellations | Placeholder or missing; blocked by Orders schema/integration | Apps contain only scaffold files; no billing/payment models, views, URLs, forms, migrations, gateway client, webhook, or UI. No real payment processing or cancellation/refund implementation. |
+| Billing, payments, refunds, cancellations | Razorpay checkout implemented; refunds/payouts manual; billing missing | Payment choice, one aggregate Razorpay attempt per multi-shop checkout, signed callback/provider status checks, idempotent captured-payment webhook, and staff review for paid cancellation are implemented and tested with mocked provider requests. Payment migrations are applied. No live provider/browser verification has occurred; automatic refunds, shop payouts, and digital bills are not implemented. |
 | Repair requests and bookings | Placeholder or missing; UI/template only | `bookings` has no models/views/forms/URLs/tests/migrations; repair-worker dashboard is an empty UI mock. No customer request, worker assignment, inspection, scheduling, completion, or service billing workflow. |
 | Worker profiles/assignment | Placeholder or missing | `workers` app has no domain model or workflow. Repair-worker group access and dashboard exist, but do not constitute worker assignment or verification. |
 | Shopkeeper and worker verification | Placeholder or missing | `verification` app has no models/views/forms/URLs/tests/migrations/templates. Role membership is not a verification process. |
@@ -138,18 +232,18 @@ Implemented in source (not yet usable against the configured runtime DB until a 
 - `beni/orders/tests.py`, `beni/customers/tests.py` — success/multi-shop, stock/price validation, idempotent replay, rollback, cancellation, ownership, CSRF, and history-retention test cases.
 - `beni/templates/customer/checkout.html`, `beni/templates/customer/orders/list.html`, `beni/templates/customer/orders/detail.html`, `beni/templates/shopkeeper/orders/list.html` — updated to render persistent model fields and CSRF-protected actions. Existing role CSS/JS is sufficient; no asset change is required.
 
-Required before deployment:
+Historical Orders-stage notes (the current payment status is recorded above):
 
-- `beni/orders/migrations/0001_initial.py` — generated after file-only approval and not applied. Direct dependencies are `products.0001_initial`, `shops.0001_initial`, and `migrations.swappable_dependency(settings.AUTH_USER_MODEL)`. The latest runtime check found shops/products already applied; recheck before requesting migration application.
+- `beni/orders/migrations/0001_initial.py` — its original dependencies were `products.0001_initial`, `shops.0001_initial`, and `migrations.swappable_dependency(settings.AUTH_USER_MODEL)`; it is now recorded as applied.
 - Run the test suite normally only after confirming test DB isolation; that will apply migrations to the disposable test DB. The earlier 26-test source run used a process-local override before this migration existed and did not test migration execution.
 - Automated concurrency/oversell behavior still needs verification against MySQL/InnoDB. Unit-level tests cannot establish simultaneous request locking correctness by themselves.
 - Dashboard copy remains unchanged; update `beni/templates/customer/dashboard.html` and `beni/templates/shopkeeper/dashboard.html` only if the completed persistent workflows need dashboard links/status copy.
 
 ### Billing / payments
 
-- Implement in `beni/billing/models.py`, `views.py`, forms (new), `urls.py` (new), `tests.py`, migrations (new), and a role-scoped billing template only after order totals and payment responsibility are approved.
-- Implement in `beni/payments/models.py`, `views.py`, forms (new), `urls.py` (new), `tests.py`, migrations (new), and provider integration modules (new) only after choosing a payment provider and webhook contract.
-- Create payment/refund templates and provider CSS/JS only if required; do not trust browser redirect state. Webhook signature verification, idempotency, reconciliation, and secrets management are required before claiming payments work.
+- Razorpay code is in `beni/payments/` and customer order checkout. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` only in the private environment; configure the webhook at `/payments/webhook/razorpay/` for `payment.authorized`, `payment.captured`, and `payment.failed`. Never commit credentials.
+- `orders.0002_checkoutattempt_payment_method` and `payments.0001_initial` were generated, SQL-reviewed, approved for application, and applied to `beni_db`. Existing checkout attempts received COD as the default; the payment-attempt, webhook-event, and cancellation-review tables were empty when created.
+- Automated tests mock Razorpay and do not verify hosted checkout, provider credentials, webhook delivery, MySQL concurrency, payouts, or actual refunds. Manual payout/refund reconciliation remains outside this integration. Billing and digital bills are still unimplemented.
 
 ### Repairs, bookings, workers, verification
 
@@ -179,9 +273,9 @@ They are not listed in `INSTALLED_APPS`, are not referenced by root URL configur
 
 1. **Environment and safe baseline (prerequisite):** agree on the intended interpreter/Django version; confirm the target development DB; confirm an isolated test DB is available. Preserve the working auth, catalog, shop, and product surfaces.
 2. **Database prerequisite review (complete at latest audit):** `shops.0001_initial` and `products.0001_initial` were applied and their InnoDB tables existed. Recheck before any future schema action.
-3. **Persistent Orders / inventory (source and migration file ready, DB schema pending):** `orders.0001_initial` has been generated and reviewed after file-only approval. Application to a configured database requires separate explicit approval. Multi-shop checkout is all-or-nothing, one order per shop; no real payments.
-4. **Customer and shopkeeper order UX (source complete, schema pending):** database-backed, object-scoped history/details/status management is wired through existing names and role templates. It is not runtime-usable until the migration is approved and applied.
-5. **Billing and payment integration:** only after totals, provider, refunds and payout responsibilities are approved. No real payment feature is delivered by the Orders stage.
+3. **Persistent Orders / inventory (implemented):** `orders.0001_initial` is applied on the configured database. Multi-shop checkout remains one order per shop under one checkout attempt.
+4. **Customer and shopkeeper order UX (implemented):** object-scoped history/details/status management uses the applied order schema. COD orders are settled when the shopkeeper records delivery.
+5. **Online payment integration (code and schema implemented):** Razorpay checkout, server-side signature/provider status checks, captured-payment webhooks, and staff-reviewed paid cancellation are covered by mocked tests. The migrations are applied; sandbox/provider behavior remains unverified.
 6. **Booking and worker workflow:** define request states, eligibility, schedule and ownership; implement booking then worker assignment/inspection/completion.
 7. **Verification:** build shopkeeper/worker verification and admin review before exposing unverified workspaces or payouts.
 8. **Wallets/payouts:** implement only after payment, accounting ownership, ledger immutability and reconciliation policy are decided.
@@ -205,12 +299,12 @@ They are not listed in `INSTALLED_APPS`, are not referenced by root URL configur
 ## 8. Approval gates and unresolved decisions
 
 - The implementation used the repository virtual environment (Python 3.14.6/Django 5.2.18); no runtime/dependency changes are proposed.
-- The Orders migration file has been explicitly approved and generated. Its direct dependencies are `products.0001_initial`, `shops.0001_initial`, and the swappable user model; `migrate --plan` lists only `orders.0001_initial`.
-- Separately approve applying the reviewed Orders migration to a specifically named database. It has not been applied; recheck migration state and target before any application.
+- `orders.0001_initial` is recorded as applied. The payment migrations were generated and SQL-reviewed after authorization, then explicitly approved and applied in order: `orders.0002_checkoutattempt_payment_method` depends on `orders.0001_initial`; `payments.0001_initial` depends on it and the swappable user model.
+- Read-only verification confirms both payment migration recorder entries, the checkout payment-method column, and all three payment tables with their required columns and indexes. `check --database default` passed; `makemigrations --check --dry-run` reports no drift.
 - The selected schema uses checkout-attempt idempotency, UUID-based unique order numbers, `PROTECT` history links, and prohibits product shop reassignment after order history. These design decisions are implemented in source; request changes before approving migration if they are not acceptable.
 - Full cancellation is allowed only before fulfillment; partial cancellation remains deferred until fulfillment tracking exists. No separate design decision remains for this stage.
-- Test DB isolation was verified as `test_beni_db`, distinct from `beni_db`; 26 focused tests passed using a process-local all-app migration override before the Orders migration file existed. Migration application and MySQL concurrency verification remain outstanding.
-- Before payments: select a gateway, webhook verification, sandbox, refund contract and ownership of payment/billing records.
+- Test DB isolation for the latest 131-test run used process-local in-memory SQLite, not `test_beni_db` or `beni_db`. Provider requests were mocked; Razorpay sandbox behavior and MySQL concurrency remain unverified.
+- The gateway is Razorpay. Checkout signature verification, raw-body webhook verification/idempotency, and manual refund/payout policies are implemented. Configure and test sandbox credentials before any production use.
 - Before bookings/worker flows: select repair request, assignment, scheduling and verification policies.
 - Before wallets/payouts: define ledger/accounting, earnings ownership, withdrawal authorization and reconciliation.
 - Decide future disposition of the uppercase scaffold directories separately; this plan does not merge or delete them.

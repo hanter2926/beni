@@ -1,0 +1,88 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Online payment | BENI{% endblock %}
+{% block body_class %}customer-page{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/customer/catalog.css' %}">{% endblock %}
+{% block content %}
+<main class="catalog-content shopping-page">
+    <p class="catalog-kicker">BENI / SECURE PAYMENT</p>
+    <h1>Complete your payment</h1>
+    <p>One payment covers all shops in this checkout. Shop payouts are handled separately by BENI.</p>
+    <p>Amount: <strong>{{ payment_attempt.currency }} {{ payment_attempt.amount }}</strong></p>
+
+    <section aria-label="Orders in this checkout">
+        {% for order in orders %}
+            <p>{{ order.shop.name }} — {{ order.order_number }} — {{ order.total }}</p>
+        {% endfor %}
+    </section>
+
+    {% if checkout_paid %}
+        <p role="status">This checkout has already been paid.</p>
+        <a class="button button-primary" href="{{ order_detail_url }}">View order</a>
+    {% elif payment_attempt.status == 'captured' %}
+        <p role="status">Payment captured.</p>
+        <a class="button button-primary" href="{{ order_detail_url }}">View order</a>
+    {% elif payment_attempt.status == 'authorized' %}
+        <p role="status">Payment authorized; waiting for capture confirmation.</p>
+        <a class="catalog-back-link" href="{{ order_detail_url }}">View order status</a>
+    {% elif payment_attempt.provider_order_id and payment_attempt.status == 'pending' and key_id %}
+        <form id="razorpay-verification" method="post" action="{% url 'payments:verify' payment_attempt.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="razorpay_order_id">
+            <input type="hidden" name="razorpay_payment_id">
+            <input type="hidden" name="razorpay_signature">
+        </form>
+        <button id="pay-now" class="button button-primary" type="button">Pay now</button>
+        <p id="payment-error" role="alert" hidden></p>
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <script>
+            (() => {
+                const button = document.getElementById('pay-now');
+                const form = document.getElementById('razorpay-verification');
+                const error = document.getElementById('payment-error');
+                button.addEventListener('click', () => {
+                    if (typeof Razorpay === 'undefined') {
+                        error.hidden = false;
+                        error.textContent = 'The payment checkout could not be loaded. Refresh the page and try again.';
+                        return;
+                    }
+                    const checkout = new Razorpay({
+                        key: '{{ key_id|escapejs }}',
+                        amount: '{{ amount_subunits }}',
+                        currency: '{{ payment_attempt.currency|escapejs }}',
+                        name: 'BENI',
+                        description: 'Order payment',
+                        order_id: '{{ payment_attempt.provider_order_id|escapejs }}',
+                        handler: (response) => {
+                            form.elements.razorpay_order_id.value = response.razorpay_order_id;
+                            form.elements.razorpay_payment_id.value = response.razorpay_payment_id;
+                            form.elements.razorpay_signature.value = response.razorpay_signature;
+                            form.submit();
+                        },
+                        modal: {
+                            ondismiss: () => {
+                                error.hidden = false;
+                                error.textContent = 'Payment was not completed. You can retry from this page.';
+                            }
+                        }
+                    });
+                    checkout.on('payment.failed', (response) => {
+                        error.hidden = false;
+                        error.textContent = response.error.description || 'Payment failed. You can retry from this page.';
+                    });
+                    checkout.open();
+                });
+            })();
+        </script>
+    {% elif payment_attempt.status == 'failed' %}
+        <p role="alert">This payment attempt failed. You can create a new payment attempt.</p>
+        <form method="post" action="{% url 'payments:start' payment_attempt.checkout_attempt_id %}">
+            {% csrf_token %}
+            <button class="button button-primary" type="submit">Retry payment</button>
+        </form>
+    {% else %}
+        <p role="alert">Online payment is not configured. Contact BENI support before retrying.</p>
+    {% endif %}
+    <p><a class="catalog-back-link" href="{% url 'customers:orders' %}">Back to orders</a></p>
+</main>
+{% endblock %}

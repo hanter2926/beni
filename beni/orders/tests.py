@@ -6,13 +6,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db.models.deletion import ProtectedError
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from products.models import Product
 from shops.models import Shop
 from customers.views import CART_OWNER_SESSION_KEY
 from notifications.models import Notification
+from payments.models import PaymentAttempt
 from verification.models import VerificationApplication
 
 from .models import CheckoutAttempt, Order, OrderItem
@@ -162,6 +163,65 @@ class OrdersWorkflowTests(TestCase):
                 event_key=f'order:{first_order.pk}:placed:customer',
             ).count(),
             1,
+        )
+
+    @override_settings(
+        RAZORPAY_KEY_ID='rzp_test_public',
+        RAZORPAY_KEY_SECRET='test-key-secret',
+        RAZORPAY_WEBHOOK_SECRET='test-webhook-secret',
+    )
+    def test_online_checkout_creates_one_aggregate_payment_attempt(self):
+        token = self.begin_checkout()
+        data = self.contact()
+        data['payment_method'] = 'razorpay'
+        with patch(
+            'payments.services.gateway.create_order',
+            return_value={
+                'id': 'order_checkout_test',
+                'amount': 1225,
+                'currency': 'INR',
+            },
+        ) as create_order:
+            response = self.submit_checkout(token, data)
+
+        payment_attempt = PaymentAttempt.objects.get()
+        self.assertRedirects(
+            response,
+            reverse('payments:attempt', args=[payment_attempt.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(payment_attempt.amount, Decimal('12.25'))
+        self.assertEqual(payment_attempt.provider_order_id, 'order_checkout_test')
+        self.assertEqual(Order.objects.count(), 2)
+        self.assertEqual(
+            set(Order.objects.values_list('payment_status', flat=True)),
+            {Order.PAYMENT_PENDING},
+        )
+        create_order.assert_called_once()
+        payment_page = self.client.get(
+            reverse('payments:attempt', args=[payment_attempt.pk]),
+        )
+        self.assertEqual(payment_page.status_code, 200)
+        self.assertContains(payment_page, 'Pay now')
+
+    def test_online_checkout_without_provider_configuration_creates_no_orders(self):
+        token = self.begin_checkout()
+        data = self.contact()
+        data['payment_method'] = 'razorpay'
+        with override_settings(
+            RAZORPAY_KEY_ID='',
+            RAZORPAY_KEY_SECRET='',
+            RAZORPAY_WEBHOOK_SECRET='',
+        ):
+            response = self.submit_checkout(token, data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Online payments are not configured')
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(PaymentAttempt.objects.count(), 0)
+        self.assertEqual(
+            Product.objects.get(pk=self.product_one.pk).stock_quantity,
+            5,
         )
 
     def test_order_creation_notifies_customer_and_each_shopkeeper(self):
@@ -366,7 +426,6 @@ class OrdersWorkflowTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, Order.STATUS_CANCELLED)
         self.assertEqual(Product.objects.get(pk=self.product_one.pk).stock_quantity, 5)
-
         self.client.post(reverse('customers:order_cancel', args=[order.order_number]))
         self.assertEqual(Product.objects.get(pk=self.product_one.pk).stock_quantity, 5)
 
@@ -379,6 +438,32 @@ class OrdersWorkflowTests(TestCase):
                 new_status=Order.STATUS_CANCELLED,
             )
         self.assertEqual(Product.objects.get(pk=self.product_one.pk).stock_quantity, 5)
+
+    def test_cash_on_delivery_is_paid_when_shopkeeper_marks_delivered(self):
+        _, orders, _ = create_orders(
+            customer=self.customer,
+            cart=self.cart_for((self.product_one, 1)),
+            token=uuid.uuid4(),
+            contact=self.contact(),
+        )
+        order = orders[0]
+        for status in (
+            Order.STATUS_CONFIRMED,
+            Order.STATUS_PROCESSING,
+            Order.STATUS_READY_FOR_PICKUP,
+            Order.STATUS_OUT_FOR_DELIVERY,
+            Order.STATUS_DELIVERED,
+        ):
+            transition_order(
+                order_number=order.order_number,
+                actor=self.owner_one,
+                new_status=status,
+                shopkeeper=True,
+            )
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_DELIVERED)
+        self.assertEqual(order.payment_status, Order.PAYMENT_PAID)
 
     def test_customer_and_shopkeeper_access_is_object_scoped(self):
         token = self.begin_checkout(self.cart_for((self.product_one, 1)))

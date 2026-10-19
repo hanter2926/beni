@@ -16,6 +16,7 @@
             <div><p>Customer</p><strong>{{ order.contact_name }}</strong></div>
             <div><p>Placed</p><strong>{{ order.created_at }}</strong></div>
             <div><p>Payment status</p><strong>{{ order.get_payment_status_display }}</strong></div>
+            <div><p>Payment method</p><strong>{{ order.checkout_attempt.get_payment_method_display }}</strong></div>
             <div><p>Shop</p><strong>{{ order.shop.name }}</strong></div>
             <div>
                 <p>Delivery address</p>
@@ -48,10 +49,34 @@
     </section>
 
     <div class="order-detail-actions">
+        {% if payment_attempt and order.payment_status != 'paid' %}
+            <a class="button button-primary" href="{% url 'payments:attempt' payment_attempt.pk %}">Continue online payment</a>
+        {% endif %}
+        {% if can_start_payment %}
+            <form method="post" action="{% url 'payments:start' order.checkout_attempt_id %}">
+                {% csrf_token %}
+                <button class="button button-primary" type="submit">Start online payment</button>
+            </form>
+        {% endif %}
+        {% if cancellation_request %}
+            <p role="status">Cancellation request: {{ cancellation_request.get_status_display }}.</p>
+            {% if cancellation_request.status == 'approved' and order.payment_status == 'paid' %}
+                <p>A refund is not issued automatically. Contact BENI staff for manual refund handling.</p>
+            {% endif %}
+        {% endif %}
         {% if can_cancel %}
             <form method="post" action="{% url 'customers:order_cancel' order.order_number %}">
                 {% csrf_token %}
                 <button class="button button-danger" type="submit">Cancel order</button>
+            </form>
+        {% endif %}
+        {% if can_request_cancel %}
+            <form method="post" action="{% url 'customers:order_cancel' order.order_number %}" class="account-form">
+                {% csrf_token %}
+                <label for="cancellation-reason">Reason for cancellation review</label>
+                <textarea id="cancellation-reason" name="reason" maxlength="1000" required></textarea>
+                <button class="button button-danger" type="submit">Request cancellation review</button>
+                <p>A request does not cancel the order or issue a refund automatically.</p>
             </form>
         {% endif %}
         <a class="catalog-back-link" href="{% url 'customers:orders' %}">Back to orders</a>

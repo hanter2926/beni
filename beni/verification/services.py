@@ -187,6 +187,7 @@ def review_application(*, application_id, reviewer, cleaned_data):
             status__in=(
                 RepairBooking.STATUS_COMPLETED,
                 RepairBooking.STATUS_REJECTED,
+                RepairBooking.STATUS_CANCELLED,
             ),
         )
         if active_jobs.exists():

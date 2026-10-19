@@ -140,7 +140,12 @@ def get_checkout_replay(token, customer, expected_digest):
     return attempt, _attempt_result(attempt)
 
 
-def create_orders(*, customer, cart, token, contact):
+def create_orders(*, customer, cart, token, contact, payment_method='cod'):
+    if payment_method not in {
+        CheckoutAttempt.PAYMENT_METHOD_COD,
+        CheckoutAttempt.PAYMENT_METHOD_RAZORPAY,
+    }:
+        raise CheckoutError('Choose a valid payment method.')
     digest = cart_digest(cart)
     try:
         return _create_orders_transaction(
@@ -149,6 +154,7 @@ def create_orders(*, customer, cart, token, contact):
             token=token,
             digest=digest,
             contact=contact,
+            payment_method=payment_method,
         )
     except IntegrityError:
         # A concurrent request may have committed this token between the initial
@@ -160,14 +166,18 @@ def create_orders(*, customer, cart, token, contact):
 
 
 @transaction.atomic
-def _create_orders_transaction(*, customer, cart, token, digest, contact):
+def _create_orders_transaction(*, customer, cart, token, digest, contact, payment_method):
     attempt = (
         CheckoutAttempt.objects.select_for_update()
         .filter(token=token)
         .first()
     )
     if attempt is not None:
-        if attempt.customer_id != customer.pk or attempt.cart_digest != digest:
+        if (
+            attempt.customer_id != customer.pk
+            or attempt.cart_digest != digest
+            or attempt.payment_method != payment_method
+        ):
             raise CheckoutError('This checkout token is no longer valid. Please start a new checkout.')
         return attempt, _attempt_result(attempt), True
 
@@ -176,6 +186,7 @@ def _create_orders_transaction(*, customer, cart, token, digest, contact):
         customer=customer,
         token=token,
         cart_digest=digest,
+        payment_method=payment_method,
     )
     resolved = _load_products(lines, lock=True)
     groups = defaultdict(list)
@@ -264,17 +275,27 @@ ORDER_TRANSITIONS = {
 
 
 @transaction.atomic
-def transition_order(*, order_number, actor, new_status, shopkeeper=False):
+def transition_order(
+    *,
+    order_number,
+    actor,
+    new_status,
+    shopkeeper=False,
+    staff_review=False,
+):
     order = (
         Order.objects.select_for_update()
-        .select_related('shop')
+        .select_related('shop', 'checkout_attempt')
         .filter(order_number=order_number)
         .first()
     )
     if order is None:
         return None
 
-    if shopkeeper:
+    if staff_review:
+        if not actor.is_staff:
+            return None
+    elif shopkeeper:
         if order.shop.owner_id != actor.pk:
             return None
     elif order.customer_id != actor.pk:
@@ -283,7 +304,37 @@ def transition_order(*, order_number, actor, new_status, shopkeeper=False):
     if new_status not in ORDER_TRANSITIONS.get(order.status, set()):
         raise OrderTransitionError('That order status change is not allowed.')
 
+    fulfillment_statuses = {
+        Order.STATUS_CONFIRMED,
+        Order.STATUS_PROCESSING,
+        Order.STATUS_READY_FOR_PICKUP,
+        Order.STATUS_OUT_FOR_DELIVERY,
+        Order.STATUS_DELIVERED,
+    }
+    if (
+        order.checkout_attempt.payment_method
+        == CheckoutAttempt.PAYMENT_METHOD_RAZORPAY
+        and order.payment_status != Order.PAYMENT_PAID
+        and new_status in fulfillment_statuses
+    ):
+        raise OrderTransitionError(
+            'Online payment must be captured before order fulfillment.'
+        )
+
     if new_status == Order.STATUS_CANCELLED:
+        if order.payment_status == Order.PAYMENT_PAID and not staff_review:
+            raise OrderTransitionError(
+                'Paid orders require staff cancellation review.'
+            )
+        if (
+            order.checkout_attempt.payment_method
+            == CheckoutAttempt.PAYMENT_METHOD_RAZORPAY
+            and order.payment_status != Order.PAYMENT_FAILED
+            and not staff_review
+        ):
+            raise OrderTransitionError(
+                'This online payment is not in a failed state. Wait for its final status before cancelling.'
+            )
         items = list(order.items.select_related('product').order_by('product_id'))
         products = Product.objects.filter(
             pk__in=[item.product_id for item in items]
@@ -302,9 +353,23 @@ def transition_order(*, order_number, actor, new_status, shopkeeper=False):
 
     old_status = order.status
     order.status = new_status
-    order.save(update_fields=('status', 'updated_at'))
+    updated_fields = ['status', 'updated_at']
+    if (
+        shopkeeper
+        and new_status == Order.STATUS_DELIVERED
+        and order.checkout_attempt.payment_method
+        == CheckoutAttempt.PAYMENT_METHOD_COD
+    ):
+        order.payment_status = Order.PAYMENT_PAID
+        updated_fields.append('payment_status')
+    order.save(update_fields=updated_fields)
 
-    if shopkeeper:
+    if staff_review:
+        recipient = order.customer
+        destination_name = 'customers:order_detail'
+        destination_args = (order.order_number,)
+        recipient_role = 'customer'
+    elif shopkeeper:
         recipient = order.customer
         destination_name = 'customers:order_detail'
         destination_args = (order.order_number,)
@@ -328,5 +393,18 @@ def transition_order(*, order_number, actor, new_status, shopkeeper=False):
     return order
 
 
-def valid_status_targets(status):
-    return sorted(ORDER_TRANSITIONS.get(status, set()))
+def valid_status_targets(status, payment_status=None, payment_method=None):
+    targets = ORDER_TRANSITIONS.get(status, set())
+    if payment_status == Order.PAYMENT_PAID:
+        targets = targets - {Order.STATUS_CANCELLED}
+    elif (
+        payment_method == CheckoutAttempt.PAYMENT_METHOD_RAZORPAY
+        and payment_status != Order.PAYMENT_FAILED
+    ):
+        targets = targets - {Order.STATUS_CANCELLED}
+    if (
+        payment_method == CheckoutAttempt.PAYMENT_METHOD_RAZORPAY
+        and payment_status != Order.PAYMENT_PAID
+    ):
+        targets = targets.intersection({Order.STATUS_CANCELLED})
+    return sorted(targets)
