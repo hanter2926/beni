@@ -10,7 +10,7 @@
             <h1>Order receipt</h1>
             <p>This receipt reflects the order and payment records stored by BENI.</p>
         </div>
-        <button class="invoice-print-button" type="button" data-print-invoice>Print receipt</button>
+        <button class="invoice-print-button" type="button" data-print-invoice aria-label="Print this order receipt">Print receipt</button>
     </header>
 
     <section class="invoice-facts" aria-label="Receipt information">
@@ -20,24 +20,44 @@
         <div><span>Payment status</span><strong>{{ order.get_payment_status_display }}</strong></div>
         <div><span>Payment method</span><strong>{{ order.checkout_attempt.get_payment_method_display }}</strong></div>
         <div><span>Shop</span><strong>{{ order.shop.name }}</strong></div>
+        {% if payment_attempt %}
+            <div class="invoice-payment-reference"><span>Payment reference</span><strong>{{ payment_attempt.provider_payment_id }}</strong></div>
+        {% endif %}
     </section>
 
     <section class="invoice-parties">
         <div>
             <h2>Customer</h2>
             <p>{{ order.contact_name }}</p>
-            <p>{{ order.contact_phone }}</p>
-            <p>{{ order.address_line1 }}<br>{{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
+            {% if order.contact_phone %}<p>{{ order.contact_phone }}</p>{% endif %}
+            {% if order.address_line1 or order.city or order.state or order.postal_code %}
+                <p>
+                    {% if order.address_line1 %}{{ order.address_line1 }}{% endif %}
+                    {% if order.city or order.state or order.postal_code %}
+                        {% if order.address_line1 %}<br>{% endif %}
+                        {{ order.city }}{% if order.city and order.state %}, {% endif %}{{ order.state }}{% if order.postal_code %} {{ order.postal_code }}{% endif %}
+                    {% endif %}
+                </p>
+            {% endif %}
         </div>
         <div>
             <h2>Shop</h2>
             <p>{{ order.shop.name }}</p>
-            <p>{{ order.shop.address }}<br>{{ order.shop.city }}, {{ order.shop.state }} {{ order.shop.postal_code }}</p>
+            {% if order.shop.phone %}<p>{{ order.shop.phone }}</p>{% endif %}
+            {% if order.shop.address or order.shop.city or order.shop.state or order.shop.postal_code %}
+                <p>
+                    {% if order.shop.address %}{{ order.shop.address }}{% endif %}
+                    {% if order.shop.city or order.shop.state or order.shop.postal_code %}
+                        {% if order.shop.address %}<br>{% endif %}
+                        {{ order.shop.city }}{% if order.shop.city and order.shop.state %}, {% endif %}{{ order.shop.state }}{% if order.shop.postal_code %} {{ order.shop.postal_code }}{% endif %}
+                    {% endif %}
+                </p>
+            {% endif %}
         </div>
     </section>
 
-    <section class="invoice-items">
-        <h2>Items</h2>
+    <section class="invoice-items" aria-labelledby="invoice-items-title">
+        <h2 id="invoice-items-title">Items</h2>
         <div class="invoice-table-wrap">
             <table>
                 <thead>
@@ -46,7 +66,11 @@
                 <tbody>
                     {% for item in order.items.all %}
                         <tr>
-                            <td>{{ item.product_name }}</td>
+                            <td>
+                                <strong>{{ item.product_name }}</strong>
+                                {% if item.product_category %}<span class="invoice-item-detail">{{ item.product_category }}</span>{% endif %}
+                                {% if item.product_sku %}<span class="invoice-item-detail">SKU {{ item.product_sku }}</span>{% endif %}
+                            </td>
                             <td>{{ item.quantity }}</td>
                             <td>₹{{ item.unit_price }}</td>
                             <td>₹{{ item.line_total }}</td>
@@ -63,10 +87,11 @@
             <div><dt>Service fee</dt><dd>₹{{ order.service_fee }}</dd></div>
             <div class="invoice-grand-total"><dt>Order total</dt><dd>₹{{ order.total }}</dd></div>
         </dl>
+        <p class="invoice-disclaimer">Tax and discounts are not itemized in the stored order record.</p>
     </section>
 
     {% if order.delivery_notes %}<p class="invoice-notes"><strong>Delivery notes:</strong> {{ order.delivery_notes }}</p>{% endif %}
-    <p class="invoice-disclaimer">This is a digital order receipt, not a tax invoice. Payment status is shown as recorded in BENI.</p>
+    <p class="invoice-disclaimer">This is a digital order receipt, not a tax invoice. Payment status is shown as recorded in BENI{% if payment_attempt %}; the payment reference is shown only for a captured payment{% endif %}.</p>
     <nav class="invoice-actions" aria-label="Receipt actions">
         {% if role_label == 'Shopkeeper' %}
             <a href="{% url 'shopkeeper_order_detail' order.order_number %}">Back to order</a>
