@@ -69,7 +69,8 @@ business logic of their own.
 - [x] After explicit approval, implemented persisted order/shop and repair
   worker reviews with delivered/completed ownership checks, one review per
   target, staff-only moderation, customer notifications, shopkeeper/worker
-  review lists, and public display of moderated shop ratings.
+  review lists, and public display of moderated shop ratings. Invalid order
+  and repair review submissions retain their text and display field errors.
 - [x] Generated and SQL-reviewed `reviews.0001_initial.py` after explicit
   approval. After separate explicit approval, applied it to `beni_db` and
   verified the migration recorder, all fields, unique target constraints,
@@ -147,7 +148,7 @@ not a tax invoice.
 
 ### Verification results for the current code-only phase
 
-- Guarded in-memory SQLite tests: **159 passed** after all current code
+- Guarded in-memory SQLite tests: **161 passed** after all current code
   changes, including migration execution in the ephemeral test database. The
   focused review run passed **10 tests**; the prior integration run passed
   **27 tests** across bookings, dashboard, billing, and all three facades.

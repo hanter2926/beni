@@ -27,6 +27,31 @@ from .services import (
 )
 
 
+def _render_review_submission(
+    request,
+    *,
+    form,
+    review_target,
+    submit_url,
+    submit_arg,
+    back_url,
+    back_arg,
+):
+    return render(
+        request,
+        'reviews/submit.html',
+        {
+            'form': form,
+            'review_target': review_target,
+            'submit_url': submit_url,
+            'submit_args': (submit_arg,),
+            'back_url': back_url,
+            'back_args': (back_arg,),
+            'role_label': 'Customer',
+        },
+    )
+
+
 @login_required(login_url='accounts:login')
 def customer_review_list(request):
     if not is_customer_user(request.user):
@@ -61,23 +86,27 @@ def submit_order_review_view(request, order_number):
         messages.info(request, 'You have already submitted a review for this order.')
         return redirect('reviews:customer_list')
     if request.method == 'GET':
-        return render(
+        return _render_review_submission(
             request,
-            'reviews/submit.html',
-            {
-                'form': ReviewSubmissionForm(),
-                'review_target': order.shop.name,
-                'submit_url': 'reviews:submit_order',
-                'submit_args': (order_number,),
-                'back_url': 'customers:order_detail',
-                'back_args': (order_number,),
-                'role_label': 'Customer',
-            },
+            form=ReviewSubmissionForm(),
+            review_target=order.shop.name,
+            submit_url='reviews:submit_order',
+            submit_arg=order_number,
+            back_url='customers:order_detail',
+            back_arg=order_number,
         )
     form = ReviewSubmissionForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'Choose a rating and correct the review text.')
-        return redirect('customers:order_detail', order_number=order_number)
+        return _render_review_submission(
+            request,
+            form=form,
+            review_target=order.shop.name,
+            submit_url='reviews:submit_order',
+            submit_arg=order_number,
+            back_url='customers:order_detail',
+            back_arg=order_number,
+        )
     try:
         review = submit_order_review(
             order_number=order_number,
@@ -119,28 +148,32 @@ def submit_repair_review_view(request, booking_id):
     if Review.objects.filter(booking=booking).exists():
         messages.info(request, 'You have already submitted a review for this repair.')
         return redirect('reviews:customer_list')
+    worker_name = (
+        booking.assigned_worker.get_full_name()
+        or booking.assigned_worker.get_username()
+    )
     if request.method == 'GET':
-        worker_name = (
-            booking.assigned_worker.get_full_name()
-            or booking.assigned_worker.get_username()
-        )
-        return render(
+        return _render_review_submission(
             request,
-            'reviews/submit.html',
-            {
-                'form': ReviewSubmissionForm(),
-                'review_target': worker_name,
-                'submit_url': 'reviews:submit_repair',
-                'submit_args': (booking_id,),
-                'back_url': 'bookings:customer_detail',
-                'back_args': (booking_id,),
-                'role_label': 'Customer',
-            },
+            form=ReviewSubmissionForm(),
+            review_target=worker_name,
+            submit_url='reviews:submit_repair',
+            submit_arg=booking_id,
+            back_url='bookings:customer_detail',
+            back_arg=booking_id,
         )
     form = ReviewSubmissionForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'Choose a rating and correct the review text.')
-        return redirect('bookings:customer_detail', booking_id=booking_id)
+        return _render_review_submission(
+            request,
+            form=form,
+            review_target=worker_name,
+            submit_url='reviews:submit_repair',
+            submit_arg=booking_id,
+            back_url='bookings:customer_detail',
+            back_arg=booking_id,
+        )
     try:
         review = submit_repair_review(
             booking_id=booking_id,

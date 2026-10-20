@@ -257,6 +257,45 @@ class ReviewWorkflowTests(TestCase):
         self.client.force_login(self.other_customer)
         self.assertEqual(self.client.get(url).status_code, 404)
 
+    def test_invalid_order_review_preserves_input_and_shows_field_errors(self):
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse(
+                'reviews:submit_order',
+                args=(self.order.order_number,),
+            ),
+            {'rating': 'invalid', 'body': 'Keep this review text.'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['form'].errors.keys(),
+            {'rating'},
+        )
+        self.assertEqual(
+            response.context['form']['body'].value(),
+            'Keep this review text.',
+        )
+        self.assertContains(response, 'Choose a rating and correct the review text.')
+
+    def test_invalid_repair_review_preserves_input_and_shows_field_errors(self):
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('reviews:submit_repair', args=(self.booking.pk,)),
+            {'rating': 'invalid', 'body': 'Keep this repair review.'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['form'].errors.keys(),
+            {'rating'},
+        )
+        self.assertEqual(
+            response.context['form']['body'].value(),
+            'Keep this repair review.',
+        )
+        self.assertContains(response, 'Choose a rating and correct the review text.')
+
     def test_only_published_shop_reviews_are_visible_to_shopkeeper_and_catalog(self):
         review = submit_order_review(
             order_number=self.order.order_number,
