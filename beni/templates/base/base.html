@@ -24,6 +24,9 @@
                 <button type="submit" aria-label="Search">Search</button>
             </form>
             <div class="header-actions">
+                <a class="header-link" href="{% url 'repair_guides:home' %}">Repair guides</a>
+                <a class="header-link" href="{% url 'repair_guides:questions' %}">Repair questions</a>
+                {% if request.user.is_staff %}<a class="header-link" href="{% url 'repair_guides:moderation' %}">Guide moderation</a>{% endif %}
                 {% if role_label == 'Customer' or role_label == 'Shopkeeper' or role_label == 'Repair worker' or role_label == 'Admin' %}
                     <button class="menu-toggle" type="button" aria-controls="role-navigation" aria-expanded="false" aria-label="Open workspace navigation">
                         <span class="menu-toggle-icon" aria-hidden="true"></span>

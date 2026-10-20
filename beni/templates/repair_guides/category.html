@@ -1,0 +1,121 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{{ category.name }} repair discovery | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<div class="guide-page">
+    <nav class="guide-breadcrumbs" aria-label="Breadcrumb"><a href="{% url 'repair_guides:home' %}">Repair discovery</a><span aria-hidden="true">/</span><span>{{ category.name }}</span></nav>
+    <section class="guide-category-hero">
+        <img src="{{ category.image_src }}" alt="{{ category.image_alt }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="Category illustration unavailable">
+        <div><p class="guide-eyebrow">Repair category</p><h1>{{ category.name }}</h1><p>{{ category.description }}</p>
+            <form class="guide-search" method="get" action="{% url 'repair_guides:category' category.slug %}" role="search">
+                <label class="sr-only" for="category-search">Search {{ category.name }} guides and products</label>
+                <input id="category-search" type="search" name="q" value="{{ query }}" maxlength="100" placeholder="Search guides, problems and products">
+                <button type="submit">Search</button>
+            </form>
+            <a class="guide-primary-link" href="{% url 'bookings:customer_create' %}?category={{ category.slug }}">Request a repair expert</a>
+        </div>
+    </section>
+
+    {% if category.safety %}<aside class="guide-safety" role="note"><strong>Safety first</strong><p>{{ category.safety }}</p></aside>{% endif %}
+
+    <section class="guide-section" aria-labelledby="item-types-title">
+        <header class="guide-section-heading"><div><p class="guide-eyebrow">Explore this category</p><h2 id="item-types-title">Items and repair areas</h2></div></header>
+        <div class="guide-chip-list">
+            {% for item in category.item_types %}<a class="guide-chip" href="{% url 'repair_guides:category' category.slug %}?item={{ item|urlencode }}">{{ item }}</a>{% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section" aria-labelledby="guides-title">
+        <header class="guide-section-heading"><div><p class="guide-eyebrow">BENI knowledge library</p><h2 id="guides-title">Repair guides</h2></div></header>
+        <form class="guide-search" method="get" action="{% url 'repair_guides:category' category.slug %}">
+            <input type="hidden" name="q" value="{{ query }}">
+            <label for="guide-mode-filter">Browse</label>
+            <select id="guide-mode-filter" name="type"><option value="" {% if repair_type != 'professional' %}selected{% endif %}>DIY repair guides</option><option value="professional" {% if repair_type == 'professional' %}selected{% endif %}>Professional repair request</option></select>
+            <label for="guide-item-filter">Item type</label>
+            <select id="guide-item-filter" name="item">
+                <option value="">All item types</option>
+                {% for item in category.item_types %}<option value="{{ item }}" {% if selected_item == item %}selected{% endif %}>{{ item }}</option>{% endfor %}
+            </select>
+            <label for="guide-difficulty-filter">Difficulty</label>
+            <select id="guide-difficulty-filter" name="difficulty">
+                <option value="">Any difficulty</option>
+                {% for value, label in difficulty_choices %}<option value="{{ value }}" {% if selected_difficulty == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <label for="guide-time-filter">Maximum minutes</label>
+            <input id="guide-time-filter" type="number" name="max_minutes" min="1" max="1440" value="{{ max_minutes }}">
+            <label for="guide-resource-filter">Includes</label>
+            <select id="guide-resource-filter" name="resource">
+                <option value="">Any tools or parts</option>
+                <option value="tool" {% if selected_resource_type == 'tool' %}selected{% endif %}>Tools</option>
+                <option value="part" {% if selected_resource_type == 'part' %}selected{% endif %}>Spare parts</option>
+                <option value="material" {% if selected_resource_type == 'material' %}selected{% endif %}>Materials</option>
+            </select>
+            <button type="submit">Apply guide filters</button>
+        </form>
+        {% if repair_type == 'professional' %}<p class="guide-notice">Repair worker availability is not published here. Use the existing booking request form to describe the issue; BENI staff handle assignment.</p><a class="guide-primary-link" href="{% url 'bookings:customer_create' %}?category={{ category.slug }}">Request a repair expert</a>{% endif %}
+        <div class="guide-category-grid">
+            {% for guide in guides %}
+                <article class="guide-category-card">
+                    <span>{{ guide.item_type }} · {{ guide.get_difficulty_display }}</span>
+                    <h3><a href="{% url 'repair_guides:guide' guide.slug %}">{{ guide.title }}</a></h3>
+                    <p>{{ guide.summary }}</p>
+                    {% if guide.symptoms %}<p><strong>Common symptoms:</strong> {{ guide.symptoms|truncatewords:24 }}</p>{% endif %}
+                    <small>{{ guide.helpful_count }} found this helpful · Published {{ guide.published_at|date:"M j, Y" }}{% if guide.estimated_minutes %} · {{ guide.estimated_minutes }} min{% endif %}</small>
+                </article>
+            {% empty %}
+                <p class="guide-empty">No published guides match these filters yet.</p>
+            {% endfor %}
+        </div>
+        {% if guide_page.has_other_pages %}
+            <nav class="guide-pagination" aria-label="Repair guide pages">
+                {% if guide_page.has_previous %}<a href="?q={{ query|urlencode }}&item={{ selected_item|urlencode }}&difficulty={{ selected_difficulty|urlencode }}&max_minutes={{ max_minutes|urlencode }}&resource={{ selected_resource_type|urlencode }}&type={{ repair_type|urlencode }}&guide_page={{ guide_page.previous_page_number }}">Previous</a>{% endif %}
+                <span>Page {{ guide_page.number }} of {{ guide_page.paginator.num_pages }}</span>
+                {% if guide_page.has_next %}<a href="?q={{ query|urlencode }}&item={{ selected_item|urlencode }}&difficulty={{ selected_difficulty|urlencode }}&max_minutes={{ max_minutes|urlencode }}&resource={{ selected_resource_type|urlencode }}&type={{ repair_type|urlencode }}&guide_page={{ guide_page.next_page_number }}">Next</a>{% endif %}
+            </nav>
+        {% endif %}
+        {% if category_model %}<a class="guide-secondary-link" href="{% url 'repair_guides:questions_category' category.slug %}">Browse {{ category.name }} questions</a>{% endif %}
+        <a class="guide-secondary-link" href="{% url 'repair_guides:questions' %}">Browse all repair questions</a>
+        {% if user.is_authenticated %}<a class="guide-secondary-link" href="{% url 'repair_guides:question_new' %}">Ask a repair question</a>{% endif %}
+        {% if can_contribute %}<a class="guide-primary-link" href="{% url 'repair_guides:guide_new' %}">Submit a repair guide</a>{% endif %}
+    </section>
+
+    <section class="guide-section" aria-labelledby="products-title">
+        <header class="guide-section-heading"><div><p class="guide-eyebrow">Actual eligible shop listings</p><h2 id="products-title">Products in this category</h2></div></header>
+        <p class="guide-notice">Listings are matched by their existing product name, description and category. BENI has not verified compatibility with a specific device or repair; confirm suitability before ordering.</p>
+        <div class="guide-product-grid">
+            {% for product in products %}
+                <article class="guide-product-card">
+                    <a class="guide-product-image" href="{% url 'catalog:detail' product.pk %}">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" data-fallback-src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" data-fallback-alt="No product image available" loading="lazy" decoding="async">
+                        {% else %}
+                            <img src="{% static 'image/beni_separate_images/placeholders/no-image.png' %}" alt="No product image available" loading="lazy" decoding="async">
+                        {% endif %}
+                    </a>
+                    <div><h3><a href="{% url 'catalog:detail' product.pk %}">{{ product.name }}</a></h3><p>{{ product.category }} · {{ product.shop.name }}</p><strong>₹{{ product.price }}</strong><span class="guide-stock">In stock: {{ product.stock_quantity }}</span><a class="guide-secondary-link" href="{% url 'catalog:detail' product.pk %}">View product and shop</a></div>
+                </article>
+            {% empty %}
+                <p class="guide-empty">{% if query or selected_item %}No in-stock eligible shop products matched this search.{% else %}No in-stock eligible shop products matched this category yet.{% endif %}</p>
+            {% endfor %}
+        </div>
+        {% if page_obj.has_other_pages %}
+            <nav class="guide-pagination" aria-label="Category products pages">
+                {% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&item={{ selected_item|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&item={{ selected_item|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+
+    <section class="guide-section guide-expert-callout" aria-labelledby="expert-title">
+        <div><p class="guide-eyebrow">Professional service</p><h2 id="expert-title">Prefer expert help?</h2><p>Submit a request through BENI's existing repair booking workflow. BENI staff assign any worker; this page does not book or charge anyone automatically.</p></div>
+        <a class="guide-primary-link" href="{% url 'bookings:customer_create' %}?category={{ category.slug }}">Start repair request</a>
+    </section>
+
+    <section class="guide-section" aria-labelledby="related-title">
+        <header class="guide-section-heading"><div><p class="guide-eyebrow">Continue exploring</p><h2 id="related-title">Related categories</h2></div></header>
+        <div class="guide-related-list">{% for related in related_categories %}<a href="{% url 'repair_guides:category' related.slug %}">{{ related.name }} <span aria-hidden="true">→</span></a>{% empty %}<p>No related categories have been configured.</p>{% endfor %}</div>
+    </section>
+</div>
+{% endblock %}

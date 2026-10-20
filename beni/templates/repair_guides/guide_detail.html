@@ -1,0 +1,76 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{{ guide.title }} | BENI Repair Guide{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page guide-article">
+    <nav class="guide-breadcrumbs" aria-label="Breadcrumb"><a href="{% url 'repair_guides:home' %}">Repair discovery</a><span>/</span><a href="{% url 'repair_guides:category' guide.category.slug %}">{{ guide.category.name }}</a><span>/</span><span>{{ guide.title }}</span></nav>
+    <article>
+        <header class="guide-article-header">
+            <p class="guide-eyebrow">{{ guide.category.name }} · {{ guide.get_difficulty_display }}</p>
+            <h1>{{ guide.title }}</h1>
+            <p>{{ guide.summary }}</p>
+            <div class="guide-meta">By {{ guide.author.get_full_name|default:guide.author.username }}{% if guide.published_at %} · Published {{ guide.published_at|date:"M j, Y" }}{% endif %}{% if guide.estimated_minutes %} · About {{ guide.estimated_minutes }} minutes{% endif %}</div>
+            {% if guide.item_type %}<p><strong>Item:</strong> {{ guide.item_type }}{% if guide.supported_model %} · <strong>Supported model:</strong> {{ guide.supported_model }}{% endif %}</p>{% endif %}
+            {% if can_edit %}<a class="guide-secondary-link" href="{% url 'repair_guides:guide_edit' guide.slug %}">Edit guide</a>{% endif %}
+        </header>
+
+        {% if guide.category.safety_notice %}<aside class="guide-safety" role="note"><strong>Category safety notice</strong><p>{{ guide.category.safety_notice|linebreaksbr }}</p></aside>{% endif %}
+        {% if guide.safety_warnings %}<aside class="guide-safety" role="note"><strong>Safety warning</strong><p>{{ guide.safety_warnings|linebreaksbr }}</p></aside>{% endif %}
+        {% if guide.symptoms %}<section class="guide-article-section"><h2>Symptoms</h2><p>{{ guide.symptoms|linebreaksbr }}</p></section>{% endif %}
+        {% if guide.possible_causes %}<section class="guide-article-section"><h2>Possible causes</h2><p>{{ guide.possible_causes|linebreaksbr }}</p></section>{% endif %}
+        {% if guide.diagnosis %}<section class="guide-article-section"><h2>Diagnosis</h2><p>{{ guide.diagnosis|linebreaksbr }}</p></section>{% endif %}
+        {% if guide.preparation %}<section class="guide-article-section"><h2>Before you begin</h2><p>{{ guide.preparation|linebreaksbr }}</p></section>{% endif %}
+
+        <section class="guide-article-section">
+            <h2>Repair steps</h2>
+            <ol class="guide-step-list">
+                {% for step in guide.steps.all %}
+                    <li><h3>{% if step.title %}{{ step.title }}{% else %}Step {{ forloop.counter }}{% endif %}</h3><p>{{ step.instructions|linebreaksbr }}</p>{% if step.image %}<img class="guide-step-image" src="{{ step.image.url }}" alt="Illustration for {{ step.title|default:'repair step' }}" loading="lazy">{% endif %}</li>
+                {% empty %}
+                    <li>No repair steps have been added to this guide.</li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        {% if resources %}
+        <section class="guide-article-section">
+            <h2>Tools, parts and materials</h2>
+            <ul class="guide-resource-list">
+                {% for entry in resources %}
+                    <li>
+                        <strong>{{ entry.resource.get_resource_type_display }}:</strong> {{ entry.resource.name }}{% if entry.resource.quantity %} · {{ entry.resource.quantity }}{% endif %}
+                        {% if entry.resource.product %}
+                            {% if entry.compatibility_confirmed %}<span class="guide-verified-note">Compatibility confirmed for this guide</span>{% else %}<span class="guide-notice-inline">Compatibility has not been confirmed.</span>{% endif %}
+                            {% if entry.product_available %}
+                                <a href="{% url 'catalog:detail' entry.resource.product.pk %}">View {{ entry.resource.product.name }} from {{ entry.resource.product.shop.name }} · ₹{{ entry.resource.product.price }}</a>
+                                {% if entry.resource.product.image %}<img class="guide-resource-image" src="{{ entry.resource.product.image.url }}" alt="{{ entry.resource.product.name }}" loading="lazy">{% endif %}
+                            {% else %}
+                                <span>Linked product is currently unavailable.</span>
+                            {% endif %}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+        {% if guide.expected_result %}<section class="guide-article-section"><h2>Expected result</h2><p>{{ guide.expected_result|linebreaksbr }}</p></section>{% endif %}
+        {% if guide.troubleshooting %}<section class="guide-article-section"><h2>If the problem remains</h2><p>{{ guide.troubleshooting|linebreaksbr }}</p></section>{% endif %}
+
+        <section class="guide-article-section guide-feedback">
+            <h2>Was this guide helpful?</h2>
+            <p>{{ helpful_count }} found it helpful · {{ not_helpful_count }} did not</p>
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'repair_guides:guide_feedback' guide.slug %}">{% csrf_token %}<button name="helpful" value="yes" type="submit">Yes, helpful</button><button name="helpful" value="no" type="submit">Not helpful</button></form>
+            {% else %}<a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in to leave feedback</a>{% endif %}
+            {% if user.is_authenticated %}<form method="post" action="{% url 'repair_guides:guide_report' guide.slug %}" class="guide-inline-report">{% csrf_token %}<label for="guide-report-reason">Report a problem with this guide</label><textarea id="guide-report-reason" name="reason" maxlength="2000" required></textarea><button type="submit">Send report</button></form>{% else %}<a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in to report this guide</a>{% endif %}
+        </section>
+    </article>
+
+    <section class="guide-expert-callout">
+        <div><p class="guide-eyebrow">Professional repair</p><h2>Would you like expert help?</h2><p>Use BENI's existing request form. Submitting a request does not automatically assign a worker or charge you.</p></div>
+        <a class="guide-primary-link" href="{% url 'bookings:customer_create' %}?category={{ guide.category.slug }}">Find a repair expert</a>
+    </section>
+    <section class="guide-section"><h2>Related guides</h2><div class="guide-category-grid">{% for related in related_guides %}<a class="guide-category-card" href="{% url 'repair_guides:guide' related.slug %}"><span>{{ related.get_difficulty_display }}</span><strong>{{ related.title }}</strong><small>{{ related.summary }}</small></a>{% empty %}<p>No related published guides have been linked.</p>{% endfor %}</div></section>
+</main>
+{% endblock %}

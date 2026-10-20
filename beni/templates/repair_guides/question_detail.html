@@ -1,0 +1,33 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{{ question.title }} | BENI Repair Questions{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page">
+    <nav class="guide-breadcrumbs" aria-label="Breadcrumb"><a href="{% url 'repair_guides:home' %}">Repair discovery</a><span>/</span><a href="{% url 'repair_guides:questions' %}">Questions</a><span>/</span><span>{{ question.title }}</span></nav>
+    <article class="guide-question-detail">
+        <p class="guide-eyebrow">{{ question.category.name }}{% if question.subcategory %} · {{ question.subcategory.name }}{% endif %}</p>
+        <h1>{{ question.title }}</h1><p class="guide-meta">Asked by {{ question.author.get_full_name|default:question.author.username }} · {{ question.created_at|date:"M j, Y" }}</p>
+        <div>{{ question.body|linebreaksbr }}</div>
+        {% if question.image %}<img class="guide-step-image" src="{{ question.image.url }}" alt="Image attached to the question">{% endif %}
+        {% if question.status != 'published' %}<p class="guide-safety">This question is visible only to its author and moderators while it is reviewed.</p>{% endif %}
+        {% if related_guide %}<p>Related guide: <a href="{% url 'repair_guides:guide' related_guide.slug %}">{{ related_guide.title }}</a></p>{% endif %}
+        {% if question.related_product %}{% if related_product_available %}<p>Related listing: <a href="{% url 'catalog:detail' question.related_product.pk %}">{{ question.related_product.name }}</a> · Suitability is not confirmed by this link.</p>{% else %}<p>Related product listing is currently unavailable.</p>{% endif %}{% endif %}
+        {% if is_owner %}<a class="guide-secondary-link" href="{% url 'repair_guides:question_edit' question.pk %}">Edit question</a><form method="post" action="{% url 'repair_guides:question_delete' question.pk %}" class="guide-inline-form">{% csrf_token %}<button type="submit">Delete question</button></form>{% endif %}
+    </article>
+    {% if question.status == 'published' %}
+    <section class="guide-article-section">
+        <h2>Community answers</h2>
+        {% for answer in answers %}
+            <article class="guide-answer-card"><p>{{ answer.body|linebreaksbr }}</p><small>{{ answer.author.get_full_name|default:answer.author.username }} · {{ answer.created_at|date:"M j, Y" }} · {{ answer.helpful_count }} helpful</small>
+                {% if answer.status == 'pending' %}<p class="guide-safety">Your answer is pending moderator review.</p>{% endif %}
+                {% if answer.author_id == user.pk and answer.status != 'published' %}<a class="guide-secondary-link" href="{% url 'repair_guides:answer_edit' answer.pk %}">Edit your answer</a><form method="post" action="{% url 'repair_guides:answer_delete' answer.pk %}" class="guide-inline-form">{% csrf_token %}<button type="submit">Delete answer</button></form>{% endif %}
+                {% if answer.status == 'published' %}{% if user.is_authenticated %}<form method="post" action="{% url 'repair_guides:answer_vote' answer.pk %}">{% csrf_token %}<button name="helpful" value="yes" type="submit">Helpful</button><button name="helpful" value="no" type="submit">Not helpful</button></form><form method="post" action="{% url 'repair_guides:answer_report' answer.pk %}" class="guide-inline-report">{% csrf_token %}<label for="answer-report-{{ answer.pk }}">Report answer</label><textarea id="answer-report-{{ answer.pk }}" name="reason" maxlength="2000" required></textarea><button type="submit">Report</button></form>{% else %}<a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in to vote or report this answer</a>{% endif %}{% endif %}
+            </article>
+        {% empty %}<p>No published answers yet.</p>{% endfor %}
+        {% if can_answer %}<form method="post" class="guide-form"><h3>Share an answer</h3>{% csrf_token %}{{ answer_form.as_p }}<button type="submit">Submit answer for review</button></form>{% endif %}
+    </section>
+    <section class="guide-article-section"><h2>Was this question helpful?</h2><p>{{ question.helpful_count }} helpful votes</p>{% if user.is_authenticated %}<form method="post" action="{% url 'repair_guides:question_vote' question.pk %}">{% csrf_token %}<button name="helpful" value="yes" type="submit">Helpful</button><button name="helpful" value="no" type="submit">Not helpful</button></form><form method="post" action="{% url 'repair_guides:question_report' question.pk %}" class="guide-inline-report">{% csrf_token %}<label for="question-report-reason">Report this question</label><textarea id="question-report-reason" name="reason" maxlength="2000" required></textarea><button type="submit">Send report</button></form>{% else %}<a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in to vote or report this question</a>{% endif %}</section>
+    {% endif %}
+</main>
+{% endblock %}

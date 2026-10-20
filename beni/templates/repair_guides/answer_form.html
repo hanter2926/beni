@@ -1,0 +1,11 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Edit repair answer | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page guide-form-page">
+    <h1>{% if answer %}Edit your answer{% else %}Write an answer{% endif %}</h1>
+    <p>Answers are reviewed by a moderator before publication.</p>
+    <form method="post" class="guide-form">{% csrf_token %}{{ form.as_p }}<button type="submit">Submit for review</button></form>
+</main>
+{% endblock %}

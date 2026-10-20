@@ -1,0 +1,11 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{% if question %}Edit question{% else %}Ask a repair question{% endif %} | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page guide-form-page">
+    <h1>{% if question %}Edit your question{% else %}Ask a repair question{% endif %}</h1>
+    <p>Questions are private until reviewed by a moderator. Only link products that are actually available; product selection does not confirm device compatibility.</p>
+    <form method="post" enctype="multipart/form-data" class="guide-form">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div class="guide-form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}<button type="submit">Submit for review</button></form>
+</main>
+{% endblock %}

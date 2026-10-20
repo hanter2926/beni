@@ -1,0 +1,10 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Report repair content | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page guide-form-page">
+    <h1>Report content</h1><p>Tell the BENI moderators what needs review. Reports are visible only to authorized moderators.</p>
+    <form method="post" class="guide-form">{% csrf_token %}{{ form.as_p }}<button type="submit">Submit report</button><a href="{{ cancel_url }}">Cancel</a></form>
+</main>
+{% endblock %}

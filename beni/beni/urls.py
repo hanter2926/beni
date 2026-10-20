@@ -40,6 +40,7 @@ urlpatterns = [
     path('dukandaar/', include('Dukandaar.urls')),
     path('billing/', include('billing.urls')),
     path('reviews/', include('reviews.urls')),
+    path('repair-guides/', include('repair_guides.urls')),
 ]
 
 if settings.DEBUG:

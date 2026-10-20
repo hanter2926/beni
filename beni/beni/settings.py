@@ -143,6 +143,7 @@ INSTALLED_APPS = [
     "notifications",
     "verification",
     "dashboard",
+    "repair_guides.apps.RepairGuidesConfig",
 ]
 
 

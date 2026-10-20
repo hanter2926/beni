@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Repair content moderation | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page">
+    <h1>Repair content moderation</h1>
+    <section class="guide-article-section"><h2>Guides awaiting review</h2>
+        {% for guide in guides %}<article class="guide-moderation-card"><h3>{{ guide.title }}</h3><p>{{ guide.summary }}</p><p>By {{ guide.author.get_username }} · {{ guide.category.name }}</p><a href="{% url 'repair_guides:guide' guide.slug %}">Review submission</a><form method="post" action="{% url 'repair_guides:moderate_content' 'guide' guide.pk %}">{% csrf_token %}<label for="guide-note-{{ guide.pk }}">Moderator note (required to reject)</label><textarea id="guide-note-{{ guide.pk }}" name="note" maxlength="2000"></textarea><button name="decision" value="published" type="submit">Publish</button><button name="decision" value="rejected" type="submit">Request changes</button></form></article>{% empty %}<p>No submitted guides.</p>{% endfor %}
+    </section>
+    <section class="guide-article-section"><h2>Questions awaiting review</h2>
+        {% for question in questions %}<article class="guide-moderation-card"><h3>{{ question.title }}</h3><p>{{ question.body|truncatewords:60 }}</p><a href="{% url 'repair_guides:question' question.pk %}">Review question</a><form method="post" action="{% url 'repair_guides:moderate_content' 'question' question.pk %}">{% csrf_token %}<label for="question-note-{{ question.pk }}">Moderator note (required to reject)</label><textarea id="question-note-{{ question.pk }}" name="note" maxlength="2000"></textarea><button name="decision" value="published" type="submit">Publish</button><button name="decision" value="rejected" type="submit">Do not publish</button></form></article>{% empty %}<p>No pending questions.</p>{% endfor %}
+    </section>
+    <section class="guide-article-section"><h2>Answers awaiting review</h2>
+        {% for answer in answers %}<article class="guide-moderation-card"><p>{{ answer.body|linebreaksbr }}</p><p>By {{ answer.author.get_username }}</p><a href="{% url 'repair_guides:question' answer.question_id %}">View question</a><form method="post" action="{% url 'repair_guides:moderate_content' 'answer' answer.pk %}">{% csrf_token %}<label for="answer-note-{{ answer.pk }}">Moderator note (required to reject)</label><textarea id="answer-note-{{ answer.pk }}" name="note" maxlength="2000"></textarea><button name="decision" value="published" type="submit">Publish</button><button name="decision" value="rejected" type="submit">Do not publish</button></form></article>{% empty %}<p>No pending answers.</p>{% endfor %}
+    </section>
+    <section class="guide-article-section"><h2>Reports awaiting review</h2>
+        {% for report in reports %}<article class="guide-moderation-card"><p>{{ report.reason }}</p><p>Reported by {{ report.reporter.get_username }} · {{ report.created_at|date:"M j, Y" }}</p>{% if report.guide %}<a href="{% url 'repair_guides:guide' report.guide.slug %}">Reported guide: {{ report.guide.title }}</a>{% elif report.question %}<a href="{% url 'repair_guides:question' report.question.pk %}">Reported question: {{ report.question.title }}</a>{% elif report.answer %}<a href="{% url 'repair_guides:question' report.answer.question_id %}">Reported answer (question {{ report.answer.question_id }})</a>{% endif %}<form method="post" action="{% url 'repair_guides:moderate_report' report.pk %}">{% csrf_token %}<label for="report-note-{{ report.pk }}">Moderator note</label><textarea id="report-note-{{ report.pk }}" name="note" maxlength="2000"></textarea><button name="decision" value="resolved" type="submit">Resolve report</button><button name="decision" value="dismissed" type="submit">Dismiss report</button></form></article>{% empty %}<p>No pending reports.</p>{% endfor %}
+    </section>
+</main>
+{% endblock %}

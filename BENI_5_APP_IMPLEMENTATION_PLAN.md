@@ -80,6 +80,32 @@ business logic of their own.
 - [ ] Run a real authenticated browser/upload/payment workflow in a
   non-production environment; current verification is automated only.
 
+### Repair guides and community content — implemented, migration pending
+
+- Added the 16 repair categories and database-backed category/subcategory
+  management, guide submission/editing, ordered repair steps, parts/tools,
+  publication moderation, helpful feedback, reports, repair questions,
+  contributor answers, votes, and staff moderation audit records.
+- Added `/repair-guides/`, per-category pages, published guide details,
+  guide/question submission and detail pages, and staff moderation pages.
+  Unpublished content is private to its owner and staff.
+- Product references use current marketable, in-stock products and existing
+  catalog routes; guide content does not claim unverified compatibility.
+  Category and guide pages link to the existing repair booking workflow.
+- Created `repair_guides.0001_initial.py` after approval to create the content
+  schema and seed the category hierarchy. **It has not been applied to the
+  persistent MySQL database.** The guide and community URLs require this
+  migration before deployment; no live tables or records were changed.
+- Still not provided: persisted FAQ content and a browsable expert-availability
+  directory. The existing booking workflow accepts requests but does not
+  expose worker availability. Repair estimates, acceptance, invoices, and
+  payment remain blocked on the separate pricing/finance schema proposal.
+- Verification for this phase: `manage.py check` passed; 24 repair-guide tests
+  passed with migrations enabled in isolated in-memory SQLite (and also with
+  migrations disabled); `makemigrations --check --dry-run repair_guides`
+  reported no model/migration drift; `git diff --check` passed. No persistent
+  database migration was run.
+
 ### Reviews migration — generated, reviewed, and applied after approval
 
 Reviews persist in one `reviews_review` table supporting both shop and

@@ -29,6 +29,7 @@ from .services import (
     submit_support_request,
     transition_worker_booking,
 )
+from repair_guides.categories import CATEGORIES_BY_SLUG
 from verification.services import is_verified_repair_worker
 
 def _customer_only(request):
@@ -116,9 +117,20 @@ def customer_booking_create(request):
             'Add your mobile number to your profile and ask BENI staff to verify it before requesting a repair.',
         )
         return redirect('accounts:profile')
+    initial = {}
+    if request.method == 'GET':
+        category = CATEGORIES_BY_SLUG.get(
+            request.GET.get('category', '').strip()
+        )
+        if category:
+            initial = {
+                'service_category': category['booking_category'],
+                'problem_description': f"Category: {category['name']}\n\n",
+            }
     form = RepairBookingForm(
         request.POST if request.method == 'POST' else None,
         request.FILES if request.method == 'POST' else None,
+        initial=initial,
     )
     if request.method == 'POST' and form.is_valid():
         uploaded_images = form.cleaned_data.get('images', [])

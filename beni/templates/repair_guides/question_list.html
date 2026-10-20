@@ -1,0 +1,17 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Repair questions | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page">
+    <nav class="guide-breadcrumbs" aria-label="Breadcrumb"><a href="{% url 'repair_guides:home' %}">Repair discovery</a><span>/</span><span>Questions</span></nav>
+    <header class="guide-section-heading"><div><p class="guide-eyebrow">{% if category %}{{ category.name }}{% else %}Community support{% endif %}</p><h1>Repair questions</h1></div>{% if user.is_authenticated %}<a class="guide-primary-link" href="{% url 'repair_guides:question_new' %}">Ask a question</a>{% endif %}</header>
+    <form class="guide-search" method="get"><label class="sr-only" for="question-search">Search repair questions</label><input id="question-search" type="search" name="q" value="{{ query }}" maxlength="100" placeholder="Search questions"><button type="submit">Search</button></form>
+    <div class="guide-question-list">
+        {% for question in questions %}
+            <article class="guide-question-card"><p class="guide-eyebrow">{{ question.category.name }} · {{ question.created_at|date:"M j, Y" }}</p><h2><a href="{% url 'repair_guides:question' question.pk %}">{{ question.title }}</a></h2><p>{{ question.body|truncatewords:45 }}</p><small>Asked by {{ question.author.get_full_name|default:question.author.username }} · {{ question.helpful_count }} helpful votes</small></article>
+        {% empty %}<p class="guide-empty">No published questions match. {% if user.is_authenticated %}You can ask a question for moderator review.{% endif %}</p>{% endfor %}
+    </div>
+    {% if page_obj.has_other_pages %}<nav class="guide-pagination" aria-label="Question pages">{% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>{% endif %}</nav>{% endif %}
+</main>
+{% endblock %}

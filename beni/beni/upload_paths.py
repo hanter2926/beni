@@ -56,6 +56,33 @@ def booking_image_path(instance, filename):
     return _image_path('bookings', instance, filename, 'image')
 
 
+def repair_guide_category_image_path(instance, filename):
+    return _image_path(
+        'repair_guides/categories',
+        instance,
+        filename,
+        'image',
+    )
+
+
+def repair_guide_step_image_path(instance, filename):
+    return _image_path(
+        'repair_guides/steps',
+        instance,
+        filename,
+        'image',
+    )
+
+
+def repair_question_image_path(instance, filename):
+    return _image_path(
+        'repair_guides/questions',
+        instance,
+        filename,
+        'image',
+    )
+
+
 def verification_document_path(instance, filename):
     file_object = instance.file.file
     original_position = file_object.tell()

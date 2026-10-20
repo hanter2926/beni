@@ -1,0 +1,22 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{% if guide %}Edit {{ guide.title }}{% else %}Submit a repair guide{% endif %} | BENI{% endblock %}
+{% block role_styles %}<link rel="stylesheet" href="{% static 'css/repair_guides/guides.css' %}">{% endblock %}
+{% block content %}
+<main class="guide-page guide-form-page">
+    <h1>{% if guide %}Edit repair guide{% else %}Submit a repair guide{% endif %}</h1>
+    <p>Submitted guides remain private until an authorized moderator reviews and publishes them. Do not include unverified device compatibility or unsafe instructions.</p>
+    <form method="post" enctype="multipart/form-data" class="guide-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}<div class="guide-form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}
+        <fieldset><legend>Numbered repair steps</legend>{{ step_formset.management_form }}{{ step_formset.non_form_errors }}
+            {% for step_form in step_formset %}<div class="guide-formset-row">{{ step_form.id }}{{ step_form.non_field_errors }}{% for field in step_form.visible_fields %}<div class="guide-form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}</div>{% endfor %}
+        </fieldset>
+        <fieldset><legend>Tools, parts and materials</legend>{{ resource_formset.management_form }}{{ resource_formset.non_form_errors }}
+            {% for resource_form in resource_formset %}<div class="guide-formset-row">{{ resource_form.id }}{{ resource_form.non_field_errors }}{% for field in resource_form.visible_fields %}<div class="guide-form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}</div>{% endfor %}
+        </fieldset>
+        <div class="guide-form-actions"><button name="action" value="save_draft" type="submit">Save draft</button><button name="action" value="submit" type="submit">Submit for review</button></div>
+    </form>
+</main>
+{% endblock %}
