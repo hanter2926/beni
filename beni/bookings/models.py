@@ -26,6 +26,14 @@ class RepairBooking(models.Model):
         STATUS_IN_PROGRESS,
         STATUS_COMPLETED,
     )
+    WORKER_ADDRESS_VISIBLE_STATUSES = (
+        STATUS_ASSIGNED,
+        STATUS_ACCEPTED,
+        STATUS_ON_THE_WAY,
+        STATUS_ARRIVED,
+        STATUS_INSPECTION,
+        STATUS_IN_PROGRESS,
+    )
 
     STATUS_CHOICES = [
         (STATUS_REQUESTED, 'Pending'),
@@ -70,6 +78,13 @@ class RepairBooking(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def worker_can_view_service_address(self):
+        return (
+            self.assigned_worker_id is not None
+            and self.status in self.WORKER_ADDRESS_VISIBLE_STATUSES
+        )
 
     class Meta:
         ordering = ('-created_at', '-id')

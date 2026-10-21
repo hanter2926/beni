@@ -20,7 +20,13 @@
                 {% for booking in bookings %}
                     <article class="form-field">
                         <h3>{{ booking.service_category }} · {{ booking.get_status_display }}</h3>
-                        <p>{{ booking.preferred_at }} · {{ booking.service_address }}</p>
+                        <p>{{ booking.preferred_at }} ·
+                            {% if booking.worker_can_view_service_address %}
+                                {{ booking.service_address }}
+                            {% else %}
+                                The service address is no longer available for this job.
+                            {% endif %}
+                        </p>
                         <p>{{ booking.problem_description|linebreaksbr }}</p>
                         <p>Customer: {{ booking.customer.get_full_name|default:booking.customer.get_username }}</p>
                         {% if booking.contact_verified %}

@@ -223,6 +223,10 @@ class BookingNotificationTests(TestCase):
         unrelated_worker_response = self.client.get('/repairs/worker/')
         self.assertEqual(unrelated_worker_response.status_code, 200)
         self.assertNotContains(unrelated_worker_response, '+15550100002')
+        self.assertNotContains(
+            unrelated_worker_response,
+            self.booking.service_address,
+        )
 
         other_customer = get_user_model().objects.create_user(
             username='booking-unrelated-customer',
@@ -232,6 +236,34 @@ class BookingNotificationTests(TestCase):
             self.client.get(f'/repairs/{self.booking.pk}/').status_code,
             404,
         )
+
+    def test_worker_service_address_is_hidden_after_booking_ends(self):
+        assign_worker(
+            booking_id=self.booking.pk,
+            worker=self.worker,
+            actor=self.staff,
+        )
+        self.client.force_login(self.worker)
+
+        active_response = self.client.get('/repairs/worker/')
+        self.assertContains(active_response, self.booking.service_address)
+
+        for status in (
+            RepairBooking.STATUS_COMPLETED,
+            RepairBooking.STATUS_CANCELLED,
+            RepairBooking.STATUS_DISPUTED,
+        ):
+            with self.subTest(status=status):
+                self.booking.status = status
+                self.booking.save(update_fields=('status',))
+
+                response = self.client.get('/repairs/worker/')
+
+                self.assertNotContains(response, self.booking.service_address)
+                self.assertContains(
+                    response,
+                    'The service address is no longer available for this job.',
+                )
 
     def test_safety_support_is_staff_scoped_and_disputes_active_booking(self):
         assign_worker(
