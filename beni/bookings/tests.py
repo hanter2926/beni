@@ -211,6 +211,7 @@ class BookingNotificationTests(TestCase):
             f'/repairs/{self.booking.pk}/',
         )
         self.assertEqual(customer_response.status_code, 200)
+        self.assertContains(customer_response, self.booking.service_address)
         self.assertContains(customer_response, '+15550100000')
         self.assertContains(customer_response, 'https://wa.me/15550100000')
 
@@ -236,6 +237,43 @@ class BookingNotificationTests(TestCase):
             self.client.get(f'/repairs/{self.booking.pk}/').status_code,
             404,
         )
+
+    def test_unassigned_worker_cannot_view_booking_address_or_update_job(self):
+        self.client.force_login(self.worker)
+
+        response = self.client.get('/repairs/worker/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.booking.service_address)
+
+        response = self.client.post(
+            f'/repairs/worker/{self.booking.pk}/status/',
+            {'status': RepairBooking.STATUS_ACCEPTED},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_only_staff_can_review_booking_address_and_history(self):
+        assign_worker(
+            booking_id=self.booking.pk,
+            worker=self.worker,
+            actor=self.staff,
+        )
+        self.booking.status = RepairBooking.STATUS_COMPLETED
+        self.booking.save(update_fields=('status',))
+
+        self.client.force_login(self.worker)
+        worker_response = self.client.get('/repairs/admin/')
+        self.assertNotEqual(worker_response.status_code, 200)
+        self.assertNotContains(
+            worker_response,
+            self.booking.service_address,
+            status_code=worker_response.status_code,
+        )
+
+        self.client.force_login(self.staff)
+        staff_response = self.client.get('/repairs/admin/')
+        self.assertEqual(staff_response.status_code, 200)
+        self.assertContains(staff_response, self.booking.service_address)
+        self.assertContains(staff_response, 'Completed')
 
     def test_worker_service_address_is_hidden_after_booking_ends(self):
         assign_worker(
